@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/authStore';
 
-const BASE_URL = 'http://localhost:3000/api/v1';
+const BASE_URL = 'https://my-life-os-diary.onrender.com/api/v1';
 
 const getHeaders = () => ({
   'Content-Type': 'application/json',
