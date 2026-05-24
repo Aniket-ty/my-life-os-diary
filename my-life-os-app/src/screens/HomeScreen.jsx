@@ -7,7 +7,6 @@ const MODULES = [
   { name: 'Fitness Journal', description: 'Workouts, calories, progress', icon: 'barbell-outline', color: '#2ecc71', bg: '#f0fff4', border: '#2ecc71', screen: 'FitnessList' },
   { name: 'AI Assistant', description: 'Chat about food, exercise & more', icon: 'sparkles-outline', color: '#9b59b6', bg: '#fdf0ff', border: '#9b59b6', screen: 'AIChat' },
   { name: 'To-Do & Reminders', description: 'Tasks, goals, daily habits', icon: 'checkbox-outline', color: '#3498db', bg: '#f0f8ff', border: '#3498db', screen: 'TodoList' },
-  { name: 'Body Scan Tracker', description: 'Track your progress', icon: 'scan-outline', color: '#e74c3c', bg: '#fff5f5', border: '#e74c3c', screen: 'BodyScan' },
 ];
 
 export default function HomeScreen({ navigation }) {

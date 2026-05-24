@@ -4,6 +4,15 @@ import { useAuthStore } from '../stores/authStore';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
+import DiaryListScreen from '../screens/diary/DiaryListScreen';
+import DiaryWriteScreen from '../screens/diary/DiaryWriteScreen';
+import DiaryEntryScreen from '../screens/diary/DiaryEntryScreen';
+import FitnessScreen from '../screens/fitness/FitnessScreen';
+import AddWorkoutScreen from '../screens/fitness/AddWorkoutScreen';
+import LogFoodScreen from '../screens/fitness/LogFoodScreen';
+import AIChatScreen from '../screens/ai/AIChatScreen';
+import TodoScreen from '../screens/todo/TodoScreen';
+import BodyScanScreen from '../screens/bodyscan/BodyScanScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,7 +24,18 @@ export default function Navigation() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isLoggedIn ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="DiaryList" component={DiaryListScreen} />
+            <Stack.Screen name="DiaryWrite" component={DiaryWriteScreen} />
+            <Stack.Screen name="DiaryEntry" component={DiaryEntryScreen} />
+            <Stack.Screen name="FitnessList" component={FitnessScreen} />
+            <Stack.Screen name="AddWorkout" component={AddWorkoutScreen} />
+            <Stack.Screen name="LogFood" component={LogFoodScreen} />
+            <Stack.Screen name="AIChat" component={AIChatScreen} />
+            <Stack.Screen name="TodoList" component={TodoScreen} />
+            <Stack.Screen name="BodyScan" component={BodyScanScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />

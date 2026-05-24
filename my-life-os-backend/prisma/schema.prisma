@@ -23,6 +23,7 @@ model User {
   nutritionLogs NutritionLog[]
   todos         Todo[]
   workouts      Workout[]
+  bodyScans     BodyScan[]
 
   @@map("users")
 }
@@ -184,4 +185,26 @@ enum Priority {
 enum ChatRole {
   user
   assistant
+}
+
+model BodyScan {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  scanDate       DateTime @map("scan_date") @db.Date
+  weight         Decimal  @db.Decimal(5, 1)
+  bodyFatPct     Decimal? @map("body_fat_pct") @db.Decimal(4, 1)
+  muscleMassKg   Decimal? @map("muscle_mass_kg") @db.Decimal(5, 1)
+  leanBodyMassKg Decimal? @map("lean_body_mass_kg") @db.Decimal(5, 1)
+  bmr            Int?
+  tee            Int?
+  visceralFat    Int?     @map("visceral_fat")
+  bwiScore       Decimal? @map("bwi_score") @db.Decimal(3, 1)
+  bioAge         Int?     @map("bio_age")
+  proteinKg      Decimal? @map("protein_kg") @db.Decimal(4, 1)
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("body_scans")
 }
