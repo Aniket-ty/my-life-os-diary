@@ -51,7 +51,7 @@ const createWorkout = async (req, res) => {
               create: exercises.map((ex, i) => ({
                 exerciseName: ex.exerciseName,
                 sets: ex.sets,
-                reps: ex.reps,
+                reps: ex.reps != null ? String(ex.reps) : null,
                 weightKg: ex.weightKg,
                 durationSec: ex.durationSec,
                 distanceKm: ex.distanceKm,
@@ -119,7 +119,7 @@ const addExercises = async (req, res) => {
             workoutId: req.params.id,
             exerciseName: ex.exerciseName,
             sets: ex.sets,
-            reps: ex.reps,
+            reps: ex.reps != null ? String(ex.reps) : null,
             weightKg: ex.weightKg,
             durationSec: ex.durationSec,
             distanceKm: ex.distanceKm,

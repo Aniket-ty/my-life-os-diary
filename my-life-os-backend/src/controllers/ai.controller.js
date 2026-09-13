@@ -129,7 +129,7 @@ const addWorkoutFromAI = async (req, res) => {
           create: exercises.map((ex, i) => ({
             exerciseName: ex.exerciseName,
             sets: ex.sets,
-            reps: ex.reps,
+            reps: ex.reps != null ? String(ex.reps) : null,
             weightKg: ex.weightKg,
             orderIndex: i,
           })),
