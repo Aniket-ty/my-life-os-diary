@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-void: #07070d;
+  --color-abyss: #0b0b14;
+  --color-surface: #111122;
+  --color-card: #151529;
+  --color-card-hover: #1a1a33;
+  --color-edge: #26264a;
+
+  --color-gold-500: #f5a623;
+  --color-gold-400: #f7b14b;
+  --color-gold-300: #f9c477;
+
+  --color-mint-400: #7ee8c3;
+  --color-mint-300: #9fe1cb;
+
+  --color-violet-brand: #9b59b6;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #07070d;
+  color: #e8e8f0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Ambient background glows */
+.bg-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 15% 0%, rgba(245, 166, 35, 0.07) 0%, transparent 60%),
+    radial-gradient(50% 40% at 85% 10%, rgba(46, 204, 113, 0.06) 0%, transparent 60%),
+    radial-gradient(70% 60% at 75% 100%, rgba(155, 89, 182, 0.07) 0%, transparent 60%),
+    radial-gradient(60% 50% at 10% 90%, rgba(52, 152, 219, 0.05) 0%, transparent 60%);
+}
+
+/* Fine dotted starfield */
+.bg-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(60% 50% at 50% 30%, #000 0%, transparent 100%);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+/* Glassmorphism */
+.glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.glass-strong {
+  background: linear-gradient(160deg, rgba(21, 21, 41, 0.85), rgba(11, 11, 20, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Text glow helpers */
+.glow-gold {
+  text-shadow: 0 0 24px rgba(245, 166, 35, 0.5);
+}
+.glow-mint {
+  text-shadow: 0 0 24px rgba(126, 232, 195, 0.4);
+}
+.glow-violet {
+  text-shadow: 0 0 24px rgba(155, 89, 182, 0.5);
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a4a transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a2a4a;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Recharts overrides */
+.recharts-cartesian-axis-tick text {
+  fill: rgba(232, 232, 240, 0.45);
+  font-size: 11px;
+  font-weight: 500;
+}
+.recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+.recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+/* Hide number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+::selection {
+  background: rgba(155, 89, 182, 0.35);
+  color: #fff;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 37%, rgba(255,255,255,0.03) 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
