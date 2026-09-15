@@ -43,6 +43,20 @@ export const fitnessAPI = {
     const res = await fetch(`${BASE_URL}/fitness/nutrition?date=${date}`, { headers: getHeaders() });
     return res.json();
   },
+  analyzeFoodImage: async (file) => {
+    const form = new FormData();
+    form.append('file', {
+      uri: file.uri,
+      type: file.mimeType || 'image/jpeg',
+      name: file.fileName || `food-${Date.now()}.jpg`,
+    });
+    const res = await fetch(`${BASE_URL}/fitness/nutrition/analyze`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${useAuthStore.getState().accessToken}` },
+      body: form,
+    });
+    return res.json();
+  },
   logFood: async (data) => {
     const res = await fetch(`${BASE_URL}/fitness/nutrition`, {
       method: 'POST', headers: getHeaders(), body: JSON.stringify(data),

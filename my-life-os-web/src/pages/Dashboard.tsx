@@ -7,6 +7,7 @@ import {
   Sparkles,
   ListTodo,
   ScanLine,
+  CalendarRange,
   ArrowRight,
   Flame,
   CheckCircle2,
@@ -42,6 +43,16 @@ const modules = [
     glow: 'group-hover:shadow-emerald-500/20',
   },
   {
+    to: '/fitness/planner',
+    title: 'Workout Plan',
+    desc: 'AI weekly workout schedule & routines',
+    icon: CalendarRange,
+    gradient: 'from-teal-500/25 to-emerald-500/10',
+    iconColor: 'text-teal-300',
+    border: 'hover:border-teal-500/40',
+    glow: 'group-hover:shadow-teal-500/20',
+  },
+  {
     to: '/ai',
     title: 'AI Coach',
     desc: 'Ask me anything, track smart',
@@ -70,7 +81,6 @@ const modules = [
     iconColor: 'text-rose-300',
     border: 'hover:border-rose-500/40',
     glow: 'group-hover:shadow-rose-500/20',
-    wide: true,
   },
 ]
 
@@ -189,7 +199,7 @@ const stats = [
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 * i + 0.2 }}
-            className={`group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${m.gradient} p-5 transition-all duration-300 hover:-translate-y-1 ${m.border} ${m.wide ? '' : ''}`}
+            className={`group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${m.gradient} p-5 transition-all duration-300 hover:-translate-y-1 ${m.border}`}
             onClick={() => navigate(m.to)}
           >
             <div className="flex items-start justify-between">

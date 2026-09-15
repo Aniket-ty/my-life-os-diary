@@ -67,10 +67,16 @@ export default function FitnessScreen({ navigation }) {
           <Text style={styles.headerTitle}>Fitness Journal</Text>
           <Text style={styles.headerDate}>{moment().format('dddd, MMMM D')}</Text>
         </View>
-        <TouchableOpacity style={styles.scanBtn} onPress={() => navigation.navigate('BodyScan')}>
-          <Ionicons name="scan-outline" size={16} color="#e74c3c" />
-          <Text style={styles.scanBtnText}>Body Scan</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.planBtn} onPress={() => navigation.navigate('WorkoutPlanner')}>
+            <Ionicons name="calendar-outline" size={16} color="#f59e0b" />
+            <Text style={styles.planBtnText}>Plan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.scanBtn} onPress={() => navigation.navigate('BodyScan')}>
+            <Ionicons name="scan-outline" size={16} color="#e74c3c" />
+            <Text style={styles.scanBtnText}>Body Scan</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {!scanChecked ? (
@@ -250,8 +256,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12, backgroundColor: '#1a1a2e',
   },
+  headerButtons: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
   headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff' },
   headerDate: { fontSize: 12, color: '#888', marginTop: 2 },
+  planBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#1a150a', borderRadius: 16,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: '#f59e0b33',
+  },
+  planBtnText: { color: '#f59e0b', fontSize: 12, fontWeight: '600' },
   scanBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#1a0a0a', borderRadius: 16,

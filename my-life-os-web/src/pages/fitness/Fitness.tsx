@@ -17,6 +17,7 @@ import {
   Timer,
   NotebookPen,
   ScanLine,
+  CalendarRange,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { fitnessService, type DailySummary, type Workout, type FitnessGoals } from '@/services/fitness'
@@ -217,17 +218,30 @@ export function Fitness() {
 
           {/* Workouts */}
           <section>
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-display text-lg font-semibold text-white">Workouts</h2>
-              <Button size="sm" onClick={() => setShowWorkout(true)}>
-                <Plus size={15} />
-                Add workout
-              </Button>
+              <div className="flex items-center gap-2">
+                <Link to="/fitness/planner">
+                  <Button size="sm" variant="secondary" className="gap-1.5 border-teal-500/30 text-teal-300 hover:bg-teal-500/10">
+                    <CalendarRange size={14} />
+                    Workout Plan
+                  </Button>
+                </Link>
+                <Button size="sm" onClick={() => setShowWorkout(true)}>
+                  <Plus size={15} />
+                  Add workout
+                </Button>
+              </div>
             </div>
             {workouts.length === 0 ? (
               <div className="glass flex flex-col items-center justify-center rounded-2xl py-12 text-center">
                 <Dumbbell size={30} className="mb-2 text-emerald-300/50" />
                 <p className="text-sm text-slate-400">No workouts on this day</p>
+                <Link to="/fitness/planner" className="mt-3">
+                  <Button size="sm" variant="secondary" className="gap-1.5 border-teal-500/30 text-teal-300 hover:bg-teal-500/10">
+                    <CalendarRange size={14} /> Open Workout Planner
+                  </Button>
+                </Link>
               </div>
             ) : (
               <div className="space-y-3">
@@ -304,7 +318,7 @@ export function Fitness() {
 
           {/* Nutrition log */}
           <section>
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-display text-lg font-semibold text-white">Nutrition</h2>
               <Button size="sm" variant="secondary" onClick={() => setShowFood(true)}>
                 <Plus size={15} />
@@ -330,22 +344,24 @@ export function Fitness() {
                           key={item.id}
                           className="group glass flex items-center gap-3 rounded-xl px-4 py-3 text-sm"
                         >
-                          <div className="flex-1">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium text-slate-100">{item.foodName}</p>
-                              {item.aiSuggested && <Badge tone="violet" className="normal-case">AI</Badge>}
+                              <p className="truncate font-medium text-slate-100">{item.foodName}</p>
+                              {item.aiSuggested && <Badge tone="violet" className="shrink-0 normal-case">AI</Badge>}
                             </div>
-                            {item.quantity && <p className="text-xs text-slate-500">{item.quantity}</p>}
+                            <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-slate-500">
+                              {item.quantity && <span className="truncate">{item.quantity}</span>}
+                              <span>
+                                {item.proteinG ? `P ${item.proteinG}g ` : ''}
+                                {item.carbsG ? `C ${item.carbsG}g ` : ''}
+                                {item.fatG ? `F ${item.fatG}g` : ''}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-xs text-slate-400">
-                            {item.proteinG ? `P ${item.proteinG}g ` : ''}
-                            {item.carbsG ? `C ${item.carbsG}g ` : ''}
-                            {item.fatG ? `F ${item.fatG}g` : ''}
-                          </div>
-                          <p className="w-16 text-right font-semibold text-white">{item.calories}</p>
+                          <p className="w-16 shrink-0 text-right font-semibold text-white">{item.calories}</p>
                           <button
                             onClick={() => deleteFood(item.id)}
-                            className="text-slate-600 opacity-0 transition-opacity hover:text-rose-400 group-hover:opacity-100"
+                            className="text-slate-600 opacity-100 transition-opacity hover:text-rose-400 sm:opacity-0 sm:group-hover:opacity-100"
                           >
                             <Trash2 size={15} />
                           </button>

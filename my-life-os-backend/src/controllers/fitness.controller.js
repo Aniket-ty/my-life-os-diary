@@ -1,4 +1,6 @@
 const prisma = require('../config/database');
+const { analyzeFoodImage } = require('../services/ai.service');
+const { uploadMedia } = require('../services/media.service');
 
 // ── Workouts ──────────────────────────────────────────────
 
@@ -164,6 +166,35 @@ const getNutrition = async (req, res) => {
     res.json(logs);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+};
+
+// Analyze a food photo with AI -> returns per-100g nutrition
+const analyzeFood = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+
+    // Keep images under Groq's 20MB vision request limit
+    if (req.file.size > 18 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image too large. Please upload an image under 18MB.' });
+    }
+
+    // Upload to Cloudinary for a stored reference (best effort)
+    let imageUrl = null;
+    try {
+      const uploaded = await uploadMedia(req.file, 'photo');
+      imageUrl = uploaded.secure_url;
+    } catch (e) {
+      // Non-fatal; analysis still works from buffer
+    }
+
+    const base64 = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype || 'image/jpeg';
+    const result = await analyzeFoodImage(base64, mimeType);
+
+    res.json({ ...result, imageUrl });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Could not analyze the food photo' });
   }
 };
 
@@ -382,6 +413,6 @@ const getConsistencyReport = async (req, res) => {
 module.exports = {
   getWorkouts, getWorkout, createWorkout, updateWorkout,
   deleteWorkout, addExercises, deleteExercise,
-  getNutrition, logFood, deleteFood, getDailySummary,
+  getNutrition, logFood, analyzeFood, deleteFood, getDailySummary,
   getGoals, upsertGoals, getConsistencyReport,
 };

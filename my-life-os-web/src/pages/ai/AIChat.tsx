@@ -128,7 +128,7 @@ export function AIChat() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-140px)] min-h-[520px] flex-col">
+    <div className="flex h-[calc(100dvh-210px)] min-h-[420px] flex-col sm:h-[calc(100vh-140px)] sm:min-h-[520px]">
       <PageHeader
         title="AI Coach"
         subtitle="Your personal nutrition & fitness assistant"

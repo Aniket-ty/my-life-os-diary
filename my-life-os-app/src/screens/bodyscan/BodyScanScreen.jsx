@@ -7,6 +7,7 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 import { useBodyScanStore } from '../../stores/bodyScanStore';
+import { useAuthStore } from '../../stores/authStore';
 import { fitnessAPI } from '../../services/fitnessService';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
@@ -29,14 +30,17 @@ const BASELINE = {
 
 export default function BodyScanScreen({ navigation }) {
   const { scans, loading, fetchScans, createScan, deleteScan } = useBodyScanStore();
+  const profileHeight = useAuthStore.getState().user?.heightCm
+    ? String(useAuthStore.getState().user.heightCm)
+    : '';
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [report, setReport] = useState(null);
-  const [form, setForm] = useState({
-    weight: '', bodyFatPct: '', muscleMassKg: '',
+  const [form, setForm] = useState(() => ({
+    weight: '', heightCm: profileHeight, bodyFatPct: '', muscleMassKg: '',
     leanBodyMassKg: '', bmr: '', tee: '',
     visceralFat: '', bwiScore: '', bioAge: '', notes: '',
-  });
+  }));
 
   useEffect(() => {
     fetchScans();
@@ -86,7 +90,7 @@ export default function BodyScanScreen({ navigation }) {
         scanDate: moment().format('YYYY-MM-DD'),
       });
       setForm({
-        weight: '', bodyFatPct: '', muscleMassKg: '',
+        weight: '', heightCm: profileHeight, bodyFatPct: '', muscleMassKg: '',
         leanBodyMassKg: '', bmr: '', tee: '',
         visceralFat: '', bwiScore: '', bioAge: '', notes: '',
       });
@@ -337,17 +341,21 @@ export default function BodyScanScreen({ navigation }) {
             <ScrollView showsVerticalScrollIndicator={false}>
               {[
                 { label: 'Weight (kg) *', key: 'weight' },
+                { label: 'Height (cm)', key: 'heightCm', note: 'Used to auto-calculate BMR, TEE & nutrition targets' },
                 { label: 'Body Fat %', key: 'bodyFatPct' },
                 { label: 'Muscle Mass (kg)', key: 'muscleMassKg' },
                 { label: 'Lean Body Mass (kg)', key: 'leanBodyMassKg' },
-                { label: 'BMR (kcal)', key: 'bmr' },
-                { label: 'TEE (kcal)', key: 'tee' },
+                { label: 'BMR (kcal)', key: 'bmr', note: 'Leave blank to auto-calculate from weight + height' },
+                { label: 'TEE (kcal)', key: 'tee', note: 'Leave blank to auto-calculate from weight + height' },
                 { label: 'Visceral Fat Level', key: 'visceralFat' },
                 { label: 'BWI Score (/10)', key: 'bwiScore' },
                 { label: 'Bio Age', key: 'bioAge' },
                 { label: 'Protein (kg)', key: 'proteinKg' },
               ].map((field) => (
                 <View key={field.key}>
+                  {field.note ? (
+                    <Text style={styles.modalNote}>{field.note}</Text>
+                  ) : null}
                   <Text style={styles.modalLabel}>{field.label}</Text>
                   <TextInput
                     style={styles.modalInput}
@@ -440,6 +448,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
   modalLabel: { fontSize: 12, color: '#888', fontWeight: '600', marginBottom: 4, marginTop: 12, textTransform: 'uppercase' },
+  modalNote: { fontSize: 11, color: '#f39c12', marginTop: 12, marginBottom: 8 },
   modalInput: {
     backgroundColor: '#0f0f1a', borderRadius: 10, padding: 12,
     color: '#fff', fontSize: 14, borderWidth: 1, borderColor: '#2a2a3e',

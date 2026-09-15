@@ -122,35 +122,31 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="glass-strong fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around border-t border-white/10 px-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {items.filter((i) => i.to !== '/fitness/planner').slice(0, 5).map(({ to, label, icon: Icon }) => (
+      <nav className="glass-strong fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around border-t border-white/10 px-1 pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {[
+          { to: '/', label: 'Home', icon: LayoutDashboard, exact: true },
+          { to: '/diary', label: 'Diary', icon: BookHeart },
+          { to: '/fitness', label: 'Fitness', icon: Dumbbell },
+          { to: '/ai', label: 'AI', icon: Sparkles },
+          { to: '/todo', label: 'To-Do', icon: ListTodo },
+          { to: '/body-scan', label: 'Scan', icon: ScanLine },
+          { to: '/settings', label: 'Settings', icon: Settings },
+        ].map(({ to, label, icon: Icon, exact }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={!!exact}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
+                'flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
                 isActive ? 'text-violet-brand' : 'text-slate-500',
               )
             }
           >
-            <Icon size={21} />
-            {label.split(' ')[0]}
+            <Icon size={19} />
+            <span className="max-w-full truncate">{label}</span>
           </NavLink>
         ))}
-        <NavLink
-          to="/body-scan"
-          className={({ isActive }) =>
-            cn(
-              'flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
-              isActive ? 'text-violet-brand' : 'text-slate-500',
-            )
-          }
-        >
-          <ScanLine size={21} />
-          Scan
-        </NavLink>
       </nav>
     </>
   )

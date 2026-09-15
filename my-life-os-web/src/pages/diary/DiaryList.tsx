@@ -172,7 +172,7 @@ export function DiaryList() {
                     e.stopPropagation()
                     setConfirmId(entry.id)
                   }}
-                  className="absolute right-3 top-3 z-20 rounded-lg bg-white/40 p-1.5 text-[#a08464] opacity-0 transition-opacity hover:bg-white/70 hover:text-rose-500 group-hover:opacity-100"
+                  className="absolute right-3 top-3 z-20 rounded-lg bg-white/40 p-1.5 text-[#a08464] opacity-100 transition-opacity hover:bg-white/70 hover:text-rose-500 sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <Trash2 size={14} />
                 </button>

@@ -59,4 +59,80 @@ const chatWithAI = async (userMessage, history, userContext) => {
   return { text, action };
 };
 
-module.exports = { chatWithAI };
+// ── Food photo analysis ────────────────────────────────
+
+const VISION_MODELS = [
+  'qwen/qwen3.6-27b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'llama-3.2-11b-vision-preview',
+];
+
+const FOOD_IMAGE_PROMPT = `You are a food nutrition expert. Look at the food photo and identify what food it is.
+Estimate its nutrition PER 100 GRAMS (raw edible portion). Be realistic and specific.
+
+Respond with ONLY valid JSON and nothing else, using this exact shape:
+{
+  "foodName": "Grilled chicken breast",
+  "per100g": { "calories": 165, "proteinG": 31, "carbsG": 0, "fatG": 3.6 },
+  "serving": "1 medium breast (~120g)",
+  "note": "one short helpful line, or empty string"
+}`;
+
+const parseJson = (text) => {
+  const cleaned = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+};
+
+const analyzeFoodImage = async (imageBase64, mimeType = 'image/jpeg') => {
+  const dataUri = `data:${mimeType};base64,${imageBase64}`;
+  let lastError = null;
+
+  for (const model of VISION_MODELS) {
+    try {
+      const response = await groq.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: FOOD_IMAGE_PROMPT },
+              { type: 'image_url', image_url: { url: dataUri } },
+            ],
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 512,
+      });
+
+      const content = response.choices[0]?.message?.content || '';
+      const parsed = parseJson(content);
+      if (parsed?.foodName && parsed?.per100g) {
+        return {
+          foodName: parsed.foodName,
+          per100g: {
+            calories: Math.max(0, Math.round(Number(parsed.per100g.calories) || 0)),
+            proteinG: Math.max(0, Math.round((Number(parsed.per100g.proteinG) || 0) * 10) / 10),
+            carbsG: Math.max(0, Math.round((Number(parsed.per100g.carbsG) || 0) * 10) / 10),
+            fatG: Math.max(0, Math.round((Number(parsed.per100g.fatG) || 0) * 10) / 10),
+          },
+          serving: parsed.serving || null,
+          note: parsed.note || null,
+        };
+      }
+      lastError = new Error('AI returned an unparseable nutrition response');
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  if (lastError) throw lastError;
+  throw new Error('No vision model available');
+};
+
+module.exports = { chatWithAI, analyzeFoodImage };

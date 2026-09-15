@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, API_BASE, getAccessToken, ApiError } from '@/lib/api'
 import type { MealType } from '@/lib/utils'
 
 export interface WorkoutExercise {
@@ -55,6 +55,14 @@ export interface DailySummary {
   logCount: number
 }
 
+export interface FoodAnalysisResult {
+  foodName: string
+  per100g: { calories: number; proteinG: number; carbsG: number; fatG: number }
+  serving?: string | null
+  note?: string | null
+  imageUrl?: string | null
+}
+
 export interface ConsistencyReport {
   period: number
   workouts: {
@@ -97,6 +105,26 @@ export const fitnessService = {
   logFood: (data: Omit<NutritionLog, 'id' | 'createdAt'>) =>
     api.post<NutritionLog>('/fitness/nutrition', data),
   deleteFood: (id: string) => api.delete<{ message: string }>(`/fitness/nutrition/${id}`),
+
+  analyzeFoodImage: async (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 60000)
+    try {
+      const res = await fetch(`${API_BASE}/fitness/nutrition/analyze`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        body: form,
+        signal: controller.signal,
+      })
+      const data = (await res.json()) as FoodAnalysisResult & { error?: string }
+      if (!res.ok) throw new ApiError(data.error || 'Could not analyze the food photo', res.status)
+      return data
+    } finally {
+      clearTimeout(timer)
+    }
+  },
 
   getSummary: (date?: string) => api.get<DailySummary>('/fitness/summary', { date }),
   getGoals: () => api.get<FitnessGoals>('/fitness/goals'),

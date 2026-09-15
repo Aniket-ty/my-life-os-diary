@@ -375,7 +375,7 @@ export function BodyScanPage() {
                       </div>
                       <button
                         onClick={() => remove(s.id)}
-                        className="rounded-lg p-1.5 text-slate-600 opacity-0 transition-opacity hover:bg-rose-500/10 hover:text-rose-300 group-hover:opacity-100"
+                        className="rounded-lg p-1.5 text-slate-600 opacity-100 transition-opacity hover:bg-rose-500/10 hover:text-rose-300 sm:opacity-0 sm:group-hover:opacity-100"
                       >
                         <Trash2 size={15} />
                       </button>

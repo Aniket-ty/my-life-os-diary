@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Camera, Sparkles } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { fitnessService } from '@/services/fitness'
+import { fitnessService, type FoodAnalysisResult } from '@/services/fitness'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -34,6 +34,13 @@ export function LogFoodModal({
   const [carbs, setCarbs] = useState('')
   const [fat, setFat] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoName, setPhotoName] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [aiResult, setAiResult] = useState<FoodAnalysisResult | null>(null)
+  const [portionG, setPortionG] = useState('100')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   function reset() {
@@ -43,6 +50,51 @@ export function LogFoodModal({
     setProtein('')
     setCarbs('')
     setFat('')
+    setPhotoUrl(null)
+    setPhotoName(null)
+    setAiResult(null)
+    setPortionG('100')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function applyPortion(result: FoodAnalysisResult, grams: string) {
+    const g = Math.max(0, Number(grams) || 0)
+    const factor = g / 100
+    setName(result.foodName)
+    setCalories(String(Math.max(0, Math.round(result.per100g.calories * factor))))
+    setProtein(String(Math.max(0, Math.round(result.per100g.proteinG * factor * 10) / 10)))
+    setCarbs(String(Math.max(0, Math.round(result.per100g.carbsG * factor * 10) / 10)))
+    setFat(String(Math.max(0, Math.round(result.per100g.fatG * factor * 10) / 10)))
+    setQuantity(`${g}g`)
+  }
+
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoUrl(URL.createObjectURL(file))
+    setPhotoName(file.name)
+    setAiResult(null)
+    setAnalyzing(true)
+    try {
+      const data = await fitnessService.analyzeFoodImage(file)
+      if (!data.foodName || !data.per100g) {
+        throw new Error('AI could not identify this food. Try a clearer photo.')
+      }
+      setAiResult(data)
+      setPortionG('100')
+      applyPortion(data, '100')
+    } catch (err) {
+      setPhotoUrl(null)
+      setPhotoName(null)
+      toast(err instanceof Error ? err.message : 'Could not analyze the photo', 'error')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  function onPortionChange(value: string) {
+    setPortionG(value)
+    if (aiResult) applyPortion(aiResult, value)
   }
 
   async function save() {
@@ -61,6 +113,7 @@ export function LogFoodModal({
         fatG: fat ? Number(fat) : undefined,
         quantity: quantity.trim() || undefined,
         logDate: toISODate(new Date()),
+        aiSuggested: !!aiResult,
       })
       toast(`${name.trim()} logged`)
       reset()
@@ -102,6 +155,51 @@ export function LogFoodModal({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* AI food photo */}
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFilePicked}
+          />
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-400">
+              Snap or upload a food photo — AI identifies it and fills nutrition from the portion weight.
+            </p>
+            <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={analyzing} className="shrink-0 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10">
+              <Camera size={14} />
+              {analyzing ? 'Analyzing…' : 'Add photo'}
+            </Button>
+          </div>
+
+          {photoUrl && (
+            <div className="mt-3 flex gap-3">
+              <img src={photoUrl} alt={photoName ?? 'Food'} className="h-24 w-24 shrink-0 rounded-lg border border-white/10 object-cover" />
+              <div className="min-w-0 flex-1">
+                {analyzing ? (
+                  <p className="text-sm text-slate-300">AI is identifying your food…</p>
+                ) : aiResult ? (
+                  <div className="space-y-1.5">
+                    <p className="truncate text-sm font-semibold text-white">{aiResult.foodName}</p>
+                    <p className="text-xs text-emerald-300">
+                      per 100g: {aiResult.per100g.calories} kcal · P {aiResult.per100g.proteinG}g · C {aiResult.per100g.carbsG}g · F {aiResult.per100g.fatG}g
+                    </p>
+                    {aiResult.serving && <p className="text-xs text-slate-400">Serving: {aiResult.serving}</p>}
+                    <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                      <Input label="Portion (g)" type="number" value={portionG} onChange={(e) => onPortionChange(e.target.value)} placeholder="100" />
+                      <p className="self-end pb-1.5 text-xs font-semibold text-teal-300">
+                        → {calories} kcal · P {protein}g · C {carbs}g · F {fat}g
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
