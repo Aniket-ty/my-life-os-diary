@@ -62,9 +62,7 @@ const chatWithAI = async (userMessage, history, userContext) => {
 // ── Food photo analysis ────────────────────────────────
 
 const VISION_MODELS = [
-  'qwen/qwen3.6-27b',
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'llama-3.2-11b-vision-preview',
+  'qwen/qwen3.8-27b',
 ];
 
 const FOOD_IMAGE_PROMPT = `You are a food nutrition expert. Look at the food photo and identify what food it is.
