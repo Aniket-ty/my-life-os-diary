@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Pin, Pencil, Trash2, CalendarDays, Music2, Clapperboard } from 'lucide-react'
+import { ArrowLeft, Pin, Pencil, Trash2, CalendarDays, Music2, Clapperboard, FileText } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { diaryService, type DiaryEntry } from '@/services/diary'
 import { Loading } from '@/components/ui/Loading'
@@ -108,7 +108,7 @@ export function DiaryView() {
                     ) : (
                       <div className="inline-flex items-center gap-3">
                         <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-[#f0e7d2]">
-                          {a.mediaType === 'audio' ? <Music2 size={20} /> : <Clapperboard size={20} />}
+                          {a.mediaType === 'audio' ? <Music2 size={20} /> : a.mediaType === 'document' ? <FileText size={20} /> : <Clapperboard size={20} />}
                         </div>
                         <div>
                           <p className="max-w-[180px] truncate text-sm font-medium">{a.fileName ?? a.mediaType}</p>

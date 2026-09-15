@@ -2,7 +2,7 @@ import { api } from '@/lib/api'
 
 export interface MediaAttachment {
   id: string
-  mediaType: 'photo' | 'audio' | 'video'
+  mediaType: 'photo' | 'audio' | 'video' | 'document'
   cloudinaryUrl: string
   fileName?: string | null
   fileSizeKb?: number | null

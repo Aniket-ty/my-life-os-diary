@@ -124,8 +124,8 @@ const uploadAttachment = async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const { mediaType } = req.body;
-    if (!['photo', 'audio', 'video'].includes(mediaType)) {
-      return res.status(400).json({ error: 'mediaType must be photo, audio, or video' });
+    if (!['photo', 'audio', 'video', 'document'].includes(mediaType)) {
+      return res.status(400).json({ error: 'mediaType must be photo, audio, video, or document' });
     }
 
     const uploaded = await uploadMedia(req.file, mediaType);

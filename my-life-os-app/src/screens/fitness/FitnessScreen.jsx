@@ -68,7 +68,7 @@ export default function FitnessScreen({ navigation }) {
       </View>
 
       {/* Smart Nutrition Bar */}
-      <NutritionBar summary={summary} />
+      <NutritionBar summary={summary} goals={goals} />
 
       {/* Tabs */}
       <View style={styles.tabs}>
@@ -185,9 +185,15 @@ export default function FitnessScreen({ navigation }) {
         context="fitness"
         contextData={{
           todayCalories: summary?.totals?.calories || 0,
-          calorieGoal: 2097,
-          caloriesLeft: Math.max(2097 - (summary?.totals?.calories || 0), 0),
-          proteinLeft: Math.max(150 - (summary?.totals?.proteinG || 0), 0).toFixed(0),
+          calorieGoal: Number(summary?.goals?.dailyCalories) || Number(goals?.dailyCalories) || 2097,
+          caloriesLeft: Math.max(
+            (Number(summary?.goals?.dailyCalories) || Number(goals?.dailyCalories) || 2097) - (summary?.totals?.calories || 0),
+            0
+          ),
+          proteinLeft: Math.max(
+            (Number(summary?.goals?.proteinG) || Number(goals?.proteinG) || 150) - (summary?.totals?.proteinG || 0),
+            0
+          ).toFixed(0),
           workoutsToday: workouts.length,
         }}
       />

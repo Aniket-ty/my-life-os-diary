@@ -5,12 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 const MODULES = [
   { name: 'My Diary', description: 'Write, reflect, attach memories', icon: 'book-outline', color: '#c8a96e', bg: '#fffef5', border: '#f5a623', screen: 'DiaryList' },
   { name: 'Fitness Journal', description: 'Workouts, calories, progress', icon: 'barbell-outline', color: '#2ecc71', bg: '#f0fff4', border: '#2ecc71', screen: 'FitnessList' },
+  { name: 'Body Scan', description: 'Track weight, fat & muscle', icon: 'scan-outline', color: '#14b8a6', bg: '#f0fdfa', border: '#14b8a6', screen: 'BodyScan' },
+  { name: 'Workout Planner', description: 'Weekly AI-designed schedule', icon: 'calendar-outline', color: '#f59e0b', bg: '#fffbeb', border: '#f59e0b', screen: 'WorkoutPlanner' },
   { name: 'AI Assistant', description: 'Chat about food, exercise & more', icon: 'sparkles-outline', color: '#9b59b6', bg: '#fdf0ff', border: '#9b59b6', screen: 'AIChat' },
   { name: 'To-Do & Reminders', description: 'Tasks, goals, daily habits', icon: 'checkbox-outline', color: '#3498db', bg: '#f0f8ff', border: '#3498db', screen: 'TodoList' },
 ];
 
 export default function HomeScreen({ navigation }) {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -23,8 +25,8 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.greeting}>{greeting},</Text>
             <Text style={styles.name}>{user?.name} 👋</Text>
           </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-            <Ionicons name="log-out-outline" size={20} color="#888" />
+          <TouchableOpacity style={styles.logoutBtn} onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="settings-outline" size={20} color="#888" />
           </TouchableOpacity>
         </View>
         <Text style={styles.subtitle}>What would you like to do today?</Text>

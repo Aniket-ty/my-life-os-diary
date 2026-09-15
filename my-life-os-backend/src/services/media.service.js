@@ -4,12 +4,14 @@ const FOLDER_MAP = {
   photo: 'my-life-os/diary/photos',
   audio: 'my-life-os/diary/audio',
   video: 'my-life-os/diary/videos',
+  document: 'my-life-os/diary/documents',
 };
 
 const RESOURCE_TYPE_MAP = {
   photo: 'image',
   audio: 'video',  // Cloudinary uses 'video' resource type for audio too
   video: 'video',
+  document: 'auto',
 };
 
 // Upload file buffer to Cloudinary

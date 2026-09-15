@@ -35,6 +35,7 @@ app.use('/api/v1/fitness', require('./routes/fitness.routes'));
 app.use('/api/v1/ai',      require('./routes/ai.routes'));
 app.use('/api/v1/todos',   require('./routes/todo.routes'));
 app.use('/api/v1/body-scans', require('./routes/bodyScan.routes'));
+app.use('/api/v1/fitness/plans', require('./routes/workoutPlan.routes'));
 
 // ── 404 ──
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));

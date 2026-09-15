@@ -8,22 +8,29 @@ datasource db {
 }
 
 model User {
-  id            String            @id @default(uuid())
-  email         String            @unique
-  passwordHash  String            @map("password_hash")
-  name          String
-  pinHash       String?           @map("pin_hash")
-  fcmToken      String?           @map("fcm_token")
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
-  chatHistory   ChatMessage[]
-  diaryEntries  DiaryEntry[]
-  fitnessGoals  FitnessGoal?
-  attachments   MediaAttachment[]
-  nutritionLogs NutritionLog[]
-  todos         Todo[]
-  workouts      Workout[]
-  bodyScans     BodyScan[]
+  id                   String            @id @default(uuid())
+  email                String            @unique
+  passwordHash         String            @map("password_hash")
+  name                 String
+  pinHash              String?           @map("pin_hash")
+  fcmToken             String?           @map("fcm_token")
+  onboardingCompleted  Boolean           @default(false) @map("onboarding_completed")
+  age                  Int?
+  gender               String?
+  heightCm             Decimal?          @map("height_cm") @db.Decimal(5, 1)
+  activityLevel        String?           @map("activity_level")
+  fitnessGoal          String?           @map("fitness_goal")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+  chatHistory          ChatMessage[]
+  diaryEntries         DiaryEntry[]
+  fitnessGoals         FitnessGoal?
+  attachments          MediaAttachment[]
+  nutritionLogs        NutritionLog[]
+  todos                Todo[]
+  workouts             Workout[]
+  bodyScans            BodyScan[]
+  workoutPlans         WorkoutPlan[]
 
   @@map("users")
 }
@@ -162,6 +169,7 @@ enum MediaType {
   photo
   audio
   video
+  document
 }
 
 enum WorkoutStatus {
@@ -207,4 +215,37 @@ model BodyScan {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("body_scans")
+}
+
+model WorkoutPlan {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  name            String
+  goal            String?
+  fitnessLevel    String?         @map("fitness_level")
+  equipment       String[]
+  daysPerWeek     Int             @default(5) @map("days_per_week")
+  isActive        Boolean         @default(true) @map("is_active")
+  generatedByAI   Boolean         @default(false) @map("generated_by_ai")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  days            WorkoutPlanDay[]
+
+  @@map("workout_plans")
+}
+
+model WorkoutPlanDay {
+  id           String     @id @default(uuid())
+  planId       String     @map("plan_id")
+  dayNumber    Int        @map("day_number")
+  workoutName  String?    @map("workout_name")
+  muscleGroup  String?    @map("muscle_group")
+  exercises    Json?
+  restDay      Boolean    @default(false) @map("rest_day")
+  notes        String?
+  createdAt    DateTime   @default(now()) @map("created_at")
+  plan         WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("workout_plan_days")
 }

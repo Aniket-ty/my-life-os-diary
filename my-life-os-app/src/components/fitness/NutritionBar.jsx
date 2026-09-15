@@ -1,16 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const GOALS = { calories: 2097, proteinG: 150, carbsG: 150, fatG: 89 };
+const DEFAULT_GOALS = { dailyCalories: 2097, proteinG: 150, carbsG: 150, fatG: 89 };
 
-export default function NutritionBar({ summary }) {
+export default function NutritionBar({ summary, goals }) {
+  const goalData = goals || summary?.goals || {};
+  const computed = {
+    dailyCalories: Number(goalData.dailyCalories) || DEFAULT_GOALS.dailyCalories,
+    proteinG: Number(goalData.proteinG) || DEFAULT_GOALS.proteinG,
+    carbsG: Number(goalData.carbsG) || DEFAULT_GOALS.carbsG,
+    fatG: Number(goalData.fatG) || DEFAULT_GOALS.fatG,
+  };
   const cal = summary?.totals?.calories || 0;
   const protein = summary?.totals?.proteinG || 0;
   const carbs = summary?.totals?.carbsG || 0;
   const fat = summary?.totals?.fatG || 0;
 
-  const calPct = Math.min((cal / GOALS.calories) * 100, 100);
-  const calLeft = Math.max(GOALS.calories - cal, 0);
+  const calPct = Math.min((cal / computed.dailyCalories) * 100, 100);
+  const calLeft = Math.max(computed.dailyCalories - cal, 0);
   const calColor = calPct > 100 ? '#e74c3c' : calPct > 80 ? '#f39c12' : '#2ecc71';
 
   return (
@@ -23,14 +30,14 @@ export default function NutritionBar({ summary }) {
       <View style={styles.barTrack}>
         <View style={[styles.barFill, { width: `${calPct}%`, backgroundColor: calColor }]} />
       </View>
-      <Text style={styles.calGoal}>Daily goal: {GOALS.calories} kcal (from your scan)</Text>
+      <Text style={styles.calGoal}>Daily goal: {computed.dailyCalories} kcal (from your scan)</Text>
 
       {/* Macro bars */}
       <View style={styles.macroRow}>
         {[
-          { label: 'Protein', value: protein, goal: GOALS.proteinG, unit: 'g', color: '#e74c3c' },
-          { label: 'Carbs', value: carbs, goal: GOALS.carbsG, unit: 'g', color: '#f39c12' },
-          { label: 'Fat', value: fat, goal: GOALS.fatG, unit: 'g', color: '#9b59b6' },
+          { label: 'Protein', value: protein, goal: computed.proteinG, unit: 'g', color: '#e74c3c' },
+          { label: 'Carbs', value: carbs, goal: computed.carbsG, unit: 'g', color: '#f39c12' },
+          { label: 'Fat', value: fat, goal: computed.fatG, unit: 'g', color: '#9b59b6' },
         ].map((m) => {
           const pct = Math.min((m.value / m.goal) * 100, 100);
           return (

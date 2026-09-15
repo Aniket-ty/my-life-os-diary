@@ -61,6 +61,25 @@ export default function DiaryWriteScreen({ navigation, route }) {
     }
   };
 
+  const pickDocument = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
+      copyToCacheDirectory: true,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
+      setPendingAttachments((prev) => [
+        ...prev,
+        {
+          uri: asset.uri,
+          type: 'document',
+          name: asset.name || `document_${Date.now()}.pdf`,
+          mimeType: asset.mimeType || 'application/pdf',
+        },
+      ]);
+    }
+  };
+
   const pickAudio = async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: 'audio/*',
@@ -70,7 +89,7 @@ export default function DiaryWriteScreen({ navigation, route }) {
       const asset = result.assets[0];
       setPendingAttachments((prev) => [
         ...prev,
-        { uri: asset.uri, type: 'audio', name: asset.name || `audio_${Date.now()}.m4a` },
+        { uri: asset.uri, type: 'audio', name: asset.name || `audio_${Date.now()}.m4a`, mimeType: asset.mimeType || 'audio/m4a' },
       ]);
     }
   };
@@ -95,7 +114,7 @@ export default function DiaryWriteScreen({ navigation, route }) {
 
       if (entry?.id && pendingAttachments.length > 0) {
         for (const att of pendingAttachments) {
-          await uploadMedia(entry.id, att.uri, att.type, att.name);
+          await uploadMedia(entry.id, att.uri, att.type, att.name, att.mimeType);
         }
       }
 
@@ -200,6 +219,9 @@ export default function DiaryWriteScreen({ navigation, route }) {
           </TouchableOpacity>
           <TouchableOpacity style={styles.attachBtn} onPress={pickAudio}>
             <Ionicons name="musical-notes-outline" size={22} color="#8B7355" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.attachBtn} onPress={pickDocument}>
+            <Ionicons name="document-text-outline" size={22} color="#8B7355" />
           </TouchableOpacity>
         </View>
       </View>

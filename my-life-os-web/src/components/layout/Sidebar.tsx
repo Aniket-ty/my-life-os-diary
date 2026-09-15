@@ -7,6 +7,8 @@ import {
   Sparkles,
   ListTodo,
   ScanLine,
+  CalendarRange,
+  Settings,
   LogOut,
   Command,
 } from 'lucide-react'
@@ -18,6 +20,7 @@ const items = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/diary', label: 'Diary', icon: BookHeart },
   { to: '/fitness', label: 'Fitness', icon: Dumbbell },
+  { to: '/fitness/planner', label: 'Workout Plan', icon: CalendarRange },
   { to: '/ai', label: 'AI Coach', icon: Sparkles },
   { to: '/todo', label: 'To-Do', icon: ListTodo },
   { to: '/body-scan', label: 'Body Scan', icon: ScanLine },
@@ -100,6 +103,13 @@ export function Sidebar() {
               <p className="truncate text-sm font-semibold text-white">{user?.name}</p>
               <p className="truncate text-[11px] text-slate-400">{user?.email}</p>
             </div>
+            <NavLink
+              to="/settings"
+              title="Settings"
+              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Settings size={17} />
+            </NavLink>
           </div>
           <button
             onClick={handleLogout}
@@ -113,7 +123,7 @@ export function Sidebar() {
 
       {/* Mobile bottom nav */}
       <nav className="glass-strong fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around border-t border-white/10 px-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {items.slice(0, 5).map(({ to, label, icon: Icon }) => (
+        {items.filter((i) => i.to !== '/fitness/planner').slice(0, 5).map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

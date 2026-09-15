@@ -22,6 +22,26 @@ export interface User {
   email: string
   name: string
   createdAt?: string
+  onboardingCompleted?: boolean
+  age?: number | null
+  gender?: string | null
+  heightCm?: number | null
+  activityLevel?: string | null
+  fitnessGoal?: string | null
+}
+
+export interface OnboardingResult {
+  user: User
+  scan: unknown
+  calculations: {
+    bmr: number
+    tdee: number
+    calorieGoal: number
+    proteinG: number
+    carbsG: number
+    fatG: number
+    leanBodyMass?: number | null
+  }
 }
 
 interface AuthContextValue {
@@ -31,6 +51,9 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  completeOnboarding: (data: Record<string, unknown>) => Promise<OnboardingResult>
+  updateProfile: (data: Record<string, unknown>) => Promise<User>
+  deleteAccount: (password: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -95,6 +118,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           // ignore
         }
+        setUser(null)
+        setAccessToken(null)
+        clearRefreshToken()
+        setToken(null)
+      },
+      completeOnboarding: async (data) => {
+        const res = await api.post<OnboardingResult>('/auth/onboarding', data)
+        setUser(res.user)
+        return res
+      },
+      updateProfile: async (data) => {
+        const res = await api.put<{ user: User }>('/auth/profile', data)
+        setUser(res.user)
+        return res.user
+      },
+      deleteAccount: async (password) => {
+        await api.delete<{ message: string }>('/auth/account', { password })
         setUser(null)
         setAccessToken(null)
         clearRefreshToken()

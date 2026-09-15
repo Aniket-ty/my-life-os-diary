@@ -14,26 +14,26 @@ export default function AttachmentStrip({ attachments, onRemove, pending = false
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {attachments.map((att, index) => (
+        {attachments.map((att, index) => {
+          const type = att.type || att.mediaType;
+          return (
           <View key={index} style={styles.attachItem}>
             {/* Paperclip visual */}
             <View style={styles.paperclip}>
               <View style={styles.paperclipInner} />
             </View>
 
-            {att.type === 'photo' && att.preview ? (
+            {type === 'photo' && (att.preview || att.cloudinaryUrl) ? (
               <Image source={{ uri: att.preview || att.cloudinaryUrl }} style={styles.thumbImage} />
-            ) : att.type === 'photo' && att.cloudinaryUrl ? (
-              <Image source={{ uri: att.cloudinaryUrl }} style={styles.thumbImage} />
             ) : (
               <View style={styles.thumbGeneric}>
                 <Ionicons
-                  name={att.type === 'audio' ? 'musical-notes' : att.type === 'video' ? 'videocam' : 'document'}
+                  name={type === 'audio' ? 'musical-notes' : type === 'video' ? 'videocam' : 'document'}
                   size={22}
                   color="#8B7355"
                 />
                 <Text style={styles.thumbLabel} numberOfLines={1}>
-                  {att.type === 'audio' ? 'Audio' : att.type === 'video' ? 'Video' : 'File'}
+                  {type === 'audio' ? 'Audio' : type === 'video' ? 'Video' : 'File'}
                 </Text>
               </View>
             )}
@@ -45,7 +45,8 @@ export default function AttachmentStrip({ attachments, onRemove, pending = false
               </TouchableOpacity>
             )}
           </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </View>
   );

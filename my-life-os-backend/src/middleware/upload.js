@@ -8,6 +8,10 @@ const fileFilter = (req, file, cb) => {
     'image/jpeg', 'image/png', 'image/webp', 'image/gif',
     'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/aac', 'audio/m4a',
     'video/mp4', 'video/mov', 'video/quicktime',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
   ];
 
   if (allowed.includes(file.mimetype)) {

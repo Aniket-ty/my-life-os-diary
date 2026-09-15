@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 interface PendingFile {
   id: string
   file: File
-  type: 'photo' | 'video' | 'audio'
+  type: 'photo' | 'video' | 'audio' | 'document'
   preview?: string
 }
 
@@ -75,7 +75,12 @@ export function DiaryWrite() {
         ? 'video'
         : file.type.startsWith('audio/')
           ? 'audio'
-          : 'photo'
+          : file.type === 'application/pdf' ||
+              file.type === 'application/msword' ||
+              file.type.startsWith('application/vnd.openxmlformats') ||
+              file.type === 'text/plain'
+            ? 'document'
+            : 'photo'
       const preview = type === 'photo' ? URL.createObjectURL(file) : undefined
       next.push({ id: crypto.randomUUID(), file, type, preview })
     }
@@ -196,10 +201,10 @@ export function DiaryWrite() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e8ddc6] pt-4">
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#d8cbb0] bg-white/60 px-4 py-2.5 text-sm font-medium text-[#a08464] transition-colors hover:bg-white/80">
               <ImagePlus size={16} />
-              Attach photo / video / audio
+              Attach photo / video / audio / document
               <input
                 type="file"
-                accept="image/*,video/*,audio/*"
+                accept="image/*,video/*,audio/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,.pdf,.doc,.docx"
                 multiple
                 className="hidden"
                 onChange={(e) => addFiles(e.target.files)}

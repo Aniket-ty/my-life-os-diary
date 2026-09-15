@@ -25,11 +25,17 @@ export const diaryAPI = {
     await api.delete(`/diary/${id}`);
   },
 
-  uploadMedia: async (entryId, fileUri, mediaType, fileName) => {
+  uploadMedia: async (entryId, fileUri, mediaType, fileName, mimeType = null) => {
     const formData = new FormData();
+    const type = mimeType || (
+      mediaType === 'photo' ? 'image/jpeg'
+        : mediaType === 'video' ? 'video/mp4'
+          : mediaType === 'document' ? 'application/pdf'
+            : 'audio/m4a'
+    );
     formData.append('file', {
       uri: fileUri,
-      type: mediaType === 'photo' ? 'image/jpeg' : mediaType === 'video' ? 'video/mp4' : 'audio/m4a',
+      type,
       name: fileName,
     });
     formData.append('mediaType', mediaType);
