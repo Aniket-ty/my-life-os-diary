@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  StatusBar, RefreshControl, Alert,
+  StatusBar, RefreshControl, Alert, ActivityIndicator,
 } from 'react-native';
 import { useFitnessStore } from '../../stores/fitnessStore';
+import { useBodyScanStore } from '../../stores/bodyScanStore';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import NutritionBar from '../../components/fitness/NutritionBar';
@@ -22,8 +23,13 @@ export default function FitnessScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('workouts');
   const aiSheetRef = useRef(null);
+  const { scans: bodyScans, fetchScans: fetchBodyScans } = useBodyScanStore();
+  const [scanChecked, setScanChecked] = useState(false);
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => {
+    loadAll();
+    fetchBodyScans().then(() => setScanChecked(true));
+  }, []);
 
   const loadAll = async () => {
     await Promise.all([
@@ -67,6 +73,27 @@ export default function FitnessScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {!scanChecked ? (
+        <View style={styles.gateWrap}>
+          <ActivityIndicator size="large" color="#085041" />
+        </View>
+      ) : (!bodyScans || bodyScans.length === 0) ? (
+        <View style={styles.gateWrap}>
+          <View style={styles.gateCard}>
+            <Ionicons name="scan-outline" size={42} color="#e74c3c" />
+            <Text style={styles.gateTitle}>Complete your body scan first</Text>
+            <Text style={styles.gateSub}>
+              Nutrition targets (calories, protein, carbs, fat) are calculated from your body measurements.
+              Log a quick body scan to unlock your personalized targets.
+            </Text>
+            <TouchableOpacity style={styles.gateBtn} onPress={() => navigation.navigate('BodyScan')}>
+              <Ionicons name="scan" size={16} color="#fff" />
+              <Text style={styles.gateBtnText}>Go to Body Scan</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+      <>
       {/* Smart Nutrition Bar */}
       <NutritionBar summary={summary} goals={goals} />
 
@@ -197,12 +224,28 @@ export default function FitnessScreen({ navigation }) {
           workoutsToday: workouts.length,
         }}
       />
+      </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f0f1a' },
+  gateWrap: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28,
+  },
+  gateCard: {
+    backgroundColor: '#1a1a2e', borderRadius: 20, padding: 30,
+    alignItems: 'center', borderWidth: 1, borderColor: '#2a2a3e',
+  },
+  gateTitle: { fontSize: 19, fontWeight: '800', color: '#fff', textAlign: 'center', marginTop: 12 },
+  gateSub: { fontSize: 13, color: '#888', textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  gateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#e74c3c', borderRadius: 24, paddingHorizontal: 22, paddingVertical: 12, marginTop: 20,
+  },
+  gateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12, backgroundColor: '#1a1a2e',

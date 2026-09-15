@@ -56,6 +56,7 @@ export function OnboardingPage() {
 
   const [step, setStep] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [skipped, setSkipped] = useState(false)
   const [result, setResult] = useState<OnboardingResult | null>(null)
 
   // Step 1 — profile
@@ -85,20 +86,21 @@ export function OnboardingPage() {
     if (step === 2) submit()
   }
 
-  const submit = async () => {
+  const submit = async (skip?: boolean) => {
     setBusy(true)
     try {
       const res = await completeOnboarding({
         age: Number(age),
         gender,
         heightCm: Number(heightCm),
-        weightKg: Number(weightKg),
+        weightKg: skip ? undefined : Number(weightKg),
         bodyFatPct: bodyFatPct ? Number(bodyFatPct) : undefined,
         muscleMassKg: muscleMassKg ? Number(muscleMassKg) : undefined,
         activityLevel,
         goal,
       })
       setResult(res)
+      setSkipped(Boolean(skip))
       setStep(3)
     } catch (err) {
       toast(err instanceof Error ? err.message.split(':').pop() ?? 'Something went wrong' : 'Failed to complete onboarding', 'error')
@@ -134,7 +136,7 @@ export function OnboardingPage() {
           </h1>
           <p className="mt-2 text-sm text-slate-400">
             Hi {user?.name?.split(' ')[0]} — a quick <span className="text-slate-200">body scan</span> unlocks your
-            calories, macros and workout plan.
+            calories, macros and workout plan. You can <span className="text-slate-200">skip it for now</span> and add it later.
           </p>
         </div>
 
@@ -197,6 +199,13 @@ export function OnboardingPage() {
               <p className="rounded-xl bg-white/[0.04] px-4 py-3 text-xs text-slate-500">
                 Don't know body fat? Leave it blank — we'll estimate lean mass for you.
               </p>
+              <button
+                onClick={() => submit(true)}
+                disabled={busy}
+                className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-300 transition-all hover:border-white/25 hover:text-white"
+              >
+                Skip for now — I'll do this later
+              </button>
             </div>
           </StepCard>
 
@@ -254,8 +263,20 @@ export function OnboardingPage() {
             </div>
           </StepCard>
 
-          <StepCard step={3} active={step === 3} title="Your personalized numbers" subtitle="Based on your body scan — easily adjustable later">
-            {result && (
+          <StepCard step={3} active={step === 3} title={skipped ? 'All set for now' : 'Your personalized numbers'} subtitle={skipped ? 'Your Life OS is ready — add your body scan when you\'re ready' : 'Based on your body scan — easily adjustable later'}>
+            {skipped && (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center">
+                  <Scale size={28} className="mx-auto mb-3 text-slate-400" />
+                  <p className="text-sm text-slate-300">You skipped the body scan.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    Head to the <span className="font-semibold text-slate-300">Body Scan</span> page anytime to enter your
+                    starting measurements — that unlocks your calorie targets, macros and AI workout plans.
+                  </p>
+                </div>
+              </div>
+            )}
+            {result && !skipped && (
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">

@@ -26,6 +26,7 @@ export default function OnboardingScreen({ navigation }) {
   const { user, completeOnboarding } = useAuthStore();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [skipped, setSkipped] = useState(false);
 
   // Step 1
   const [age, setAge] = useState('');
@@ -55,20 +56,21 @@ export default function OnboardingScreen({ navigation }) {
     if (step === 2) await submit();
   };
 
-  const submit = async () => {
+  const submit = async (skip = false) => {
     setBusy(true);
     try {
       const res = await completeOnboarding({
         age: Number(age),
         gender,
         heightCm: Number(heightCm),
-        weightKg: Number(weightKg),
+        weightKg: skip ? undefined : Number(weightKg),
         bodyFatPct: bodyFatPct ? Number(bodyFatPct) : undefined,
         muscleMassKg: muscleMassKg ? Number(muscleMassKg) : undefined,
         activityLevel,
         goal,
       });
       setResult(res.calculations);
+      setSkipped(skip);
       setStep(3);
     } catch (e) {
       Alert.alert('Could not save', e?.response?.data?.error || 'Please try again.');
@@ -118,6 +120,13 @@ export default function OnboardingScreen({ navigation }) {
               <Text style={styles.label}>Muscle mass kg (optional)</Text>
               <TextInput style={styles.input} value={muscleMassKg} onChangeText={setMuscleMassKg} keyboardType="numeric" placeholder="35" placeholderTextColor="#bbb" />
               <Text style={styles.hint}>Don't know body fat? Leave it blank — we'll estimate lean mass.</Text>
+              <TouchableOpacity
+                style={styles.skipBtn}
+                onPress={() => submit(true)}
+                disabled={busy}
+              >
+                <Text style={styles.skipBtnText}>Skip for now — I'll do this later</Text>
+              </TouchableOpacity>
             </View>
           </View>
         );
@@ -159,6 +168,22 @@ export default function OnboardingScreen({ navigation }) {
           </View>
         );
       case 3:
+        if (skipped) {
+          return (
+            <View>
+              <Text style={styles.stepTitle}>All set for now</Text>
+              <Text style={styles.stepSub}>Your Life OS is ready — add your body scan when you're ready</Text>
+              <View style={styles.skipCard}>
+                <Ionicons name="scan-outline" size={30} color="#8a6d2f" />
+                <Text style={styles.skipCardTitle}>You skipped the body scan</Text>
+                <Text style={styles.skipCardText}>
+                  Open Body Scan anytime to enter your starting measurements — that unlocks your
+                  calorie targets, macros and AI workout plans.
+                </Text>
+              </View>
+            </View>
+          );
+        }
         return result ? (
           <View>
             <Text style={styles.stepTitle}>Your personalized numbers</Text>
@@ -206,7 +231,7 @@ export default function OnboardingScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor="#085041" />
       <View style={styles.header}>
         <Text style={styles.title}>Set up your{' '}<Text style={styles.titleAccent}>Life OS</Text></Text>
-        <Text style={styles.subtitle}>Hi {user?.name?.split(' ')[0]} — a quick body scan unlocks your calories, macros & plan.</Text>
+        <Text style={styles.subtitle}>Hi {user?.name?.split(' ')[0]} — a quick body scan unlocks your calories, macros & plan. You can skip it for now and add it later.</Text>
       </View>
 
       {/* Progress */}
@@ -281,6 +306,17 @@ const styles = StyleSheet.create({
     fontSize: 16, backgroundColor: '#fafafa', color: '#222',
   },
   hint: { fontSize: 12, color: '#999', marginTop: 10, lineHeight: 18 },
+  skipBtn: {
+    marginTop: 14, borderWidth: 1, borderColor: '#c8a96e', borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff',
+  },
+  skipBtnText: { fontSize: 14, color: '#8a6d2f', fontWeight: '600' },
+  skipCard: {
+    marginTop: 16, backgroundColor: '#fff', borderRadius: 16, padding: 20,
+    alignItems: 'center',
+  },
+  skipCardTitle: { fontSize: 15, fontWeight: '700', color: '#222', marginTop: 8 },
+  skipCardText: { fontSize: 13, color: '#666', marginTop: 6, textAlign: 'center', lineHeight: 19 },
   row: { flexDirection: 'row', gap: 10 },
   segBtn: {
     flex: 1, borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10,

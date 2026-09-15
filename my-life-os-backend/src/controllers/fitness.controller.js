@@ -282,9 +282,106 @@ const upsertGoals = async (req, res) => {
   }
 };
 
+// ── Consistency Report ─────────────────────────────────────
+
+function toLocalDateStr(date) {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+const getConsistencyReport = async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const [workouts, nutritionLogs, todos, activePlan] = await Promise.all([
+      prisma.workout.findMany({
+        where: { userId: req.user.id, workoutDate: { gte: startDate } },
+        select: { workoutDate: true, status: true },
+      }),
+      prisma.nutritionLog.findMany({
+        where: { userId: req.user.id, logDate: { gte: startDate } },
+        select: { logDate: true },
+      }),
+      prisma.todo.findMany({
+        where: { userId: req.user.id, createdAt: { gte: startDate } },
+        select: { isCompleted: true, completedAt: true },
+      }),
+      prisma.workoutPlan.findFirst({
+        where: { userId: req.user.id, isActive: true },
+        include: { days: { orderBy: { dayNumber: 'asc' } } },
+      }),
+    ]);
+
+    const workoutDays = new Set(workouts.map((w) => toLocalDateStr(w.workoutDate)));
+    const completedWorkouts = workouts.filter((w) => w.status === 'completed');
+
+    const nutritionDays = new Set(nutritionLogs.map((n) => toLocalDateStr(n.logDate)));
+
+    const completedTodos = todos.filter((t) => t.isCompleted);
+
+    // Build daily breakdown for last N days
+    const dailyBreakdown = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = toLocalDateStr(d);
+      const dayOfWeek = d.getDay(); // 0=Sun ... 6=Sat
+
+      dailyBreakdown.push({
+        date: dateStr,
+        dayOfWeek,
+        hasWorkout: workoutDays.has(dateStr),
+        hasNutrition: nutritionDays.has(dateStr),
+        plannedWorkout: activePlan?.days.find(
+          (pd) => pd.dayNumber === dayOfWeek && !pd.restDay
+        ) || null,
+      });
+    }
+
+    // Weekly workout consistency (days worked / plan days per week for each week)
+    const workoutConsistencyPct =
+      activePlan && activePlan.daysPerWeek > 0
+        ? Math.round((workoutDays.size / days) * (7 / activePlan.daysPerWeek) * 100)
+        : workoutDays.size;
+
+    res.json({
+      period: days,
+      workouts: {
+        total: workouts.length,
+        completed: completedWorkouts.length,
+        uniqueDays: workoutDays.size,
+        consistencyPct: Math.min(workoutConsistencyPct, 100),
+      },
+      nutrition: {
+        totalLogs: nutritionLogs.length,
+        uniqueDays: nutritionDays.size,
+        loggingPct: days > 0 ? Math.round((nutritionDays.size / days) * 100) : 0,
+      },
+      todos: {
+        total: todos.length,
+        completed: completedTodos.length,
+        completionRate: todos.length > 0
+          ? Math.round((completedTodos.length / todos.length) * 100)
+          : 0,
+      },
+      dailyBreakdown,
+      activePlan: activePlan
+        ? { name: activePlan.name, daysPerWeek: activePlan.daysPerWeek }
+        : null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
 module.exports = {
   getWorkouts, getWorkout, createWorkout, updateWorkout,
   deleteWorkout, addExercises, deleteExercise,
   getNutrition, logFood, deleteFood, getDailySummary,
-  getGoals, upsertGoals,
+  getGoals, upsertGoals, getConsistencyReport,
 };

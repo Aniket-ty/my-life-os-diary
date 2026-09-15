@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays, Sparkles, Plus, Trash2, PenLine, X, Check, Dumbbell,
-  ChevronLeft, ChevronRight, Loader2, Save,
+  ChevronLeft, ChevronRight, Loader2, Save, ScanLine,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -12,6 +13,7 @@ import {
   workoutPlanService,
   type WorkoutPlan, type PlanDay, type PlanExercise,
 } from '@/services/workoutPlan'
+import { bodyScanService } from '@/services/bodyScan'
 import { toISODate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -29,7 +31,7 @@ const LEVELS = [
   { value: 'advanced', label: 'Advanced' },
 ]
 
-const EQUIPMENT_OPTIONS = ['None', 'Dumbbells', 'Barbell', 'Resistance bands', 'Pull-up bar', 'Treadmill', 'Kettlebells']
+const EQUIPMENT_OPTIONS = ['None', 'Dumbbells', 'Barbell', 'Resistance bands', 'Pull-up bar', 'Treadmill', 'Kettlebells', 'Bodyweight', 'Gym machines']
 
 export function WorkoutPlanner() {
   const { toast } = useToast()
@@ -38,6 +40,8 @@ export function WorkoutPlanner() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [showGenerate, setShowGenerate] = useState(false)
+  const [scanChecked, setScanChecked] = useState(false)
+  const [hasScan, setHasScan] = useState(true)
 
   // Generate form
   const [goal, setGoal] = useState('maintain')
@@ -67,7 +71,13 @@ export function WorkoutPlanner() {
     }
   }
 
-  useEffect(() => { loadPlans() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    loadPlans()
+    bodyScanService.list()
+      .then((scans) => setHasScan(scans.length > 0))
+      .catch(() => setHasScan(true))
+      .finally(() => setScanChecked(true))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const week = useMemo(() => {
     const today = new Date()
@@ -106,6 +116,18 @@ export function WorkoutPlanner() {
       if (saved.id && plans.length > 0) {
         await workoutPlanService.update(saved.id, { isActive: true })
         await loadPlans()
+      }
+
+      // Auto-apply today's workout from the new plan
+      const todayDow = new Date().getDay() // 0=Sun, 1=Mon ...
+      const todayStr = toISODate(new Date())
+      const todayPlanDay = saved.days?.find(
+        (d: PlanDay) => d.dayNumber === todayDow && !d.restDay
+      )
+      if (todayPlanDay) {
+        try {
+          await workoutPlanService.applyDay(saved.id, todayPlanDay.id!, todayStr)
+        } catch { /* ignore if auto-apply fails */ }
       }
     } catch (err) {
       toast(err instanceof Error ? err.message.split(':').pop() ?? 'Generation failed' : 'Generation failed', 'error')
@@ -184,10 +206,43 @@ export function WorkoutPlanner() {
     setEditExercises((prev) => prev.map((ex, i) => (i === idx ? { ...ex, [field]: value } : ex)))
   }
 
-  if (loading) {
+  if (loading || !scanChecked) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 size={28} className="animate-spin text-violet-brand" />
+      </div>
+    )
+  }
+
+  if (!hasScan) {
+    return (
+      <div className="mx-auto max-w-5xl">
+        <PageHeader
+          title="Workout Planner"
+          subtitle="A weekly schedule designed for your goals"
+          icon={<CalendarDays size={22} className="text-emerald-400" />}
+          accent="from-emerald-500 to-teal-500"
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-strong rounded-3xl p-10 text-center"
+        >
+          <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/25 to-orange-500/10">
+            <ScanLine size={28} className="text-rose-300" />
+          </div>
+          <h2 className="font-display text-xl font-bold text-white">Complete your body scan first</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+            Your workout plan is built around your starting measurements. Log a quick body scan
+            (just your weight is enough) to unlock your personalized plan.
+          </p>
+          <Link to="/body-scan">
+            <Button className="mt-6 bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-lg shadow-rose-500/25">
+              <ScanLine size={16} />
+              Go to Body Scan
+            </Button>
+          </Link>
+        </motion.div>
       </div>
     )
   }

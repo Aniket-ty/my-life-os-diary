@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   StyleSheet, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -19,14 +19,41 @@ const MOODS = [
 
 export default function DiaryWriteScreen({ navigation, route }) {
   const { mode, id } = route.params || {};
-  const { createEntry, uploadMedia } = useDiaryStore();
+  const isEdit = mode === 'edit' && !!id;
+  const { createEntry, updateEntry, fetchEntry, uploadMedia } = useDiaryStore();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const scrollRef = useRef(null);
+
+  // Load existing entry when editing so previous data is preserved
+  useEffect(() => {
+    if (!isEdit) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const entry = await fetchEntry(id);
+        if (cancelled || !entry) return;
+        setTitle(entry.title || '');
+        setContent(entry.content || '');
+        setMood(entry.mood || null);
+        setPendingAttachments((entry.attachments || []).map((a) => ({
+          id: a.id, uri: a.cloudinaryUrl, cloudinaryUrl: a.cloudinaryUrl,
+          type: a.mediaType, name: a.fileName || '',
+        })));
+      } catch {
+        if (!cancelled) Alert.alert('Error', 'Could not load entry.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isEdit, id]);
 
   const pickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -105,15 +132,20 @@ export default function DiaryWriteScreen({ navigation, route }) {
     }
     setSaving(true);
     try {
-      const entry = await createEntry({
+      const entryData = {
         title: title.trim() || null,
         content: content.trim(),
         mood,
         entryDate: moment().format('YYYY-MM-DD'),
-      });
+      };
 
-      if (entry?.id && pendingAttachments.length > 0) {
-        for (const att of pendingAttachments) {
+      const entry = isEdit
+        ? await updateEntry(id, entryData)
+        : await createEntry(entryData);
+
+      if (entry?.id) {
+        const newAttachments = pendingAttachments.filter((a) => !a.id);
+        for (const att of newAttachments) {
           await uploadMedia(entry.id, att.uri, att.type, att.name, att.mimeType);
         }
       }
@@ -131,6 +163,12 @@ export default function DiaryWriteScreen({ navigation, route }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color="#c8a96e" />
+        </View>
+      ) : (
+      <>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -225,12 +263,15 @@ export default function DiaryWriteScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
       </View>
+      </>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fdf6e3' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fdf6e3' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,

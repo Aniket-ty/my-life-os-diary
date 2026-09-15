@@ -11,9 +11,10 @@ import {
   AreaChart,
   Area,
 } from 'recharts'
-import { ScanLine, Plus, Trash2, TrendingDown, TrendingUp, Minus, UserPlus, Dumbbell } from 'lucide-react'
+import { ScanLine, Plus, Trash2, TrendingDown, TrendingUp, Minus, UserPlus, Dumbbell, Flame, CheckCircle2, CalendarCheck } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { bodyScanService, type BodyScan } from '@/services/bodyScan'
+import { fitnessService, type ConsistencyReport } from '@/services/fitness'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Loading } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
@@ -29,14 +30,19 @@ function Trend({ value }: { value: number }) {
 
 export function BodyScanPage() {
   const [scans, setScans] = useState<BodyScan[]>([])
+  const [report, setReport] = useState<ConsistencyReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const { toast } = useToast()
 
   const load = useCallback(async () => {
     try {
-      const data = await bodyScanService.list()
-      setScans(data)
+      const [scansData, reportData] = await Promise.all([
+        bodyScanService.list(),
+        fitnessService.getReport(30).catch(() => null),
+      ])
+      setScans(scansData)
+      setReport(reportData)
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to load scans', 'error')
     } finally {
@@ -47,6 +53,10 @@ export function BodyScanPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (!loading && scans.length === 0) setShowAdd(true)
+  }, [loading, scans.length])
 
   const chartData = useMemo(() => {
     const sorted = [...scans].sort((a, b) => new Date(a.scanDate).getTime() - new Date(b.scanDate).getTime())
@@ -224,6 +234,110 @@ export function BodyScanPage() {
               />
             </div>
           </div>
+
+          {/* Consistency Report */}
+          {report && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h2 className="mb-3 font-display text-lg font-semibold text-white">Consistency Report</h2>
+              <p className="mb-4 text-xs text-slate-500">Last {report.period} days overview</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="glass rounded-2xl p-5">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/5">
+                    <Dumbbell size={19} className="text-emerald-300" />
+                  </div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Workouts</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-white">
+                    {report.workouts.uniqueDays}
+                    <span className="text-sm font-normal text-slate-500"> / {report.period} days</span>
+                  </p>
+                  <div className="mt-2 h-2 rounded-full bg-white/5">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all"
+                      style={{ width: `${report.workouts.consistencyPct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    {report.workouts.completed} completed · {report.workouts.consistencyPct}% consistency
+                  </p>
+                </div>
+
+                <div className="glass rounded-2xl p-5">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/5">
+                    <Flame size={19} className="text-orange-300" />
+                  </div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Nutrition Logs</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-white">
+                    {report.nutrition.uniqueDays}
+                    <span className="text-sm font-normal text-slate-500"> / {report.period} days</span>
+                  </p>
+                  <div className="mt-2 h-2 rounded-full bg-white/5">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-orange-400 to-amber-400 transition-all"
+                      style={{ width: `${report.nutrition.loggingPct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    {report.nutrition.totalLogs} entries · {report.nutrition.loggingPct}% logging
+                  </p>
+                </div>
+
+                <div className="glass rounded-2xl p-5">
+                  <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-500/5">
+                    <CheckCircle2 size={19} className="text-sky-300" />
+                  </div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Tasks</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-white">
+                    {report.todos.completed}
+                    <span className="text-sm font-normal text-slate-500"> / {report.todos.total} done</span>
+                  </p>
+                  <div className="mt-2 h-2 rounded-full bg-white/5">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-sky-400 to-indigo-400 transition-all"
+                      style={{ width: `${report.todos.completionRate}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    {report.todos.completionRate}% completion rate
+                  </p>
+                </div>
+              </div>
+
+              {/* Daily heatmap */}
+              <div className="mt-4 glass rounded-2xl p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="font-display font-semibold text-white">Daily Activity</h3>
+                  {report.activePlan && (
+                    <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                      <CalendarCheck size={12} />
+                      {report.activePlan.name} ({report.activePlan.daysPerWeek}d/wk)
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {report.dailyBreakdown.map((day) => {
+                    const score = (day.hasWorkout ? 1 : 0) + (day.hasNutrition ? 1 : 0)
+                    const colors = ['bg-white/[0.04]', 'bg-emerald-500/30', 'bg-emerald-500/60']
+                    return (
+                      <div
+                        key={day.date}
+                        title={`${day.date}${day.hasWorkout ? ' · Workout' : ''}${day.hasNutrition ? ' · Nutrition' : ''}${day.plannedWorkout ? ` · Plan: ${day.plannedWorkout.workoutName}` : ''}`}
+                        className={`h-7 w-7 rounded-md ${colors[score]} transition-all hover:scale-110`}
+                      />
+                    )
+                  })}
+                </div>
+                <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-500">
+                  <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-white/[0.04]" /> None</span>
+                  <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/30" /> 1 activity</span>
+                  <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/60" /> Both</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* History */}
           <section>

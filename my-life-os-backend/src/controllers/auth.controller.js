@@ -134,11 +134,12 @@ const completeOnboarding = async (req, res) => {
     age: z.number().int().min(10).max(100),
     gender: z.enum(['male', 'female']),
     heightCm: z.number().min(100).max(250),
-    weightKg: z.number().min(30).max(300),
+    weightKg: z.number().min(30).max(300).optional(),
     bodyFatPct: z.number().min(2).max(70).optional(),
     muscleMassKg: z.number().min(10).max(150).optional(),
     activityLevel: z.enum(['sedentary', 'light', 'moderate', 'active', 'veryActive']),
     goal: z.enum(['lose', 'maintain', 'gain']),
+    skipBodyScan: z.boolean().optional(),
   });
 
   const result = schema.safeParse(req.body);
@@ -147,51 +148,57 @@ const completeOnboarding = async (req, res) => {
   }
 
   const { age, gender, heightCm, weightKg, bodyFatPct, muscleMassKg, activityLevel, goal } = result.data;
+  const skipBodyScan = result.data.skipBodyScan || weightKg == null;
 
-  const calc = calculateAll({
-    weightKg,
-    heightCm,
-    age,
-    gender,
-    activityLevel,
-    goal,
-    bodyFatPct,
-  });
+  let calc = null;
+  let scan = null;
 
-  // Upsert fitness goals from calculated values
-  await prisma.fitnessGoal.upsert({
-    where: { userId: req.user.id },
-    update: {
-      dailyCalories: calc.calorieGoal,
-      proteinG: calc.proteinG,
-      carbsG: calc.carbsG,
-      fatG: calc.fatG,
-    },
-    create: {
-      userId: req.user.id,
-      dailyCalories: calc.calorieGoal,
-      proteinG: calc.proteinG,
-      carbsG: calc.carbsG,
-      fatG: calc.fatG,
-    },
-  });
+  if (!skipBodyScan) {
+    calc = calculateAll({
+      weightKg,
+      heightCm,
+      age,
+      gender,
+      activityLevel,
+      goal,
+      bodyFatPct,
+    });
 
-  // Create the initial body scan
-  const scan = await prisma.bodyScan.create({
-    data: {
-      userId: req.user.id,
-      scanDate: new Date(),
-      weight: weightKg,
-      bodyFatPct: bodyFatPct || null,
-      muscleMassKg: muscleMassKg || null,
-      leanBodyMassKg: calc.leanBodyMass,
-      bmr: calc.bmr,
-      tee: calc.tdee,
-      bwiScore: null,
-      proteinKg: calc.proteinPerKgLean,
-      notes: `Initial scan from onboarding (goal: ${goal})`,
-    },
-  });
+    // Upsert fitness goals from calculated values
+    await prisma.fitnessGoal.upsert({
+      where: { userId: req.user.id },
+      update: {
+        dailyCalories: calc.calorieGoal,
+        proteinG: calc.proteinG,
+        carbsG: calc.carbsG,
+        fatG: calc.fatG,
+      },
+      create: {
+        userId: req.user.id,
+        dailyCalories: calc.calorieGoal,
+        proteinG: calc.proteinG,
+        carbsG: calc.carbsG,
+        fatG: calc.fatG,
+      },
+    });
+
+    // Create the initial body scan
+    scan = await prisma.bodyScan.create({
+      data: {
+        userId: req.user.id,
+        scanDate: new Date(),
+        weight: weightKg,
+        bodyFatPct: bodyFatPct || null,
+        muscleMassKg: muscleMassKg || null,
+        leanBodyMassKg: calc.leanBodyMass,
+        bmr: calc.bmr,
+        tee: calc.tdee,
+        bwiScore: null,
+        proteinKg: calc.proteinPerKgLean,
+        notes: `Initial scan from onboarding (goal: ${goal})`,
+      },
+    });
+  }
 
   // Mark onboarding complete and store profile fields
   const user = await prisma.user.update({

@@ -38,6 +38,17 @@ export const useWorkoutPlanStore = create((set, get) => ({
       );
       await workoutPlanAPI.updatePlan(saved.id, { isActive: true });
       await get().fetchPlans();
+
+      // Auto-apply today's workout from the plan
+      const todayDow = new Date().getDay(); // 0=Sun, 1=Mon ...
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayPlanDay = (saved.days || []).find((d) => d.dayNumber === todayDow && !d.restDay);
+      if (todayPlanDay) {
+        try {
+          await workoutPlanAPI.applyDay(saved.id, todayPlanDay.id, todayStr);
+        } catch { /* ignore if auto-apply fails */ }
+      }
+
       return saved;
     } catch (e) {
       set({ error: e.message, generating: false });

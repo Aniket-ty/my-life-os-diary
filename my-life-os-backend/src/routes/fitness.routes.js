@@ -5,7 +5,7 @@ const {
   getWorkouts, getWorkout, createWorkout, updateWorkout,
   deleteWorkout, addExercises, deleteExercise,
   getNutrition, logFood, deleteFood, getDailySummary,
-  getGoals, upsertGoals,
+  getGoals, upsertGoals, getConsistencyReport,
 } = require('../controllers/fitness.controller');
 
 router.use(authenticate);
@@ -28,5 +28,8 @@ router.get('/summary', getDailySummary);
 // Goals
 router.get('/goals', getGoals);
 router.put('/goals', upsertGoals);
+
+// Report
+router.get('/report', getConsistencyReport);
 
 module.exports = router;

@@ -5,7 +5,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const PLAN_SYSTEM_PROMPT = `You are an expert fitness coach. Generate a structured weekly workout plan.
 
-Respond with ONLY a valid JSON object (no markdown, no code fences):
+Respond with ONLY a valid JSON object (no markdown, no code fences, no extra text):
 {
   "name": "My Weekly Plan",
   "goal": "lose|maintain|gain",
@@ -17,22 +17,30 @@ Respond with ONLY a valid JSON object (no markdown, no code fences):
       "workoutName": "Push Day",
       "muscleGroup": "Chest, Shoulders, Triceps",
       "restDay": false,
-      "notes": "Focus on controlled tempo",
+      "notes": "",
       "exercises": [
-        { "name": "Bench Press", "sets": 4, "reps": "8-10" },
-        { "name": "Overhead Press", "sets": 3, "reps": "8-12" },
-        { "name": "Lateral Raises", "sets": 3, "reps": "12-15" }
+        { "name": "Bench Press", "sets": 4, "reps": "8-10" }
       ]
+    },
+    {
+      "dayNumber": 2,
+      "workoutName": "Rest",
+      "muscleGroup": "",
+      "restDay": true,
+      "notes": "",
+      "exercises": []
     }
   ]
 }
 
 Rules:
-- 1 workout day: 4-6 exercises with sets/reps
+- dayNumber uses 0-based weekday index: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. Include ALL 7 days, marking rest days with restDay: true.
+- Each workout day: 4-5 exercises with sets/reps. Keep exercises SHORT (name max 3 words).
 - Include appropriate rest days (restDay: true)
 - Choose exercises matching the fitness level and available equipment
 - Weight loss plans: include 1-2 cardio/HIIT sessions as cardio days (muscleGroup "Cardio")
 - Make the plan split logical: push/pull/legs, upper/lower, or full body for beginners
+- Keep the response CONCISE to fit within token limits
 `;
 
 const generatePlan = async (req, res) => {
@@ -64,17 +72,55 @@ ${focus ? `- Focus areas: ${focus}` : ''}`;
         { role: 'user', content: userContext },
       ],
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: 4096,
     });
 
-    const content = response.choices[0]?.message?.content || '';
-    // Extract JSON object from the response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ error: 'AI returned an invalid plan format' });
+    let content = response.choices[0]?.message?.content || '';
+    // Strip markdown code fences if present
+    content = content.replace(/```json\s*/i, '').replace(/```\s*$/i, '').trim();
+
+    // Extract JSON object using balanced brace matching
+    let planData = null;
+    const firstBrace = content.indexOf('{');
+    if (firstBrace !== -1) {
+      let depth = 0;
+      let end = -1;
+      for (let i = firstBrace; i < content.length; i++) {
+        if (content[i] === '{') depth++;
+        else if (content[i] === '}') {
+          depth--;
+          if (depth === 0) { end = i; break; }
+        }
+      }
+      if (end > firstBrace) {
+        try {
+          planData = JSON.parse(content.substring(firstBrace, end + 1));
+        } catch (parseErr) {
+          console.error('Plan JSON parse failed, attempting repair:', parseErr.message);
+          // Try truncating at last complete day entry and closing brackets
+          const partial = content.substring(firstBrace, end + 1);
+          const lastCompleteDay = partial.lastIndexOf('}');
+          if (lastCompleteDay > 0) {
+            const repaired = partial.substring(0, lastCompleteDay + 1) + ']}';
+            try {
+              planData = JSON.parse(repaired);
+            } catch { /* give up */ }
+          }
+        }
+      }
     }
 
-    const planData = JSON.parse(jsonMatch[0]);
+    // Fallback: greedy regex (original approach)
+    if (!planData) {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try { planData = JSON.parse(jsonMatch[0]); } catch { /* ignore */ }
+      }
+    }
+
+    if (!planData) {
+      return res.status(500).json({ error: 'AI returned an invalid plan format' });
+    }
     if (!planData.days || !Array.isArray(planData.days)) {
       return res.status(500).json({ error: 'AI plan is missing days' });
     }

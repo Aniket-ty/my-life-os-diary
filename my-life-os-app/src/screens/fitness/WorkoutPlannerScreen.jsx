@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutPlanStore } from '../../stores/workoutPlanStore';
+import { useBodyScanStore } from '../../stores/bodyScanStore';
 import moment from 'moment';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -18,10 +19,11 @@ const LEVELS = [
   { value: 'intermediate', label: 'Intermediate' },
   { value: 'advanced', label: 'Advanced' },
 ];
-const EQUIPMENT_OPTIONS = ['None', 'Dumbbells', 'Barbell', 'Resistance bands', 'Pull-up bar', 'Treadmill', 'Kettlebells'];
+const EQUIPMENT_OPTIONS = ['None', 'Dumbbells', 'Barbell', 'Resistance bands', 'Pull-up bar', 'Treadmill', 'Kettlebells', 'Bodyweight', 'Gym machines'];
 
 export default function WorkoutPlannerScreen({ navigation }) {
   const { plans, activePlan, loading, generating, error, fetchPlans, generateAndSave, updateDay, applyDay, activatePlan, deletePlan } = useWorkoutPlanStore();
+  const { scans: bodyScans, fetchScans: fetchBodyScans } = useBodyScanStore();
 
   const [showGen, setShowGen] = useState(false);
   const [genGoal, setGenGoal] = useState('maintain');
@@ -32,8 +34,12 @@ export default function WorkoutPlannerScreen({ navigation }) {
   const [editName, setEditName] = useState('');
   const [editMuscle, setEditMuscle] = useState('');
   const [editExercises, setEditExercises] = useState([]);
+  const [scanChecked, setScanChecked] = useState(false);
 
-  useEffect(() => { fetchPlans(); }, []);
+  useEffect(() => {
+    fetchPlans();
+    fetchBodyScans().then(() => setScanChecked(true));
+  }, []);
 
   const week = () => {
     const start = moment().startOf('week');
@@ -105,6 +111,40 @@ export default function WorkoutPlannerScreen({ navigation }) {
       ]
     );
   };
+
+  if (!scanChecked) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#085041" />
+      </View>
+    );
+  }
+
+  if (!bodyScans || bodyScans.length === 0) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="chevron-back" size={24} color="#3d2b1f" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Workout Plan</Text>
+          <View style={{ width: 34 }} />
+        </View>
+        <View style={styles.gateCard}>
+          <Ionicons name="scan-outline" size={42} color="#e74c3c" />
+          <Text style={styles.gateTitle}>Complete your body scan first</Text>
+          <Text style={styles.gateSub}>
+            Your workout plan is built around your starting measurements. Log a quick body scan (just your weight is enough) to unlock your personalized plan.
+          </Text>
+          <TouchableOpacity style={styles.gateBtn} onPress={() => navigation.navigate('BodyScan')}>
+            <Ionicons name="scan" size={16} color="#fff" />
+            <Text style={styles.gateBtnText}>Go to Body Scan</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -364,6 +404,16 @@ function capitalize(s) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   center: { alignItems: 'center', justifyContent: 'center' },
+  gateCard: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, marginTop: 8,
+  },
+  gateTitle: { fontSize: 19, fontWeight: '800', color: '#1a1a1a', textAlign: 'center', marginTop: 12 },
+  gateSub: { fontSize: 13, color: '#888', textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  gateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#e74c3c', borderRadius: 24, paddingHorizontal: 22, paddingVertical: 12, marginTop: 20,
+  },
+  gateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,

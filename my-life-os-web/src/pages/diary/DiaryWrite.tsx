@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PenLine, ArrowLeft, Pin, Paperclip, ImagePlus, Trash2, X } from 'lucide-react'
@@ -29,6 +29,25 @@ export function DiaryWrite() {
   const [saving, setSaving] = useState(false)
 
   const isEdit = Boolean(id)
+
+  // Load the existing entry when editing so previous data is preserved
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    diaryService.get(id)
+      .then((entry) => {
+        if (cancelled) return
+        setTitle(entry.title || '')
+        setContent(entry.content)
+        setMood((entry.mood as Mood | null) || null)
+        setPinned(entry.isPinned)
+        setDate(toISODate(entry.entryDate))
+      })
+      .catch((err) => {
+        if (!cancelled) toast(err instanceof Error ? err.message : 'Could not load entry', 'error')
+      })
+    return () => { cancelled = true }
+  }, [id, toast])
 
   async function save() {
     if (!content.trim()) {

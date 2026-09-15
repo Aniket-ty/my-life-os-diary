@@ -55,6 +55,34 @@ export interface DailySummary {
   logCount: number
 }
 
+export interface ConsistencyReport {
+  period: number
+  workouts: {
+    total: number
+    completed: number
+    uniqueDays: number
+    consistencyPct: number
+  }
+  nutrition: {
+    totalLogs: number
+    uniqueDays: number
+    loggingPct: number
+  }
+  todos: {
+    total: number
+    completed: number
+    completionRate: number
+  }
+  dailyBreakdown: {
+    date: string
+    dayOfWeek: number
+    hasWorkout: boolean
+    hasNutrition: boolean
+    plannedWorkout: { workoutName: string } | null
+  }[]
+  activePlan: { name: string; daysPerWeek: number } | null
+}
+
 export const fitnessService = {
   listWorkouts: (date?: string, status?: string) =>
     api.get<Workout[]>('/fitness/workouts', { date, status }),
@@ -73,4 +101,5 @@ export const fitnessService = {
   getSummary: (date?: string) => api.get<DailySummary>('/fitness/summary', { date }),
   getGoals: () => api.get<FitnessGoals>('/fitness/goals'),
   updateGoals: (goals: FitnessGoals) => api.put<FitnessGoals>('/fitness/goals', goals),
+  getReport: (days?: number) => api.get<ConsistencyReport>('/fitness/report', { days }),
 }

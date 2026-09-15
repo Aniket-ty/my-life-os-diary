@@ -69,4 +69,8 @@ export const fitnessAPI = {
     });
     return res.json();
   },
+  getReport: async (days = 30) => {
+    const res = await fetch(`${BASE_URL}/fitness/report?days=${days}`, { headers: getHeaders() });
+    return res.json();
+  },
 };

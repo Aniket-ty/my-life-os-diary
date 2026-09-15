@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Dumbbell,
@@ -15,9 +16,11 @@ import {
   ChevronRight,
   Timer,
   NotebookPen,
+  ScanLine,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { fitnessService, type DailySummary, type Workout, type FitnessGoals } from '@/services/fitness'
+import { bodyScanService } from '@/services/bodyScan'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -42,6 +45,8 @@ export function Fitness() {
   const [loading, setLoading] = useState(true)
   const [showWorkout, setShowWorkout] = useState(false)
   const [showFood, setShowFood] = useState(false)
+  const [scanChecked, setScanChecked] = useState(false)
+  const [hasScan, setHasScan] = useState(true)
   const { toast } = useToast()
 
   const load = useCallback(async () => {
@@ -63,6 +68,13 @@ export function Fitness() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    bodyScanService.list()
+      .then((scans) => setHasScan(scans.length > 0))
+      .catch(() => setHasScan(true))
+      .finally(() => setScanChecked(true))
+  }, [])
 
   const goals = summary?.goals ?? DEFAULT_GOALS
   const totals = summary?.totals ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 }
@@ -124,7 +136,32 @@ export function Fitness() {
         }
       />
 
-      {loading ? (
+      {!scanChecked ? (
+        <Loading />
+      ) : !hasScan ? (
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-md pt-24 text-center"
+        >
+          <div className="glass-strong rounded-3xl p-10">
+            <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/25 to-orange-500/10">
+              <ScanLine size={28} className="text-rose-300" />
+            </div>
+            <h2 className="font-display text-xl font-bold text-white">Complete your body scan first</h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-slate-400">
+              Nutrition targets (calories, protein, carbs, fat) are calculated from your body measurements.
+              Log a quick body scan to unlock your personalized targets.
+            </p>
+            <Link to="/body-scan">
+              <Button className="mt-6 bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-lg shadow-rose-500/25">
+                <ScanLine size={16} />
+                Go to Body Scan
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+      ) : loading ? (
         <Loading />
       ) : (
         <div className="space-y-6">

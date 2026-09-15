@@ -7,6 +7,7 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 import { useBodyScanStore } from '../../stores/bodyScanStore';
+import { fitnessAPI } from '../../services/fitnessService';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 
@@ -30,13 +31,23 @@ export default function BodyScanScreen({ navigation }) {
   const { scans, loading, fetchScans, createScan, deleteScan } = useBodyScanStore();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [report, setReport] = useState(null);
   const [form, setForm] = useState({
     weight: '', bodyFatPct: '', muscleMassKg: '',
     leanBodyMassKg: '', bmr: '', tee: '',
     visceralFat: '', bwiScore: '', bioAge: '', notes: '',
   });
 
-  useEffect(() => { fetchScans(); }, []);
+  useEffect(() => {
+    fetchScans();
+    fitnessAPI.getReport(30).then(setReport).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!loading && scans.length === 0) {
+      setShowModal(true);
+    }
+  }, [loading, scans.length]);
 
   const allScans = [
     { ...BASELINE, id: 'baseline', isBaseline: true },
@@ -210,6 +221,68 @@ export default function BodyScanScreen({ navigation }) {
           </>
         )}
 
+        {/* Consistency Report */}
+        {report && (
+          <>
+            <Text style={styles.sectionTitle}>Consistency Report</Text>
+            <Text style={{ fontSize: 11, color: '#666', marginBottom: 12 }}>Last {report.period} days</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+              <View style={styles.reportCard}>
+                <Text style={styles.reportIcon}>💪</Text>
+                <Text style={styles.reportValue}>{report.workouts.uniqueDays}/{report.period}</Text>
+                <Text style={styles.reportLabel}>Workout Days</Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${report.workouts.consistencyPct}%`, backgroundColor: '#2ecc71' }]} />
+                </View>
+                <Text style={styles.reportDetail}>{report.workouts.consistencyPct}% consistency</Text>
+              </View>
+              <View style={styles.reportCard}>
+                <Text style={styles.reportIcon}>🥗</Text>
+                <Text style={styles.reportValue}>{report.nutrition.uniqueDays}/{report.period}</Text>
+                <Text style={styles.reportLabel}>Nutrition Logs</Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${report.nutrition.loggingPct}%`, backgroundColor: '#f39c12' }]} />
+                </View>
+                <Text style={styles.reportDetail}>{report.nutrition.loggingPct}% logging</Text>
+              </View>
+            </View>
+            <View style={styles.reportCardFull}>
+              <Text style={styles.reportIcon}>✅</Text>
+              <Text style={styles.reportValue}>{report.todos.completed}/{report.todos.total}</Text>
+              <Text style={styles.reportLabel}>Tasks Completed</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${report.todos.completionRate}%`, backgroundColor: '#3498db' }]} />
+              </View>
+              <Text style={styles.reportDetail}>{report.todos.completionRate}% completion rate</Text>
+            </View>
+
+            {/* Daily Activity Heatmap */}
+            <Text style={styles.sectionTitle}>Daily Activity</Text>
+            {report.activePlan && (
+              <Text style={{ fontSize: 11, color: '#666', marginBottom: 8 }}>
+                {report.activePlan.name} ({report.activePlan.daysPerWeek}d/wk)
+              </Text>
+            )}
+            <View style={styles.heatmapGrid}>
+              {report.dailyBreakdown.map((day) => {
+                const score = (day.hasWorkout ? 1 : 0) + (day.hasNutrition ? 1 : 0);
+                const colors = ['#2a2a3e', '#2ecc7144', '#2ecc7188'];
+                return (
+                  <View
+                    key={day.date}
+                    style={[styles.heatmapCell, { backgroundColor: colors[score] }]}
+                  />
+                );
+              })}
+            </View>
+            <View style={styles.heatmapLegend}>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#2a2a3e' }]} /><Text style={styles.legendText}>None</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#2ecc7144' }]} /><Text style={styles.legendText}>1 activity</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#2ecc7188' }]} /><Text style={styles.legendText}>Both</Text></View>
+            </View>
+          </>
+        )}
+
         {/* Scan history */}
         <Text style={styles.sectionTitle}>Scan history</Text>
         {allScans.map((scan) => (
@@ -373,4 +446,24 @@ const styles = StyleSheet.create({
   },
   saveBtn: { backgroundColor: '#e74c3c', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 20 },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  reportCard: {
+    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14, flex: 1,
+    borderWidth: 1, borderColor: '#2a2a3e',
+  },
+  reportCardFull: {
+    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: '#2a2a3e',
+  },
+  reportIcon: { fontSize: 18, marginBottom: 4 },
+  reportValue: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  reportLabel: { fontSize: 11, color: '#888', textTransform: 'uppercase', marginBottom: 8 },
+  reportDetail: { fontSize: 11, color: '#666', marginTop: 4 },
+  progressBar: { height: 6, backgroundColor: '#2a2a3e', borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 3 },
+  heatmapGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 },
+  heatmapCell: { width: 24, height: 24, borderRadius: 4 },
+  heatmapLegend: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot: { width: 10, height: 10, borderRadius: 2 },
+  legendText: { fontSize: 10, color: '#666' },
 });
