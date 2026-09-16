@@ -6,6 +6,9 @@ import {
 import { useFitnessStore } from '../../stores/fitnessStore';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
+import Input from '../../components/ui/Input';
+import GlassCard from '../../components/ui/GlassCard';
+import { colors, spacing, radii, type as typ, tint, overlays } from '../../theme';
 
 const emptyExercise = () => ({ exerciseName: '', sets: '', reps: '', weightKg: '' });
 
@@ -58,29 +61,22 @@ export default function AddWorkoutScreen({ navigation }) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Workout</Text>
-        <TouchableOpacity onPress={handleSave} disabled={saving}>
+        <TouchableOpacity onPress={handleSave} disabled={saving} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           {saving
-            ? <ActivityIndicator size="small" color="#2ecc71" />
+            ? <ActivityIndicator size="small" color={colors.emerald} />
             : <Text style={styles.saveText}>Save</Text>
           }
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* Workout name */}
-        <Text style={styles.label}>Workout Name *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. Chest Day, Morning Run"
-          placeholderTextColor="#444"
-          value={name}
-          onChangeText={setName}
-        />
+        <Input label="Workout Name *" value={name} onChangeText={setName} placeholder="e.g. Chest Day, Morning Run" style={styles.fieldSpacing} />
 
         {/* Status */}
         <Text style={styles.label}>Status</Text>
@@ -91,126 +87,124 @@ export default function AddWorkoutScreen({ navigation }) {
               style={[styles.statusBtn, status === s && styles.statusBtnActive]}
               onPress={() => setStatus(s)}
             >
+              <Ionicons
+                name={s === 'planned' ? 'time-outline' : 'checkmark-circle'}
+                size={15}
+                color={status === s ? colors.emerald : colors.textMuted}
+              />
               <Text style={[styles.statusBtnText, status === s && styles.statusBtnTextActive]}>
-                {s === 'planned' ? '📋 Planned' : '✅ Completed'}
+                {s === 'planned' ? 'Planned' : 'Completed'}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Duration */}
-        <Text style={styles.label}>Duration (minutes)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. 45"
-          placeholderTextColor="#444"
-          value={durationMin}
-          onChangeText={setDurationMin}
-          keyboardType="numeric"
-        />
+        <Input label="Duration (minutes)" value={durationMin} onChangeText={setDurationMin} placeholder="e.g. 45" keyboardType="numeric" style={styles.fieldSpacing} />
 
         {/* Exercises */}
         <View style={styles.exercisesHeader}>
           <Text style={styles.label}>Exercises</Text>
           <TouchableOpacity onPress={addExercise} style={styles.addExBtn}>
-            <Ionicons name="add-circle" size={22} color="#2ecc71" />
+            <Ionicons name="add-circle" size={20} color={colors.emerald} />
             <Text style={styles.addExText}>Add</Text>
           </TouchableOpacity>
         </View>
 
         {exercises.map((ex, i) => (
-          <View key={i} style={styles.exerciseCard}>
+          <GlassCard key={i} style={styles.exerciseCard} padded={false}>
             <View style={styles.exerciseCardHeader}>
               <Text style={styles.exerciseNum}>Exercise {i + 1}</Text>
               {exercises.length > 1 && (
-                <TouchableOpacity onPress={() => removeExercise(i)}>
-                  <Ionicons name="close-circle" size={18} color="#e74c3c" />
+                <TouchableOpacity onPress={() => removeExercise(i)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close-circle" size={18} color={colors.rose} />
                 </TouchableOpacity>
               )}
             </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Exercise name (e.g. Bench Press)"
-              placeholderTextColor="#444"
+            <Input
               value={ex.exerciseName}
               onChangeText={(v) => updateExercise(i, 'exerciseName', v)}
+              placeholder="Exercise name (e.g. Bench Press)"
             />
             <View style={styles.exRow}>
-              <TextInput
-                style={[styles.input, styles.exSmall]}
-                placeholder="Sets"
-                placeholderTextColor="#444"
-                value={ex.sets}
-                onChangeText={(v) => updateExercise(i, 'sets', v)}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={[styles.input, styles.exSmall]}
-                placeholder="Reps"
-                placeholderTextColor="#444"
-                value={ex.reps}
-                onChangeText={(v) => updateExercise(i, 'reps', v)}
-              />
-              <TextInput
-                style={[styles.input, styles.exSmall]}
-                placeholder="kg"
-                placeholderTextColor="#444"
-                value={ex.weightKg}
-                onChangeText={(v) => updateExercise(i, 'weightKg', v)}
-                keyboardType="numeric"
-              />
+              <View style={styles.exField}>
+                <Text style={styles.exFieldLabel}>Sets</Text>
+                <TextInput
+                  style={styles.exSmallInput}
+                  placeholder="Sets"
+                  placeholderTextColor={colors.textFaint}
+                  value={ex.sets}
+                  onChangeText={(v) => updateExercise(i, 'sets', v)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.exField}>
+                <Text style={styles.exFieldLabel}>Reps</Text>
+                <TextInput
+                  style={styles.exSmallInput}
+                  placeholder="Reps"
+                  placeholderTextColor={colors.textFaint}
+                  value={ex.reps}
+                  onChangeText={(v) => updateExercise(i, 'reps', v)}
+                />
+              </View>
+              <View style={styles.exField}>
+                <Text style={styles.exFieldLabel}>kg</Text>
+                <TextInput
+                  style={styles.exSmallInput}
+                  placeholder="kg"
+                  placeholderTextColor={colors.textFaint}
+                  value={ex.weightKg}
+                  onChangeText={(v) => updateExercise(i, 'weightKg', v)}
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
-          </View>
+          </GlassCard>
         ))}
 
         {/* Notes */}
-        <Text style={styles.label}>Notes</Text>
-        <TextInput
-          style={[styles.input, styles.notesInput]}
-          placeholder="Any notes about this workout..."
-          placeholderTextColor="#444"
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-        />
+        <Input label="Notes" value={notes} onChangeText={setNotes} placeholder="Any notes about this workout..." multiline style={styles.fieldSpacing} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f1a' },
+  container: { flex: 1, backgroundColor: colors.void },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
-    backgroundColor: '#1a1a2e',
+    paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: spacing.lg,
+    backgroundColor: colors.void,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  saveText: { fontSize: 16, color: '#2ecc71', fontWeight: '700' },
-  scroll: { padding: 20, paddingBottom: 60 },
-  label: { fontSize: 13, color: '#888', fontWeight: '600', marginBottom: 6, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: {
-    backgroundColor: '#1a1a2e', borderRadius: 10, padding: 14,
-    color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#2a2a3e', marginBottom: 4,
-  },
-  notesInput: { minHeight: 80, textAlignVertical: 'top' },
-  statusRow: { flexDirection: 'row', gap: 10 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.white },
+  saveText: { fontSize: 16, color: colors.emerald, fontWeight: '700' },
+  scroll: { padding: spacing.xl, paddingBottom: 60 },
+  label: { ...typ.label, marginTop: spacing.lg, marginBottom: spacing.sm },
+  fieldSpacing: { marginTop: spacing.sm },
+  statusRow: { flexDirection: 'row', gap: spacing.sm },
   statusBtn: {
-    flex: 1, padding: 12, borderRadius: 10, alignItems: 'center',
-    backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a3e',
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    padding: 12, borderRadius: radii.md, backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.edge,
   },
-  statusBtnActive: { borderColor: '#2ecc71', backgroundColor: '#0d2818' },
-  statusBtnText: { color: '#666', fontWeight: '600' },
-  statusBtnTextActive: { color: '#2ecc71' },
-  exercisesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
+  statusBtnActive: { borderColor: colors.emerald, backgroundColor: tint(colors.emerald, 0.14) },
+  statusBtnText: { color: colors.textMuted, fontWeight: '600' },
+  statusBtnTextActive: { color: colors.emerald },
+  exercisesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md },
   addExBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  addExText: { color: '#2ecc71', fontWeight: '600' },
+  addExText: { color: colors.emerald, fontWeight: '600' },
   exerciseCard: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14,
-    marginBottom: 10, borderWidth: 1, borderColor: '#2a2a3e',
+    backgroundColor: colors.card, borderRadius: radii.lg, padding: spacing.lg,
+    marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.edge,
   },
-  exerciseCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  exerciseNum: { color: '#2ecc71', fontWeight: '700', fontSize: 13 },
-  exRow: { flexDirection: 'row', gap: 8 },
-  exSmall: { flex: 1 },
+  exerciseCardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
+  exerciseNum: { color: colors.emerald, fontWeight: '700', fontSize: 13 },
+  exRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  exField: { flex: 1 },
+  exFieldLabel: { fontSize: 11, color: colors.textFaint, fontWeight: '600', marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.4 },
+  exSmallInput: {
+    backgroundColor: overlays.faint, borderRadius: radii.sm, padding: 10,
+    color: colors.text, fontSize: 13, textAlign: 'center', borderWidth: 1, borderColor: overlays.border,
+  },
 });

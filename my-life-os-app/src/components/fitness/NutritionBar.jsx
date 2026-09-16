@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors, radii } from '../../theme';
 
 const DEFAULT_GOALS = { dailyCalories: 2097, proteinG: 150, carbsG: 150, fatG: 89 };
 
@@ -18,7 +19,7 @@ export default function NutritionBar({ summary, goals }) {
 
   const calPct = Math.min((cal / computed.dailyCalories) * 100, 100);
   const calLeft = Math.max(computed.dailyCalories - cal, 0);
-  const calColor = calPct > 100 ? '#e74c3c' : calPct > 80 ? '#f39c12' : '#2ecc71';
+  const calColor = calPct > 100 ? colors.rose : calPct > 80 ? colors.amber : colors.emerald;
 
   return (
     <View style={styles.container}>
@@ -35,9 +36,9 @@ export default function NutritionBar({ summary, goals }) {
       {/* Macro bars */}
       <View style={styles.macroRow}>
         {[
-          { label: 'Protein', value: protein, goal: computed.proteinG, unit: 'g', color: '#e74c3c' },
-          { label: 'Carbs', value: carbs, goal: computed.carbsG, unit: 'g', color: '#f39c12' },
-          { label: 'Fat', value: fat, goal: computed.fatG, unit: 'g', color: '#9b59b6' },
+          { label: 'Protein', value: protein, goal: computed.proteinG, unit: 'g', color: colors.rose },
+          { label: 'Carbs', value: carbs, goal: computed.carbsG, unit: 'g', color: colors.amber },
+          { label: 'Fat', value: fat, goal: computed.fatG, unit: 'g', color: colors.violet },
         ].map((m) => {
           const pct = Math.min((m.value / m.goal) * 100, 100);
           return (
@@ -60,24 +61,24 @@ export default function NutritionBar({ summary, goals }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16,
-    margin: 16, borderWidth: 1, borderColor: '#2a2a3e',
+    backgroundColor: colors.card, borderRadius: radii.xl, padding: 16,
+    margin: 16, borderWidth: 1, borderColor: colors.edge,
   },
   calRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  calConsumed: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  calLeft: { fontSize: 13, color: '#888', alignSelf: 'flex-end' },
-  barTrack: { height: 8, backgroundColor: '#2a2a3e', borderRadius: 4, overflow: 'hidden', marginBottom: 4 },
+  calConsumed: { fontSize: 22, fontWeight: '800', color: colors.white },
+  calLeft: { fontSize: 13, color: colors.textMuted, alignSelf: 'flex-end' },
+  barTrack: { height: 8, backgroundColor: colors.edge, borderRadius: 4, overflow: 'hidden', marginBottom: 4 },
   barFill: { height: '100%', borderRadius: 4 },
-  calGoal: { fontSize: 10, color: '#444', marginBottom: 14 },
+  calGoal: { fontSize: 10, color: colors.textFaint, marginBottom: 14 },
   macroRow: { flexDirection: 'row', gap: 12, justifyContent: 'space-around' },
   macroItem: { alignItems: 'center', flex: 1 },
   macroBarTrack: {
-    width: 8, height: 60, backgroundColor: '#2a2a3e',
+    width: 8, height: 60, backgroundColor: colors.edge,
     borderRadius: 4, overflow: 'hidden', marginBottom: 4,
     justifyContent: 'flex-end',
   },
   macroBarFill: { width: '100%', borderRadius: 4 },
   macroValue: { fontSize: 13, fontWeight: '700' },
-  macroGoal: { fontSize: 10, color: '#555' },
-  macroLabel: { fontSize: 10, color: '#888', textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 2 },
+  macroGoal: { fontSize: 10, color: colors.textFaint },
+  macroLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 2 },
 });

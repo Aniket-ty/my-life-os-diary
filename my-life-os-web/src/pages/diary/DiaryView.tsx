@@ -87,40 +87,78 @@ export function DiaryView() {
           </p>
 
           {entry.attachments.length > 0 && (
-            <div className="mt-8 border-t border-[#e8ddc6] pt-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#a08464]">
-                Attachments
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {entry.attachments.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-3 rounded-xl border border-[#d8cbb0] bg-white/60 p-3"
-                  >
-                    {a.mediaType === 'photo' ? (
-                      <a href={a.cloudinaryUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-3">
-                        <img src={a.cloudinaryUrl} alt={a.fileName ?? 'attachment'} className="h-14 w-14 rounded-lg object-cover" />
-                        <div>
-                          <p className="max-w-[180px] truncate text-sm font-medium">{a.fileName ?? 'Photo'}</p>
-                          <p className="text-xs text-[#a08464]">{formatDate(a.createdAt)}</p>
-                        </div>
-                      </a>
-                    ) : (
-                      <div className="inline-flex items-center gap-3">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-[#f0e7d2]">
-                          {a.mediaType === 'audio' ? <Music2 size={20} /> : a.mediaType === 'document' ? <FileText size={20} /> : <Clapperboard size={20} />}
-                        </div>
-                        <div>
-                          <p className="max-w-[180px] truncate text-sm font-medium">{a.fileName ?? a.mediaType}</p>
-                          <a href={a.cloudinaryUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#8a6d2f] hover:underline">
-                            Open {a.mediaType}
-                          </a>
-                        </div>
-                      </div>
-                    )}
+            <div className="mt-8 space-y-6 border-t border-[#e8ddc6] pt-6">
+              {/* Embedded Photos & Handwritten Sketches */}
+              {entry.attachments.some((a) => a.mediaType === 'photo') && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#a08464]">
+                    ✍️ Drawings & Photos
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {entry.attachments
+                      .filter((a) => a.mediaType === 'photo')
+                      .map((a) => (
+                        <a
+                          key={a.id}
+                          href={a.cloudinaryUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group relative block overflow-hidden rounded-2xl border border-[#d8cbb0] bg-white/70 shadow-sm transition-all hover:shadow-md"
+                        >
+                          <img
+                            src={a.cloudinaryUrl}
+                            alt={a.fileName ?? 'Handwritten Note'}
+                            className="max-h-72 w-full object-contain p-2 transition-transform duration-300 group-hover:scale-[1.02]"
+                          />
+                          <div className="flex items-center justify-between border-t border-[#e8ddc6] bg-white/80 px-3 py-2 text-xs">
+                            <span className="truncate font-medium text-[#5a4435]">{a.fileName ?? 'Photo'}</span>
+                            <span className="text-[#a08464]">{formatDate(a.createdAt)}</span>
+                          </div>
+                        </a>
+                      ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Other Media & Document Attachments */}
+              {entry.attachments.some((a) => a.mediaType !== 'photo') && (
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#a08464]">
+                    Attachments & Documents
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {entry.attachments
+                      .filter((a) => a.mediaType !== 'photo')
+                      .map((a) => (
+                        <div
+                          key={a.id}
+                          className="flex items-center gap-3 rounded-xl border border-[#d8cbb0] bg-white/60 p-3"
+                        >
+                          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#f0e7d2] text-[#8a6d2f]">
+                            {a.mediaType === 'audio' ? (
+                              <Music2 size={20} />
+                            ) : a.mediaType === 'document' ? (
+                              <FileText size={20} />
+                            ) : (
+                              <Clapperboard size={20} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{a.fileName ?? a.mediaType}</p>
+                            <a
+                              href={a.cloudinaryUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-semibold text-[#8a6d2f] hover:underline"
+                            >
+                              Open {a.mediaType}
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

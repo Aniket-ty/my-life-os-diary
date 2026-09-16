@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { colors, shadow } from '../../theme';
 
 export default function FloatingAIButton({ onPress }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -18,7 +19,7 @@ export default function FloatingAIButton({ onPress }) {
   return (
     <Animated.View style={[styles.fab, { transform: [{ scale }] }]}>
       <TouchableOpacity onPress={handlePress} style={styles.btn} activeOpacity={1}>
-        <Ionicons name="sparkles" size={22} color="#fff" />
+        <Ionicons name="sparkles" size={22} color={colors.white} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -27,12 +28,12 @@ export default function FloatingAIButton({ onPress }) {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute', bottom: 28, right: 22, zIndex: 999,
-    shadowColor: '#9b59b6', shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+    ...shadow.glow(colors.violet),
     elevation: 10,
   },
   btn: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#9b59b6',
+    backgroundColor: colors.violet,
     alignItems: 'center', justifyContent: 'center',
   },
 });

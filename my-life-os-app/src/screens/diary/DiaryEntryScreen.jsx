@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, Image,
+  Alert, ActivityIndicator,
 } from 'react-native';
 import { useDiaryStore } from '../../stores/diaryStore';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import AttachmentStrip from '../../components/diary/AttachmentStrip';
+import Screen from '../../components/ui/Screen';
+import GlassCard from '../../components/ui/GlassCard';
+import Badge from '../../components/ui/Badge';
+import {
+  colors, spacing, radii, overlays, tint, shadow,
+} from '../../theme';
 
 const MOODS = {
   happy: '😊', sad: '😢', angry: '😠', anxious: '😰',
@@ -45,114 +51,105 @@ export default function DiaryEntryScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#c8a96e" />
-      </View>
+      <Screen style={styles.center}>
+        <ActivityIndicator size="large" color={colors.gold} />
+      </Screen>
     );
   }
 
   if (!entry) {
     return (
-      <View style={styles.center}>
-        <Text style={{ color: '#8B7355' }}>Entry not found.</Text>
-      </View>
+      <Screen style={styles.center}>
+        <Text style={styles.notFound}>Entry not found.</Text>
+      </Screen>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <Screen style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#3d2b1f" />
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.editBtn}
             onPress={() => navigation.navigate('DiaryWrite', { mode: 'edit', id: entry.id })}
           >
-            <Ionicons name="pencil-outline" size={18} color="#8B7355" />
+            <Ionicons name="pencil-outline" size={18} color={colors.gold300} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={confirmDelete}>
-            <Ionicons name="trash-outline" size={18} color="#e74c3c" />
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={confirmDelete}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="trash-outline" size={18} color={colors.rose} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Paper */}
-        <View style={styles.paper}>
-          {Array.from({ length: 18 }).map((_, i) => (
-            <View key={i} style={[styles.ruledLine, { top: 100 + i * 28 }]} />
-          ))}
-          <View style={styles.marginLine} />
-
-          {/* Date & mood */}
+        <GlassCard style={styles.paper}>
           <View style={styles.metaRow}>
-            <Text style={styles.dateText}>
-              {moment(entry.entryDate).format('dddd, MMMM D, YYYY')}
-            </Text>
+            <Badge tone="gold">{moment(entry.entryDate).format('dddd, MMMM D, YYYY')}</Badge>
             {entry.mood && (
               <Text style={styles.moodEmoji}>{MOODS[entry.mood]}</Text>
             )}
           </View>
 
-          {/* Title */}
           {entry.title && (
             <Text style={styles.title}>{entry.title}</Text>
           )}
 
-          {/* Content */}
+          <View style={styles.divider} />
+
           <Text style={styles.content}>{entry.content}</Text>
 
-          {/* Attachments */}
           {entry.attachments?.length > 0 && (
             <AttachmentStrip attachments={entry.attachments} />
           )}
-        </View>
+        </GlassCard>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdf6e3' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fdf6e3' },
+  container: { flex: 1, backgroundColor: colors.void },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.void },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,
+    paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: spacing.md,
   },
-  headerRight: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+  headerRight: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   editBtn: {
-    backgroundColor: '#f5edd8', borderRadius: 8,
-    padding: 6,
+    backgroundColor: tint(colors.gold, 0.15),
+    borderWidth: 1, borderColor: tint(colors.gold, 0.35),
+    borderRadius: radii.sm,
+    padding: 7,
   },
-  scrollContent: { padding: 20, paddingBottom: 60 },
-  paper: {
-    backgroundColor: '#fffef5',
-    borderRadius: 4, padding: 20, paddingLeft: 52,
-    minHeight: 500,
-    shadowColor: '#8B7355', shadowOpacity: 0.15,
-    shadowRadius: 8, shadowOffset: { width: 2, height: 4 },
-    elevation: 4, overflow: 'hidden', position: 'relative',
+  deleteBtn: {
+    backgroundColor: 'rgba(244,63,94,0.1)',
+    borderRadius: radii.sm,
+    padding: 7,
   },
-  ruledLine: {
-    position: 'absolute', left: 52, right: 20,
-    height: 1, backgroundColor: '#e8dcc8',
+  scrollContent: { padding: spacing.xl, paddingBottom: 60 },
+  paper: { ...shadow.card },
+  metaRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: spacing.lg,
   },
-  marginLine: {
-    position: 'absolute', left: 44, top: 0, bottom: 0,
-    width: 1.5, backgroundColor: '#f5a62360',
-  },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  dateText: { fontSize: 11, color: '#a0856c', fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
-  moodEmoji: { fontSize: 20 },
+  moodEmoji: { fontSize: 22 },
   title: {
-    fontSize: 20, fontWeight: '700', color: '#3d2b1f',
-    fontFamily: 'serif', marginBottom: 12,
+    fontSize: 24, fontWeight: '800', color: colors.gold300,
+    marginBottom: spacing.lg,
+  },
+  divider: {
+    height: 1, backgroundColor: overlays.border,
+    marginBottom: spacing.xl,
   },
   content: {
-    fontSize: 15, color: '#3d2b1f',
-    fontFamily: 'serif', lineHeight: 28,
+    fontSize: 15, color: colors.text, lineHeight: 28,
   },
+  notFound: { color: colors.textMuted, fontSize: 14 },
 });

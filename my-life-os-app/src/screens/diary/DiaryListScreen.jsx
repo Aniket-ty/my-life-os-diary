@@ -1,15 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  TextInput, StatusBar, RefreshControl, Alert,
+  TextInput, RefreshControl, Alert,
 } from 'react-native';
 import { useDiaryStore } from '../../stores/diaryStore';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
-import { useRef } from 'react';
 import FloatingAIButton from '../../components/ai/FloatingAIButton';
 import GlobalAISheet from '../../components/ai/GlobalAISheet';
-
+import Screen from '../../components/ui/Screen';
+import PageHeader from '../../components/ui/PageHeader';
+import GlassCard from '../../components/ui/GlassCard';
+import Badge from '../../components/ui/Badge';
+import {
+  colors, spacing, radii, overlays, shadow,
+} from '../../theme';
 
 const MOODS = {
   happy: '😊', sad: '😢', angry: '😠', anxious: '😰',
@@ -45,199 +50,159 @@ export default function DiaryListScreen({ navigation }) {
 
   const renderEntry = ({ item }) => (
     <TouchableOpacity
-      style={styles.paperCard}
+      style={styles.cardTouch}
       onPress={() => navigation.navigate('DiaryEntry', { id: item.id })}
       activeOpacity={0.85}
     >
-      {/* Torn paper top edge */}
-      <View style={styles.tornTop} />
-
-      {/* Pin dot */}
-      {item.isPinned && (
-        <View style={styles.pinDot}>
-          <Ionicons name="bookmark" size={14} color="#e74c3c" />
-        </View>
-      )}
-
-      {/* Date */}
-      <Text style={styles.dateText}>
-        {moment(item.entryDate).format('dddd, MMMM D')}
-      </Text>
-
-      {/* Title */}
-      {item.title ? (
-        <Text style={styles.titleText} numberOfLines={1}>{item.title}</Text>
-      ) : null}
-
-      {/* Content preview */}
-      <Text style={styles.contentPreview} numberOfLines={3}>
-        {item.content}
-      </Text>
-
-      {/* Footer row */}
-      <View style={styles.cardFooter}>
-        <View style={styles.footerLeft}>
-          {item.mood ? (
-            <Text style={styles.moodEmoji}>{MOODS[item.mood] || '📝'}</Text>
-          ) : null}
-          {item.attachments?.length > 0 && (
-            <View style={styles.attachBadge}>
-              <Ionicons name="paperclip" size={11} color="#888" />
-              <Text style={styles.attachCount}>{item.attachments.length}</Text>
-            </View>
+      <GlassCard style={styles.entryCard}>
+        <View style={styles.cardTop}>
+          <Badge tone="gold">{moment(item.entryDate).format('dddd, MMMM D')}</Badge>
+          {item.isPinned && (
+            <Ionicons name="bookmark" size={14} color={colors.gold} />
           )}
         </View>
-        <TouchableOpacity onPress={() => confirmDelete(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="trash-outline" size={16} color="#ccc" />
-        </TouchableOpacity>
-      </View>
 
-      {/* Ruled lines */}
-      {[0, 1, 2, 3, 4].map((i) => (
-        <View key={i} style={[styles.ruledLine, { top: 72 + i * 22 }]} />
-      ))}
+        {item.title ? (
+          <Text style={styles.titleText} numberOfLines={1}>{item.title}</Text>
+        ) : null}
+
+        <Text style={styles.contentPreview} numberOfLines={3}>
+          {item.content}
+        </Text>
+
+        <View style={styles.cardFooter}>
+          <View style={styles.footerLeft}>
+            {item.mood ? (
+              <Text style={styles.moodEmoji}>{MOODS[item.mood] || '📝'}</Text>
+            ) : null}
+            {item.attachments?.length > 0 && (
+              <View style={styles.attachBadge}>
+                <Ionicons name="paperclip" size={11} color={colors.textMuted} />
+                <Text style={styles.attachCount}>{item.attachments.length}</Text>
+              </View>
+            )}
+          </View>
+          <TouchableOpacity onPress={() => confirmDelete(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.deleteBtn}>
+            <Ionicons name="trash-outline" size={16} color={colors.rose} />
+          </TouchableOpacity>
+        </View>
+      </GlassCard>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fdf6e3" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Diary</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('DiaryWrite', { mode: 'create' })}
-        >
-          <Ionicons name="create-outline" size={22} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Search */}
-      <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={16} color="#aaa" style={{ marginRight: 8 }} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search entries..."
-          placeholderTextColor="#bbb"
-          value={search}
-          onChangeText={setSearch}
+    <Screen style={styles.container}>
+      <View style={styles.topArea}>
+        <PageHeader
+          title="My Diary"
+          subtitle={`${entries.length} ${entries.length === 1 ? 'entry' : 'entries'} in your journal`}
+          icon={<Ionicons name="book" size={22} color={colors.gold300} />}
+          accent={colors.gold}
+          action={
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => navigation.navigate('DiaryWrite', { mode: 'create' })}
+            >
+              <Ionicons name="create-outline" size={22} color={colors.void} />
+            </TouchableOpacity>
+          }
         />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={16} color="#bbb" />
-          </TouchableOpacity>
-        )}
+
+        <View style={styles.searchBox}>
+          <Ionicons name="search-outline" size={16} color={colors.textFaint} style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search entries..."
+            placeholderTextColor={colors.textFaint}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={16} color={colors.textFaint} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* List */}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={renderEntry}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c8a96e" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}
         ListEmptyComponent={
-          <View style={styles.empty}>
+          <GlassCard style={styles.empty}>
             <Text style={styles.emptyEmoji}>📖</Text>
             <Text style={styles.emptyText}>No entries yet</Text>
             <Text style={styles.emptySubText}>Tap the pencil to write your first entry</Text>
-          </View>
+          </GlassCard>
         }
       />
       <FloatingAIButton onPress={() => aiSheetRef.current?.expand()} />
- <GlobalAISheet sheetRef={aiSheetRef} context="diary" />
-    </View>
+      <GlobalAISheet sheetRef={aiSheetRef} context="diary" />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdf6e3' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 30, fontWeight: '700', color: '#3d2b1f',
-    fontFamily: 'serif',
+  container: { flex: 1, backgroundColor: colors.void },
+  topArea: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 56,
+    paddingBottom: spacing.md,
   },
   addButton: {
-    backgroundColor: '#c8a96e', borderRadius: 22,
-    width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#c8a96e', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.gold,
+    alignItems: 'center', justifyContent: 'center',
+    ...shadow.glow(colors.gold),
   },
   searchBox: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 16,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    backgroundColor: overlays.faint,
+    borderWidth: 1, borderColor: overlays.border,
+    borderRadius: radii.md,
+    paddingHorizontal: 14, paddingVertical: 10,
   },
-  searchInput: { flex: 1, fontSize: 14, color: '#333' },
-  list: { paddingHorizontal: 20, paddingBottom: 100 },
-
-  paperCard: {
-    backgroundColor: '#fffef5',
-    borderRadius: 4,
-    padding: 16,
-    paddingTop: 20,
-    marginBottom: 20,
-    minHeight: 160,
-    shadowColor: '#8B7355',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 2, height: 4 },
-    elevation: 3,
+  searchInput: { flex: 1, fontSize: 14, color: colors.text },
+  list: { paddingHorizontal: spacing.xl, paddingBottom: 110, paddingTop: 4 },
+  cardTouch: { marginBottom: spacing.lg },
+  entryCard: {
     borderLeftWidth: 3,
-    borderLeftColor: '#f5a623',
-    overflow: 'hidden',
+    borderLeftColor: colors.gold,
+    ...shadow.card,
   },
-  tornTop: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 4,
-    backgroundColor: '#f0e6c8',
-  },
-  pinDot: { position: 'absolute', top: 10, right: 12 },
-  dateText: {
-    fontSize: 11, color: '#a0856c', fontWeight: '600',
-    letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6,
+  cardTop: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 10,
   },
   titleText: {
-    fontSize: 16, fontWeight: '700', color: '#3d2b1f',
-    fontFamily: 'serif', marginBottom: 6,
+    fontSize: 16, fontWeight: '700', color: colors.gold300,
+    marginBottom: 6,
   },
   contentPreview: {
-    fontSize: 14, color: '#5a4a3a', lineHeight: 22,
-    fontFamily: 'serif', zIndex: 1,
-  },
-  ruledLine: {
-    position: 'absolute', left: 16, right: 16, height: 1,
-    backgroundColor: '#e8dcc8', opacity: 0.6,
+    fontSize: 14, color: colors.textMuted, lineHeight: 22,
   },
   cardFooter: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginTop: 12,
+    alignItems: 'center', marginTop: 14,
   },
-  footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   moodEmoji: { fontSize: 16 },
   attachBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#f0e6c8', borderRadius: 10,
-    paddingHorizontal: 6, paddingVertical: 2,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: overlays.soft, borderRadius: radii.pill,
+    paddingHorizontal: 8, paddingVertical: 3,
   },
-  attachCount: { fontSize: 11, color: '#888' },
-  empty: { alignItems: 'center', paddingTop: 80 },
+  attachCount: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+  deleteBtn: {
+    backgroundColor: 'rgba(244,63,94,0.1)',
+    borderRadius: radii.sm,
+    padding: 6,
+  },
+  empty: { alignItems: 'center', paddingVertical: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 18, fontWeight: '600', color: '#8B7355', marginBottom: 6 },
-  emptySubText: { fontSize: 13, color: '#aaa', textAlign: 'center' },
+  emptyText: { fontSize: 18, fontWeight: '600', color: colors.textSoft, marginBottom: 6 },
+  emptySubText: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
 });
-// Add these imports at the top of DiaryListScreen.jsx:
-// import { useRef } from 'react';
-// import FloatingAIButton from '../../components/ai/FloatingAIButton';
-// import GlobalAISheet from '../../components/ai/GlobalAISheet';
-//
-// Add inside the component:
-// const aiSheetRef = useRef(null);
-//
-// Add before the closing </View>:
-// <FloatingAIButton onPress={() => aiSheetRef.current?.expand()} />
-// <GlobalAISheet sheetRef={aiSheetRef} context="diary" />

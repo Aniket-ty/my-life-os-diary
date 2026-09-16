@@ -1,18 +1,18 @@
 import React, { useCallback, useRef, useMemo, useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import BottomSheet, {
   BottomSheetFlatList,
-  BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useAIStore } from '../../stores/aiStore';
 import moment from 'moment';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import { colors, radii, spacing, tint } from '../../theme';
 
 const CONTEXTS = {
   general: {
@@ -59,8 +59,6 @@ const CONTEXTS = {
 
 const CONTEXT_KEYS = Object.keys(CONTEXTS);
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
 function ContextTabs({ active, onChange }) {
   return (
     <View style={styles.tabsRow}>
@@ -87,7 +85,7 @@ function MessageBubble({ item }) {
     <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
       {!isUser && (
         <View style={styles.msgAvatar}>
-          <Ionicons name="sparkles" size={10} color="#a78bfa" />
+          <Ionicons name="sparkles" size={10} color={colors.purple} />
         </View>
       )}
       <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
@@ -106,10 +104,10 @@ function TypingIndicator() {
   return (
     <View style={styles.typingRow}>
       <View style={styles.msgAvatar}>
-        <Ionicons name="sparkles" size={10} color="#a78bfa" />
+        <Ionicons name="sparkles" size={10} color={colors.purple} />
       </View>
       <View style={styles.typingBubble}>
-        <ActivityIndicator size="small" color="#8b5cf6" />
+        <ActivityIndicator size="small" color={colors.violet} />
         <Text style={styles.typingText}>Thinking…</Text>
       </View>
     </View>
@@ -122,7 +120,7 @@ function ActionCard({ pendingAction, onConfirm, onDismiss }) {
   return (
     <View style={styles.actionCard}>
       <View style={styles.actionHeader}>
-        <Ionicons name="add-circle" size={14} color="#10b981" />
+        <Ionicons name="add-circle" size={14} color={colors.emerald} />
         <Text style={styles.actionTitle}>
           {isFood ? '🥗 Add to nutrition log?' : '💪 Add to workout journal?'}
         </Text>
@@ -144,8 +142,6 @@ function ActionCard({ pendingAction, onConfirm, onDismiss }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 export default function GlobalAISheet({ sheetRef, context = 'general', contextData = {} }) {
   const { messages, loading, pendingAction, sendMessage, confirmAction, dismissAction } =
     useAIStore();
@@ -158,10 +154,8 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
   const flatListRef = useRef(null);
   const snapPoints = useMemo(() => ['60%', '92%'], []);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (messages.length > 0) {
-      // Small delay ensures layout is complete before scrolling
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -196,9 +190,6 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
   const renderItem = useCallback(({ item }) => <MessageBubble item={item} />, []);
   const keyExtractor = useCallback((item) => item.id, []);
 
-  // ── Suggestion chips (shown when no messages) ──────────────────────────────
-  // Rendered as ListHeaderComponent so they live INSIDE BottomSheetFlatList
-  // and never conflict with its scroll context.
   const chips = CONTEXTS[activeContext]?.chips ?? CONTEXTS.general.chips;
 
   const ListHeader = useCallback(() => (
@@ -220,14 +211,12 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
     </View>
   ), [chips]);
 
-  // ── Fixed header & footer rendered outside FlatList ───────────────────────
   const Header = (
     <>
-      {/* Sheet header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.aiAvatar}>
-            <Ionicons name="sparkles" size={15} color="#a78bfa" />
+            <Ionicons name="sparkles" size={15} color={colors.purple} />
             <View style={styles.statusDot} />
           </View>
           <View>
@@ -240,11 +229,10 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
           style={styles.closeBtn}
           activeOpacity={0.7}
         >
-          <Ionicons name="close" size={14} color="#565680" />
+          <Ionicons name="close" size={14} color={colors.textFaint} />
         </TouchableOpacity>
       </View>
 
-      {/* Context tabs */}
       <ContextTabs active={activeContext} onChange={setActiveContext} />
     </>
   );
@@ -259,31 +247,28 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
       />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.inputBar}>
-          <TextInput
-            style={styles.input}
+          <Input
+            style={styles.inputWrap}
+            inputStyle={styles.input}
             placeholder="Ask anything…"
-            placeholderTextColor="#565680"
             value={input}
             onChangeText={setInput}
             multiline
             maxLength={500}
           />
-          <TouchableOpacity
+          <Button
+            size="icon"
+            variant="primary"
             style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
-            onPress={handleSend}
             disabled={!canSend}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="send" size={15} color="#fff" />
-          </TouchableOpacity>
+            onPress={handleSend}
+            icon={<Ionicons name="send" size={15} color={colors.white} />}
+          />
         </View>
       </KeyboardAvoidingView>
     </>
   );
 
-  // ── KEY FIX: BottomSheetFlatList is the ROOT child of BottomSheet ─────────
-  // No BottomSheetView wrapper. Header/Footer are rendered as stickyHeader
-  // via ListHeaderComponent / with a wrapping View outside the sheet content.
   return (
     <BottomSheet
       ref={sheetRef}
@@ -295,21 +280,13 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
       keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
     >
-      {/* Fixed top section — sits outside the scrollable area */}
       {Header}
 
-      {/*
-        BottomSheetFlatList is the DIRECT child of BottomSheet (no BottomSheetView).
-        This is the correct pattern from @gorhom/bottom-sheet docs.
-        When there are no messages, ListHeaderComponent renders the chips.
-        When there are messages, it renders messages + chips header above them.
-      */}
       <BottomSheetFlatList
         ref={flatListRef}
         data={messages}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        // Show chips above messages (or alone when messages=[])
         ListHeaderComponent={messages.length === 0 ? ListHeader : null}
         contentContainerStyle={[
           styles.messageList,
@@ -322,34 +299,30 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
         keyboardShouldPersistTaps="handled"
       />
 
-      {/* Fixed bottom section — input + action card + typing */}
       {Footer}
     </BottomSheet>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  sheetBg: { backgroundColor: '#0c0c14' },
-  handle: { backgroundColor: '#252538' },
+  sheetBg: { backgroundColor: colors.abyss, borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl },
+  handle: { backgroundColor: colors.edge },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e1e30',
+    borderBottomColor: colors.edge,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   aiAvatar: {
     width: 36, height: 36,
-    borderRadius: 12,
-    backgroundColor: '#1a0f3e',
-    borderWidth: 1.5, borderColor: '#8b5cf6',
+    borderRadius: radii.md,
+    backgroundColor: tint(colors.violet, 0.18),
+    borderWidth: 1.5, borderColor: colors.violet,
     alignItems: 'center', justifyContent: 'center',
     position: 'relative',
   },
@@ -358,70 +331,67 @@ const styles = StyleSheet.create({
     bottom: -2, right: -2,
     width: 8, height: 8,
     borderRadius: 4,
-    backgroundColor: '#10b981',
-    borderWidth: 2, borderColor: '#0c0c14',
+    backgroundColor: colors.emerald,
+    borderWidth: 2, borderColor: colors.abyss,
   },
-  headerTitle: { fontSize: 14, fontWeight: '700', color: '#f0eeff', letterSpacing: -0.2 },
-  headerSub: { fontSize: 10, color: '#a78bfa', marginTop: 1 },
+  headerTitle: { fontSize: 14, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
+  headerSub: { fontSize: 10, color: colors.purple, marginTop: 1 },
   closeBtn: {
     width: 28, height: 28,
-    borderRadius: 8,
-    backgroundColor: '#12121e',
-    borderWidth: 1, borderColor: '#252538',
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.edge,
     alignItems: 'center', justifyContent: 'center',
   },
 
-  // Context tabs
   tabsRow: {
     flexDirection: 'row',
     gap: 6,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e1e30',
+    borderBottomColor: colors.edge,
   },
   tab: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 5,
-    borderRadius: 20,
+    borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: '#252538',
+    borderColor: colors.edge,
     backgroundColor: 'transparent',
   },
   tabActive: {
-    backgroundColor: 'rgba(139,92,246,0.08)',
-    borderColor: '#8b5cf6',
+    backgroundColor: tint(colors.violet, 0.1),
+    borderColor: colors.violet,
   },
-  tabText: { fontSize: 11, fontWeight: '500', color: '#565680' },
-  tabTextActive: { color: '#a78bfa' },
+  tabText: { fontSize: 11, fontWeight: '500', color: colors.textFaint },
+  tabTextActive: { color: colors.purple },
 
-  // Suggestions
-  suggestionsWrap: { padding: 16 },
+  suggestionsWrap: { padding: spacing.lg },
   suggestLabel: {
     fontSize: 10,
-    color: '#565680',
+    color: colors.textFaint,
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: spacing.md,
     fontWeight: '600',
   },
   chipsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.sm,
   },
   chip: {
     width: '47%',
-    backgroundColor: '#12121e',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#252538',
-    borderRadius: 12,
-    padding: 12,
+    borderColor: colors.edge,
+    borderRadius: radii.md,
+    padding: spacing.md,
   },
   chipIcon: { fontSize: 18, marginBottom: 6 },
-  chipText: { fontSize: 11, color: '#9090b8', fontWeight: '500', lineHeight: 16 },
+  chipText: { fontSize: 11, color: colors.textMuted, fontWeight: '500', lineHeight: 16 },
 
-  // Messages
-  messageList: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8, gap: 10 },
+  messageList: { paddingHorizontal: 14, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: 10 },
   messageListEmpty: { flexGrow: 1 },
   msgRow: {
     flexDirection: 'row',
@@ -432,33 +402,32 @@ const styles = StyleSheet.create({
   msgRowUser: { flexDirection: 'row-reverse' },
   msgAvatar: {
     width: 24, height: 24,
-    borderRadius: 8,
-    backgroundColor: '#1a0f3e',
-    borderWidth: 1, borderColor: '#8b5cf6',
+    borderRadius: radii.sm,
+    backgroundColor: tint(colors.violet, 0.18),
+    borderWidth: 1, borderColor: colors.violet,
     alignItems: 'center', justifyContent: 'center',
   },
   bubble: {
     maxWidth: '72%',
-    borderRadius: 16,
+    borderRadius: radii.lg,
     padding: 10,
     borderWidth: 1,
   },
   bubbleAI: {
-    backgroundColor: '#1a1a2e',
-    borderColor: '#252538',
+    backgroundColor: colors.card,
+    borderColor: colors.edge,
     borderBottomLeftRadius: 4,
   },
   bubbleUser: {
-    backgroundColor: '#6d28d9',
-    borderColor: 'rgba(139,92,246,0.3)',
+    backgroundColor: tint(colors.violet, 0.16),
+    borderColor: tint(colors.violet, 0.35),
     borderBottomRightRadius: 4,
   },
-  bubbleText: { fontSize: 13, color: '#d4d0f0', lineHeight: 19 },
-  bubbleTextUser: { color: '#ede9fe' },
-  bubbleTime: { fontSize: 9, color: '#565680', marginTop: 4, textAlign: 'right' },
-  bubbleTimeUser: { color: 'rgba(237,233,254,0.5)' },
+  bubbleText: { fontSize: 13, color: colors.textSoft, lineHeight: 19 },
+  bubbleTextUser: { color: colors.white },
+  bubbleTime: { fontSize: 9, color: colors.textFaint, marginTop: 4, textAlign: 'right' },
+  bubbleTimeUser: { color: tint(colors.white, 0.5) },
 
-  // Typing
   typingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -469,69 +438,68 @@ const styles = StyleSheet.create({
   typingBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#1a1a2e',
-    borderRadius: 16,
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
     borderBottomLeftRadius: 4,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#252538',
+    borderColor: colors.edge,
   },
-  typingText: { fontSize: 12, color: '#565680' },
+  typingText: { fontSize: 12, color: colors.textFaint },
 
-  // Action card
   actionCard: {
-    margin: 12,
-    backgroundColor: 'rgba(16,185,129,0.08)',
+    margin: spacing.md,
+    backgroundColor: tint(colors.emerald, 0.08),
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.3)',
-    borderRadius: 14,
-    padding: 12,
+    borderColor: tint(colors.emerald, 0.3),
+    borderRadius: radii.lg,
+    padding: spacing.md,
   },
   actionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  actionTitle: { fontSize: 12, fontWeight: '700', color: '#10b981' },
-  actionDetail: { fontSize: 11, color: '#9090b8', marginBottom: 10, paddingLeft: 20 },
-  actionBtns: { flexDirection: 'row', gap: 8 },
+  actionTitle: { fontSize: 12, fontWeight: '700', color: colors.emerald },
+  actionDetail: { fontSize: 11, color: colors.textMuted, marginBottom: 10, paddingLeft: 20 },
+  actionBtns: { flexDirection: 'row', gap: spacing.sm },
   btnDismiss: {
-    flex: 1, padding: 8, borderRadius: 8, alignItems: 'center',
+    flex: 1, padding: spacing.sm, borderRadius: radii.sm, alignItems: 'center',
     backgroundColor: 'transparent',
-    borderWidth: 1, borderColor: '#252538',
+    borderWidth: 1, borderColor: colors.edge,
   },
-  btnDismissText: { fontSize: 12, fontWeight: '600', color: '#565680' },
+  btnDismissText: { fontSize: 12, fontWeight: '600', color: colors.textFaint },
   btnConfirm: {
-    flex: 1, padding: 8, borderRadius: 8, alignItems: 'center',
-    backgroundColor: '#10b981',
+    flex: 1, padding: spacing.sm, borderRadius: radii.sm, alignItems: 'center',
+    backgroundColor: colors.emerald,
   },
-  btnConfirmText: { fontSize: 12, fontWeight: '700', color: '#052e16' },
+  btnConfirmText: { fontSize: 12, fontWeight: '700', color: colors.void },
 
-  // Input bar
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: '#1e1e30',
+    borderTopColor: colors.edge,
   },
+  inputWrap: { flex: 1 },
   input: {
-    flex: 1,
-    backgroundColor: '#12121e',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    color: '#f0eeff',
+    color: colors.text,
     fontSize: 13,
     borderWidth: 1,
-    borderColor: '#252538',
+    borderColor: colors.edge,
     maxHeight: 80,
+    minHeight: 34,
     lineHeight: 18,
   },
   sendBtn: {
     width: 38, height: 38,
-    borderRadius: 12,
-    backgroundColor: '#8b5cf6',
+    borderRadius: radii.md,
+    backgroundColor: colors.violet,
     alignItems: 'center', justifyContent: 'center',
   },
-  sendBtnDisabled: { backgroundColor: '#252538' },
+  sendBtnDisabled: { backgroundColor: colors.edge },
 });

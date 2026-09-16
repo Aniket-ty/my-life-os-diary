@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  StatusBar, Modal, TextInput, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
+  Modal, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
 import { useBodyScanStore } from '../../stores/bodyScanStore';
 import { useAuthStore } from '../../stores/authStore';
 import { fitnessAPI } from '../../services/fitnessService';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
+import Screen from '../../components/ui/Screen';
+import PageHeader from '../../components/ui/PageHeader';
+import GlassCard from '../../components/ui/GlassCard';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { colors, overlays, radii, spacing, tint, type as typ } from '../../theme';
 
 const WIDTH = Dimensions.get('window').width - 40;
 
@@ -69,10 +74,10 @@ export default function BodyScanScreen({ navigation }) {
 
   const diffColor = (key, lowerIsBetter = false) => {
     const d = diff(key);
-    if (d === null) return '#888';
-    if (d === 0) return '#888';
-    if (lowerIsBetter) return d < 0 ? '#2ecc71' : '#e74c3c';
-    return d > 0 ? '#2ecc71' : '#e74c3c';
+    if (d === null) return colors.textFaint;
+    if (d === 0) return colors.textFaint;
+    if (lowerIsBetter) return d < 0 ? colors.emerald : colors.rose;
+    return d > 0 ? colors.emerald : colors.rose;
   };
 
   const diffText = (key) => {
@@ -107,42 +112,61 @@ export default function BodyScanScreen({ navigation }) {
   };
 
   const chartConfig = (color) => ({
-    backgroundColor: '#1a1a2e',
-    backgroundGradientFrom: '#1a1a2e',
-    backgroundGradientTo: '#1a1a2e',
+    backgroundColor: colors.surface,
+    backgroundGradientFrom: colors.surface,
+    backgroundGradientTo: colors.surface,
+    decimalPlaces: 1,
     color: (opacity = 1) => color,
-    labelColor: () => '#666',
+    labelColor: () => colors.textFaint,
     strokeWidth: 2,
     propsForDots: { r: '4', strokeWidth: '2', stroke: color },
+    propsForBackgroundLines: { stroke: colors.edge, strokeWidth: 1 },
   });
 
   const f = (val) => form[val];
   const s = (val) => (v) => setForm((prev) => ({ ...prev, [val]: v }));
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Body Scan Tracker</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
-          <Ionicons name="add" size={22} color="#fff" />
+    <Screen>
+      <View style={styles.navBar}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.backBtn}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <PageHeader
+          title="Body Scan"
+          subtitle="Track your body's transformation over time"
+          icon={<Ionicons name="scan-outline" size={22} color={colors.rose} />}
+          accent={colors.rose}
+          action={
+            <Button
+              size="md"
+              variant="danger"
+              icon={<Ionicons name="add" size={16} />}
+              onPress={() => setShowModal(true)}
+            >
+              Add scan
+            </Button>
+          }
+        />
 
-        {/* Baseline banner */}
         <View style={styles.baselineBanner}>
-          <Ionicons name="scan-outline" size={16} color="#e74c3c" />
+          <Ionicons name="scan-outline" size={16} color={colors.rose} />
           <Text style={styles.baselineText}>
             Baseline: scan — 8 Apr 2026 · 90kg · 26.6% fat · BWI 7.4
           </Text>
         </View>
 
-        {/* Progress vs baseline */}
         <Text style={styles.sectionTitle}>Progress vs Baseline</Text>
         <View style={styles.progressGrid}>
           {[
@@ -151,7 +175,7 @@ export default function BodyScanScreen({ navigation }) {
             { label: 'Muscle', key: 'muscleMassKg', unit: 'kg', lower: false },
             { label: 'BWI Score', key: 'bwiScore', unit: '/10', lower: false },
           ].map((item) => (
-            <View key={item.key} style={styles.progressCard}>
+            <GlassCard key={item.key} style={styles.progressCard}>
               <Text style={styles.progressLabel}>{item.label}</Text>
               <Text style={styles.progressBaseline}>
                 {Number(baseline[item.key]).toFixed(1)}{item.unit}
@@ -164,13 +188,12 @@ export default function BodyScanScreen({ navigation }) {
                   Now: {Number(latest[item.key] || baseline[item.key]).toFixed(1)}{item.unit}
                 </Text>
               )}
-            </View>
+            </GlassCard>
           ))}
         </View>
 
-        {/* Goals from scan */}
         <Text style={styles.sectionTitle}>Your Targets (from scan)</Text>
-        <View style={styles.targetsCard}>
+        <GlassCard style={styles.targetsCard}>
           {[
             { label: 'Daily calories', value: '1997–2097 kcal', icon: '🔥' },
             { label: 'Protein', value: '150g (30%)', icon: '🥩' },
@@ -185,9 +208,8 @@ export default function BodyScanScreen({ navigation }) {
               <Text style={styles.targetValue}>{t.value}</Text>
             </View>
           ))}
-        </View>
+        </GlassCard>
 
-        {/* Charts */}
         {allScans.length > 1 && (
           <>
             <Text style={styles.sectionTitle}>Weight trend</Text>
@@ -195,10 +217,9 @@ export default function BodyScanScreen({ navigation }) {
               data={chartData('weight')}
               width={WIDTH}
               height={160}
-              chartConfig={chartConfig('#e74c3c')}
+              chartConfig={chartConfig(colors.rose)}
               bezier
               style={styles.chart}
-              withInnerLines={false}
             />
 
             <Text style={styles.sectionTitle}>Body fat % trend</Text>
@@ -206,10 +227,9 @@ export default function BodyScanScreen({ navigation }) {
               data={chartData('bodyFatPct')}
               width={WIDTH}
               height={160}
-              chartConfig={chartConfig('#f39c12')}
+              chartConfig={chartConfig(colors.orange)}
               bezier
               style={styles.chart}
-              withInnerLines={false}
             />
 
             <Text style={styles.sectionTitle}>Muscle mass trend</Text>
@@ -217,82 +237,81 @@ export default function BodyScanScreen({ navigation }) {
               data={chartData('muscleMassKg')}
               width={WIDTH}
               height={160}
-              chartConfig={chartConfig('#2ecc71')}
+              chartConfig={chartConfig(colors.emerald)}
               bezier
               style={styles.chart}
-              withInnerLines={false}
             />
           </>
         )}
 
-        {/* Consistency Report */}
         {report && (
           <>
             <Text style={styles.sectionTitle}>Consistency Report</Text>
-            <Text style={{ fontSize: 11, color: '#666', marginBottom: 12 }}>Last {report.period} days</Text>
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-              <View style={styles.reportCard}>
+            <Text style={styles.reportPeriod}>Last {report.period} days</Text>
+            <View style={styles.reportRow}>
+              <GlassCard style={styles.reportCard}>
                 <Text style={styles.reportIcon}>💪</Text>
                 <Text style={styles.reportValue}>{report.workouts.uniqueDays}/{report.period}</Text>
                 <Text style={styles.reportLabel}>Workout Days</Text>
                 <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${report.workouts.consistencyPct}%`, backgroundColor: '#2ecc71' }]} />
+                  <View style={[styles.progressFill, { width: `${report.workouts.consistencyPct}%`, backgroundColor: colors.emerald }]} />
                 </View>
                 <Text style={styles.reportDetail}>{report.workouts.consistencyPct}% consistency</Text>
-              </View>
-              <View style={styles.reportCard}>
+              </GlassCard>
+              <GlassCard style={styles.reportCard}>
                 <Text style={styles.reportIcon}>🥗</Text>
                 <Text style={styles.reportValue}>{report.nutrition.uniqueDays}/{report.period}</Text>
                 <Text style={styles.reportLabel}>Nutrition Logs</Text>
                 <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${report.nutrition.loggingPct}%`, backgroundColor: '#f39c12' }]} />
+                  <View style={[styles.progressFill, { width: `${report.nutrition.loggingPct}%`, backgroundColor: colors.orange }]} />
                 </View>
                 <Text style={styles.reportDetail}>{report.nutrition.loggingPct}% logging</Text>
-              </View>
+              </GlassCard>
             </View>
-            <View style={styles.reportCardFull}>
+            <GlassCard style={styles.reportCardFull}>
               <Text style={styles.reportIcon}>✅</Text>
               <Text style={styles.reportValue}>{report.todos.completed}/{report.todos.total}</Text>
               <Text style={styles.reportLabel}>Tasks Completed</Text>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${report.todos.completionRate}%`, backgroundColor: '#3498db' }]} />
+                <View style={[styles.progressFill, { width: `${report.todos.completionRate}%`, backgroundColor: colors.sky }]} />
               </View>
               <Text style={styles.reportDetail}>{report.todos.completionRate}% completion rate</Text>
-            </View>
+            </GlassCard>
 
-            {/* Daily Activity Heatmap */}
             <Text style={styles.sectionTitle}>Daily Activity</Text>
             {report.activePlan && (
-              <Text style={{ fontSize: 11, color: '#666', marginBottom: 8 }}>
+              <Text style={styles.reportPlan}>
                 {report.activePlan.name} ({report.activePlan.daysPerWeek}d/wk)
               </Text>
             )}
             <View style={styles.heatmapGrid}>
               {report.dailyBreakdown.map((day) => {
                 const score = (day.hasWorkout ? 1 : 0) + (day.hasNutrition ? 1 : 0);
-                const colors = ['#2a2a3e', '#2ecc7144', '#2ecc7188'];
+                const cell = [colors.surface, tint(colors.emerald, 0.3), tint(colors.emerald, 0.6)];
                 return (
                   <View
                     key={day.date}
-                    style={[styles.heatmapCell, { backgroundColor: colors[score] }]}
+                    style={[styles.heatmapCell, { backgroundColor: cell[score] }]}
                   />
                 );
               })}
             </View>
             <View style={styles.heatmapLegend}>
-              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#2a2a3e' }]} /><Text style={styles.legendText}>None</Text></View>
-              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#2ecc7144' }]} /><Text style={styles.legendText}>1 activity</Text></View>
-              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#2ecc7188' }]} /><Text style={styles.legendText}>Both</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: colors.surface }]} /><Text style={styles.legendText}>None</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tint(colors.emerald, 0.3) }]} /><Text style={styles.legendText}>1 activity</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: tint(colors.emerald, 0.6) }]} /><Text style={styles.legendText}>Both</Text></View>
             </View>
           </>
         )}
 
-        {/* Scan history */}
         <Text style={styles.sectionTitle}>Scan history</Text>
         {allScans.map((scan) => (
-          <View key={scan.id} style={[styles.scanCard, scan.isBaseline && styles.scanCardBaseline]}>
+          <GlassCard key={scan.id} style={[styles.scanCard, scan.isBaseline && styles.scanCardBaseline]}>
             <View style={styles.scanCardHeader}>
-              <View>
+              <View style={styles.scanIconTile}>
+                <Ionicons name="scan-outline" size={16} color={colors.rose} />
+              </View>
+              <View style={styles.scanCardInfo}>
                 <Text style={styles.scanDate}>
                   {moment(scan.scanDate).format('D MMM YYYY')}
                   {scan.isBaseline ? ' · Baseline' : ''}
@@ -300,13 +319,17 @@ export default function BodyScanScreen({ navigation }) {
                 <Text style={styles.scanWeight}>{Number(scan.weight).toFixed(1)} kg</Text>
               </View>
               {!scan.isBaseline && (
-                <TouchableOpacity onPress={() =>
-                  Alert.alert('Delete', 'Delete this scan?', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => deleteScan(scan.id) },
-                  ])
-                }>
-                  <Ionicons name="trash-outline" size={16} color="#666" />
+                <TouchableOpacity
+                  onPress={() =>
+                    Alert.alert('Delete', 'Delete this scan?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', style: 'destructive', onPress: () => deleteScan(scan.id) },
+                    ])
+                  }
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.scanDelete}
+                >
+                  <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -324,21 +347,20 @@ export default function BodyScanScreen({ navigation }) {
               ) : null)}
             </View>
             {scan.notes ? <Text style={styles.scanNotes}>{scan.notes}</Text> : null}
-          </View>
+          </GlassCard>
         ))}
       </ScrollView>
 
-      {/* Add Scan Modal */}
       <Modal visible={showModal} animationType="slide" transparent>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Log New Scan</Text>
-              <TouchableOpacity onPress={() => setShowModal(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+              <TouchableOpacity onPress={() => setShowModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {[
                 { label: 'Weight (kg) *', key: 'weight' },
                 { label: 'Height (cm)', key: 'heightCm', note: 'Used to auto-calculate BMR, TEE & nutrition targets' },
@@ -352,127 +374,116 @@ export default function BodyScanScreen({ navigation }) {
                 { label: 'Bio Age', key: 'bioAge' },
                 { label: 'Protein (kg)', key: 'proteinKg' },
               ].map((field) => (
-                <View key={field.key}>
+                <View key={field.key} style={styles.modalField}>
                   {field.note ? (
                     <Text style={styles.modalNote}>{field.note}</Text>
                   ) : null}
-                  <Text style={styles.modalLabel}>{field.label}</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    placeholder="0"
-                    placeholderTextColor="#444"
+                  <Input
+                    label={field.label}
                     value={f(field.key)}
                     onChangeText={s(field.key)}
+                    placeholder="0"
                     keyboardType="numeric"
                   />
                 </View>
               ))}
-              <Text style={styles.modalLabel}>Notes</Text>
-              <TextInput
-                style={[styles.modalInput, { minHeight: 60 }]}
-                placeholder="Any notes about this scan..."
-                placeholderTextColor="#444"
+              <Input
+                label="Notes"
                 value={form.notes}
                 onChangeText={s('notes')}
+                placeholder="Any notes about this scan..."
                 multiline
+                inputStyle={{ minHeight: 60 }}
               />
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+              <Button
+                variant="danger"
+                size="lg"
+                onPress={handleSave}
+                disabled={saving}
+                style={styles.saveBtn}
+              >
                 {saving
-                  ? <ActivityIndicator color="#fff" />
+                  ? <ActivityIndicator color={colors.white} />
                   : <Text style={styles.saveBtnText}>Save Scan</Text>
                 }
-              </TouchableOpacity>
+              </Button>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f1a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16, backgroundColor: '#1a1a2e',
+  navBar: { paddingTop: 56, paddingHorizontal: spacing.lg, paddingBottom: spacing.xs },
+  backBtn: {
+    width: 40, height: 40, borderRadius: radii.pill,
+    backgroundColor: overlays.faint, borderWidth: 1, borderColor: overlays.border,
+    alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  addBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#e74c3c', alignItems: 'center', justifyContent: 'center',
-  },
-  scroll: { padding: 20, paddingBottom: 80 },
+  scroll: { padding: spacing.xl, paddingBottom: 80 },
   baselineBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#1a0a0a', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#e74c3c33', marginBottom: 20,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: tint(colors.rose, 0.1), borderRadius: radii.md, padding: spacing.md,
+    borderWidth: 1, borderColor: tint(colors.rose, 0.3), marginBottom: spacing.xl,
   },
-  baselineText: { fontSize: 12, color: '#e74c3c', flex: 1 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#888', marginBottom: 12, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  progressGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  progressCard: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14,
-    width: '47%', borderWidth: 1, borderColor: '#2a2a3e',
-  },
-  progressLabel: { fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  progressBaseline: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  baselineText: { fontSize: 12, color: colors.rose, flex: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.white, marginBottom: spacing.md, marginTop: spacing.sm },
+  progressGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl },
+  progressCard: { width: '47%', borderRadius: radii.md, padding: 14 },
+  progressLabel: { fontSize: 10, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.xs, fontWeight: '700' },
+  progressBaseline: { fontSize: 18, fontWeight: '700', color: colors.white, marginBottom: spacing.xs },
   progressDiff: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
-  progressCurrent: { fontSize: 11, color: '#666' },
-  targetsCard: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: '#2a2a3e', marginBottom: 20,
+  progressCurrent: { fontSize: 11, color: colors.textFaint },
+  targetsCard: { marginBottom: spacing.xl, padding: 14 },
+  targetRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: overlays.borderSoft },
+  targetIcon: { fontSize: 16, marginRight: spacing.sm },
+  targetLabel: { flex: 1, fontSize: 13, color: colors.textMuted },
+  targetValue: { fontSize: 13, color: colors.white, fontWeight: '600' },
+  chart: { borderRadius: radii.lg, marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.edge, overflow: 'hidden' },
+  reportPeriod: { fontSize: 12, color: colors.textFaint, marginBottom: spacing.md },
+  reportRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
+  reportCard: { flex: 1, padding: 14, borderRadius: radii.md },
+  reportCardFull: { padding: 14, borderRadius: radii.md, marginBottom: spacing.md },
+  reportIcon: { fontSize: 18, marginBottom: spacing.xs },
+  reportValue: { fontSize: 20, fontWeight: '700', color: colors.white, marginBottom: 2 },
+  reportLabel: { fontSize: 11, color: colors.textFaint, textTransform: 'uppercase', marginBottom: spacing.sm, fontWeight: '700' },
+  reportDetail: { fontSize: 11, color: colors.textMuted, marginTop: spacing.xs },
+  reportPlan: { fontSize: 12, color: colors.textFaint, marginBottom: spacing.sm },
+  progressBar: { height: 6, backgroundColor: overlays.faint, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 3 },
+  heatmapGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
+  heatmapCell: { width: 24, height: 24, borderRadius: radii.xs },
+  heatmapLegend: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  legendDot: { width: 10, height: 10, borderRadius: 2 },
+  legendText: { fontSize: 10, color: colors.textMuted },
+  scanCard: { marginBottom: spacing.md, padding: spacing.lg, borderRadius: radii.lg },
+  scanCardBaseline: { borderColor: tint(colors.rose, 0.4) },
+  scanCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
+  scanIconTile: {
+    width: 34, height: 34, borderRadius: radii.sm,
+    backgroundColor: tint(colors.rose, 0.15), alignItems: 'center', justifyContent: 'center',
   },
-  targetRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#2a2a3e' },
-  targetIcon: { fontSize: 16, marginRight: 10 },
-  targetLabel: { flex: 1, fontSize: 13, color: '#aaa' },
-  targetValue: { fontSize: 13, color: '#fff', fontWeight: '600' },
-  chart: { borderRadius: 12, marginBottom: 20 },
-  scanCard: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14,
-    marginBottom: 10, borderWidth: 1, borderColor: '#2a2a3e',
-  },
-  scanCardBaseline: { borderColor: '#e74c3c33' },
-  scanCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  scanDate: { fontSize: 12, color: '#888', marginBottom: 2 },
-  scanWeight: { fontSize: 22, fontWeight: '700', color: '#fff' },
-  scanStats: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  scanCardInfo: { flex: 1 },
+  scanDate: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },
+  scanWeight: { fontSize: 22, fontWeight: '700', color: colors.white },
+  scanDelete: { padding: spacing.xs },
+  scanStats: { flexDirection: 'row', gap: spacing.lg, flexWrap: 'wrap' },
   scanStat: { alignItems: 'center' },
-  scanStatValue: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  scanStatLabel: { fontSize: 10, color: '#666', textTransform: 'uppercase' },
-  scanNotes: { fontSize: 12, color: '#666', marginTop: 8, fontStyle: 'italic' },
+  scanStatValue: { fontSize: 14, fontWeight: '700', color: colors.white },
+  scanStatLabel: { fontSize: 10, color: colors.textFaint, textTransform: 'uppercase' },
+  scanNotes: { fontSize: 12, color: colors.textMuted, marginTop: spacing.sm, fontStyle: 'italic' },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
   modal: {
-    backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, maxHeight: '90%',
+    backgroundColor: colors.abyss, borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl,
+    padding: spacing.xxl, maxHeight: '90%',
   },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  modalLabel: { fontSize: 12, color: '#888', fontWeight: '600', marginBottom: 4, marginTop: 12, textTransform: 'uppercase' },
-  modalNote: { fontSize: 11, color: '#f39c12', marginTop: 12, marginBottom: 8 },
-  modalInput: {
-    backgroundColor: '#0f0f1a', borderRadius: 10, padding: 12,
-    color: '#fff', fontSize: 14, borderWidth: 1, borderColor: '#2a2a3e',
-  },
-  saveBtn: { backgroundColor: '#e74c3c', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 20 },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  reportCard: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14, flex: 1,
-    borderWidth: 1, borderColor: '#2a2a3e',
-  },
-  reportCardFull: {
-    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: '#2a2a3e',
-  },
-  reportIcon: { fontSize: 18, marginBottom: 4 },
-  reportValue: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 2 },
-  reportLabel: { fontSize: 11, color: '#888', textTransform: 'uppercase', marginBottom: 8 },
-  reportDetail: { fontSize: 11, color: '#666', marginTop: 4 },
-  progressBar: { height: 6, backgroundColor: '#2a2a3e', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: 6, borderRadius: 3 },
-  heatmapGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 },
-  heatmapCell: { width: 24, height: 24, borderRadius: 4 },
-  heatmapLegend: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 10, height: 10, borderRadius: 2 },
-  legendText: { fontSize: 10, color: '#666' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
+  modalTitle: { ...typ.h2 },
+  modalField: { marginBottom: spacing.lg },
+  modalNote: { fontSize: 11, color: colors.textFaint, marginTop: spacing.md, marginBottom: spacing.sm },
+  saveBtn: { marginTop: spacing.xl },
+  saveBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
 });

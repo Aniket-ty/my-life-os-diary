@@ -1,13 +1,28 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { PenLine, ArrowLeft, Pin, Paperclip, ImagePlus, Trash2, X } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  PenLine,
+  ArrowLeft,
+  Pin,
+  Paperclip,
+  ImagePlus,
+  Trash2,
+  X,
+  Keyboard,
+  PenTool,
+  Layers,
+} from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { diaryService, type DiaryEntry } from '@/services/diary'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { MOODS, type Mood, toISODate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import {
+  HandwritingCanvas,
+  type HandwritingCanvasHandle,
+} from '@/components/diary/HandwritingCanvas'
 
 interface PendingFile {
   id: string
@@ -16,10 +31,13 @@ interface PendingFile {
   preview?: string
 }
 
+type InputMode = 'type' | 'stylus' | 'mixed'
+
 export function DiaryWrite() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const [inputMode, setInputMode] = useState<InputMode>('type')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [mood, setMood] = useState<Mood | null>(null)
@@ -27,6 +45,7 @@ export function DiaryWrite() {
   const [picked, setPicked] = useState<PendingFile[]>([])
   const [date, setDate] = useState(toISODate(new Date()))
   const [saving, setSaving] = useState(false)
+  const canvasRef = useRef<HandwritingCanvasHandle>(null)
 
   const isEdit = Boolean(id)
 
@@ -50,15 +69,24 @@ export function DiaryWrite() {
   }, [id, toast])
 
   async function save() {
-    if (!content.trim()) {
-      toast('Write something before saving', 'error')
-      return
+    const drawingBlob = await canvasRef.current?.getCanvasBlob()
+    const hasHandwriting = Boolean(drawingBlob)
+
+    let finalContent = content.trim()
+    if (!finalContent) {
+      if (hasHandwriting) {
+        finalContent = title.trim() || 'Handwritten Diary Note ✍️'
+      } else {
+        toast('Write or handwrite something before saving', 'error')
+        return
+      }
     }
+
     setSaving(true)
     try {
       const entryData = {
         title: title.trim() || undefined,
-        content: content.trim(),
+        content: finalContent,
         mood: mood ?? undefined,
         entryDate: date,
         isPinned: pinned,
@@ -68,6 +96,16 @@ export function DiaryWrite() {
         entry = await diaryService.update(id!, entryData)
       } else {
         entry = await diaryService.create(entryData)
+      }
+
+      // Upload handwritten drawing if exists
+      if (drawingBlob) {
+        try {
+          const drawingFile = new File([drawingBlob], `handwritten-entry-${date}.png`, { type: 'image/png' })
+          await diaryService.uploadMedia(entry.id, drawingFile, 'photo')
+        } catch {
+          toast('Entry saved, but could not upload handwriting image', 'error')
+        }
       }
 
       for (const p of picked) {
@@ -114,7 +152,7 @@ export function DiaryWrite() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title={isEdit ? 'Edit entry' : 'New diary entry'}
-        subtitle="Write freely — this is your space"
+        subtitle="Write freely with keyboard or digital stylus"
         icon={<PenLine size={22} className="text-gold-300" />}
         accent="from-gold-500 to-amber-600"
         action={
@@ -125,18 +163,65 @@ export function DiaryWrite() {
         }
       />
 
+      {/* Input Mode Switcher (Type / Stylus / Mixed) */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setInputMode('type')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all',
+              inputMode === 'type'
+                ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white',
+            )}
+          >
+            <Keyboard size={14} />
+            Type
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode('stylus')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all',
+              inputMode === 'stylus'
+                ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white',
+            )}
+          >
+            <PenTool size={14} />
+            Stylus / Handwrite
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode('mixed')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all',
+              inputMode === 'mixed'
+                ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white',
+            )}
+          >
+            <Layers size={14} />
+            Both (Text + Sketch)
+          </button>
+        </div>
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative overflow-hidden rounded-3xl bg-[#fdf6e3] text-[#3d2b1f] shadow-2xl"
       >
         <div className="absolute bottom-0 left-12 top-0 w-px bg-[#e8c4b8]" />
-        <div
-          className="absolute inset-x-12 top-8 bottom-0 pointer-events-none opacity-50"
-          style={{
-            backgroundImage: 'repeating-linear-gradient(transparent, transparent 35px, #d5cfc0 35px, #d5cfc0 36px)',
-          }}
-        />
+        {inputMode !== 'stylus' && (
+          <div
+            className="absolute inset-x-12 top-8 bottom-0 pointer-events-none opacity-50"
+            style={{
+              backgroundImage: 'repeating-linear-gradient(transparent, transparent 35px, #d5cfc0 35px, #d5cfc0 36px)',
+            }}
+          />
+        )}
         <div className="relative z-10 space-y-5 p-6 pl-16 sm:p-8 sm:pl-16">
           <div className="flex flex-wrap items-center gap-3">
             <input
@@ -185,13 +270,48 @@ export function DiaryWrite() {
             ))}
           </div>
 
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="What's on your mind today?"
-            className="min-h-[320px] w-full resize-y border-none bg-transparent text-[15px] leading-[2.4] text-[#3d2b1f] placeholder:text-[#b8a680] focus:outline-none"
-            autoFocus
-          />
+          {/* Typing Area (visible in 'type' or 'mixed' mode) */}
+          {(inputMode === 'type' || inputMode === 'mixed') && (
+            <div>
+              {inputMode === 'mixed' && (
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#a08464]">
+                  Typed Notes
+                </label>
+              )}
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="What's on your mind today?"
+                className={cn(
+                  'w-full resize-y border-none bg-transparent text-[15px] leading-[2.4] text-[#3d2b1f] placeholder:text-[#b8a680] focus:outline-none',
+                  inputMode === 'mixed' ? 'min-h-[160px]' : 'min-h-[320px]',
+                )}
+                autoFocus={inputMode === 'type'}
+              />
+            </div>
+          )}
+
+          {/* Stylus Handwriting Canvas (visible in 'stylus' or 'mixed' mode) */}
+          <AnimatePresence>
+            {(inputMode === 'stylus' || inputMode === 'mixed') && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-2 pt-2"
+              >
+                {inputMode === 'mixed' && (
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#a08464]">
+                    ✍️ Stylus Sketch / Handwritten Notes
+                  </label>
+                )}
+                <HandwritingCanvas
+                  ref={canvasRef}
+                  height={inputMode === 'stylus' ? 520 : 360}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* attachments */}
           {picked.length > 0 && (

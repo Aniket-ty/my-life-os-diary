@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet,
-  StatusBar, ActivityIndicator, Alert,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../../stores/authStore';
+import Screen from '../../components/ui/Screen';
+import Button from '../../components/ui/Button';
+import GlassCard from '../../components/ui/GlassCard';
+import Input from '../../components/ui/Input';
+import { colors, overlays, radii, shadow, spacing, tint, type as typ } from '../../theme';
 
 const ACTIVITY_LEVELS = [
   { value: 'sedentary', label: 'Sedentary', desc: 'Little / no exercise' },
@@ -86,23 +90,37 @@ export default function OnboardingScreen({ navigation }) {
       case 0:
         return (
           <View>
-            <Text style={styles.stepTitle}>Your profile</Text>
+            <Text style={typ.h1}>Your profile</Text>
             <Text style={styles.stepSub}>Basic details for accurate calculations</Text>
             <View style={styles.form}>
-              <Text style={styles.label}>Age</Text>
-              <TextInput style={styles.input} value={age} onChangeText={setAge} keyboardType="number-pad" placeholder="25" placeholderTextColor="#bbb" />
-              <Text style={styles.label}>Height (cm)</Text>
-              <TextInput style={styles.input} value={heightCm} onChangeText={setHeightCm} keyboardType="numeric" placeholder="175" placeholderTextColor="#bbb" />
-              <Text style={styles.label}>Gender</Text>
-              <View style={styles.row}>
-                {['male', 'female'].map((g) => (
-                  <TouchableOpacity
-                    key={g} style={[styles.segBtn, gender === g && styles.segBtnActive]}
-                    onPress={() => setGender(g)}
-                  >
-                    <Text style={[styles.segText, gender === g && styles.segTextActive]}>{g === 'male' ? '♂ Male' : '♀ Female'}</Text>
-                  </TouchableOpacity>
-                ))}
+              <Input
+                label="Age"
+                value={age}
+                onChangeText={setAge}
+                keyboardType="number-pad"
+                placeholder="25"
+                style={styles.field}
+              />
+              <Input
+                label="Height (cm)"
+                value={heightCm}
+                onChangeText={setHeightCm}
+                keyboardType="numeric"
+                placeholder="175"
+                style={styles.field}
+              />
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Gender</Text>
+                <View style={styles.row}>
+                  {['male', 'female'].map((g) => (
+                    <TouchableOpacity
+                      key={g} style={[styles.segBtn, gender === g && styles.segBtnActive]}
+                      onPress={() => setGender(g)}
+                    >
+                      <Text style={[styles.segText, gender === g && styles.segTextActive]}>{g === 'male' ? '♂ Male' : '♀ Female'}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             </View>
           </View>
@@ -110,16 +128,36 @@ export default function OnboardingScreen({ navigation }) {
       case 1:
         return (
           <View>
-            <Text style={styles.stepTitle}>Body scan</Text>
+            <Text style={typ.h1}>Body scan</Text>
             <Text style={styles.stepSub}>Your starting measurements — progress is tracked from here</Text>
             <View style={styles.form}>
-              <Text style={styles.label}>Current weight (kg) *</Text>
-              <TextInput style={styles.input} value={weightKg} onChangeText={setWeightKg} keyboardType="numeric" placeholder="80" placeholderTextColor="#bbb" />
-              <Text style={styles.label}>Body fat % (optional)</Text>
-              <TextInput style={styles.input} value={bodyFatPct} onChangeText={setBodyFatPct} keyboardType="numeric" placeholder="20" placeholderTextColor="#bbb" />
-              <Text style={styles.label}>Muscle mass kg (optional)</Text>
-              <TextInput style={styles.input} value={muscleMassKg} onChangeText={setMuscleMassKg} keyboardType="numeric" placeholder="35" placeholderTextColor="#bbb" />
-              <Text style={styles.hint}>Don't know body fat? Leave it blank — we'll estimate lean mass.</Text>
+              <Input
+                label="Current weight (kg) *"
+                value={weightKg}
+                onChangeText={setWeightKg}
+                keyboardType="numeric"
+                placeholder="80"
+                style={styles.field}
+              />
+              <Input
+                label="Body fat % (optional)"
+                value={bodyFatPct}
+                onChangeText={setBodyFatPct}
+                keyboardType="numeric"
+                placeholder="20"
+                style={styles.field}
+              />
+              <Input
+                label="Muscle mass kg (optional)"
+                value={muscleMassKg}
+                onChangeText={setMuscleMassKg}
+                keyboardType="numeric"
+                placeholder="35"
+                style={styles.field}
+              />
+              <View style={styles.hintBox}>
+                <Text style={styles.hintText}>Don't know body fat? Leave it blank — we'll estimate lean mass.</Text>
+              </View>
               <TouchableOpacity
                 style={styles.skipBtn}
                 onPress={() => submit(true)}
@@ -133,37 +171,41 @@ export default function OnboardingScreen({ navigation }) {
       case 2:
         return (
           <View>
-            <Text style={styles.stepTitle}>Lifestyle</Text>
+            <Text style={typ.h1}>Lifestyle</Text>
             <Text style={styles.stepSub}>How active are you, and what's your goal?</Text>
-            <Text style={styles.label}>Activity level</Text>
-            <View style={styles.list}>
-              {ACTIVITY_LEVELS.map((a) => (
-                <TouchableOpacity
-                  key={a.value} style={[styles.option, activityLevel === a.value && styles.optionActive]}
-                  onPress={() => setActivityLevel(a.value)}
-                >
-                  <View style={styles.optionTextWrap}>
-                    <Text style={styles.optionTitle}>{a.label}</Text>
-                    <Text style={styles.optionDesc}>{a.desc}</Text>
-                  </View>
-                  {activityLevel === a.value && <Ionicons name="checkmark-circle" size={20} color="#2ecc71" />}
-                </TouchableOpacity>
-              ))}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Activity level</Text>
+              <View style={styles.list}>
+                {ACTIVITY_LEVELS.map((a) => (
+                  <TouchableOpacity
+                    key={a.value} style={[styles.option, activityLevel === a.value && styles.optionActiveEmerald]}
+                    onPress={() => setActivityLevel(a.value)}
+                  >
+                    <View style={styles.optionTextWrap}>
+                      <Text style={styles.optionTitle}>{a.label}</Text>
+                      <Text style={styles.optionDesc}>{a.desc}</Text>
+                    </View>
+                    {activityLevel === a.value && <Ionicons name="checkmark-circle" size={20} color={colors.emerald} />}
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-            <Text style={styles.label}>Fitness goal</Text>
-            <View style={styles.list}>
-              {GOALS.map((g) => (
-                <TouchableOpacity
-                  key={g.value} style={[styles.option, goal === g.value && styles.optionActive]}
-                  onPress={() => setGoal(g.value)}
-                >
-                  <View style={styles.optionTextWrap}>
-                    <Text style={styles.optionTitle}>{g.label}</Text>
-                    <Text style={styles.optionDesc}>{g.desc}</Text>
-                  </View>
-                  {goal === g.value && <Ionicons name="checkmark-circle" size={20} color="#2ecc71" />}
-                </TouchableOpacity>
-              ))}
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Fitness goal</Text>
+              <View style={styles.list}>
+                {GOALS.map((g) => (
+                  <TouchableOpacity
+                    key={g.value} style={[styles.option, goal === g.value && styles.optionActiveGold]}
+                    onPress={() => setGoal(g.value)}
+                  >
+                    <View style={styles.optionTextWrap}>
+                      <Text style={styles.optionTitle}>{g.label}</Text>
+                      <Text style={styles.optionDesc}>{g.desc}</Text>
+                    </View>
+                    {goal === g.value && <Ionicons name="checkmark-circle" size={20} color={colors.gold} />}
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </View>
         );
@@ -171,10 +213,10 @@ export default function OnboardingScreen({ navigation }) {
         if (skipped) {
           return (
             <View>
-              <Text style={styles.stepTitle}>All set for now</Text>
+              <Text style={typ.h1}>All set for now</Text>
               <Text style={styles.stepSub}>Your Life OS is ready — add your body scan when you're ready</Text>
               <View style={styles.skipCard}>
-                <Ionicons name="scan-outline" size={30} color="#8a6d2f" />
+                <Ionicons name="scan-outline" size={30} color={colors.textFaint} />
                 <Text style={styles.skipCardTitle}>You skipped the body scan</Text>
                 <Text style={styles.skipCardText}>
                   Open Body Scan anytime to enter your starting measurements — that unlocks your
@@ -186,7 +228,7 @@ export default function OnboardingScreen({ navigation }) {
         }
         return result ? (
           <View>
-            <Text style={styles.stepTitle}>Your personalized numbers</Text>
+            <Text style={typ.h1}>Your personalized numbers</Text>
             <Text style={styles.stepSub}>Based on your body scan — adjustable in Fitness later</Text>
             <View style={styles.resultGrid}>
               <View style={styles.resultCard}>
@@ -206,16 +248,16 @@ export default function OnboardingScreen({ navigation }) {
               <Text style={styles.resultUnit}>kcal / day for your goal</Text>
             </View>
             <View style={styles.macroRow}>
-              <View style={[styles.macroCard, { borderColor: '#2ecc7155' }]}>
-                <Text style={[styles.macroValue, { color: '#2ecc71' }]}>{result.proteinG}g</Text>
+              <View style={[styles.macroCard, { borderColor: tint(colors.emerald, 0.25), backgroundColor: tint(colors.emerald, 0.06) }]}>
+                <Text style={styles.macroValue}>{result.proteinG}g</Text>
                 <Text style={styles.macroLabel}>Protein</Text>
               </View>
-              <View style={[styles.macroCard, { borderColor: '#f5a62355' }]}>
-                <Text style={[styles.macroValue, { color: '#f5a623' }]}>{result.carbsG}g</Text>
+              <View style={[styles.macroCard, { borderColor: tint(colors.gold, 0.25), backgroundColor: tint(colors.gold, 0.06) }]}>
+                <Text style={styles.macroValue}>{result.carbsG}g</Text>
                 <Text style={styles.macroLabel}>Carbs</Text>
               </View>
-              <View style={[styles.macroCard, { borderColor: '#3498db55' }]}>
-                <Text style={[styles.macroValue, { color: '#3498db' }]}>{result.fatG}g</Text>
+              <View style={[styles.macroCard, { borderColor: tint(colors.sky, 0.25), backgroundColor: tint(colors.sky, 0.06) }]}>
+                <Text style={styles.macroValue}>{result.fatG}g</Text>
                 <Text style={styles.macroLabel}>Fat</Text>
               </View>
             </View>
@@ -227,14 +269,14 @@ export default function OnboardingScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#085041" />
+    <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Set up your{' '}<Text style={styles.titleAccent}>Life OS</Text></Text>
+        <Text style={[typ.display, styles.title]}>
+          Set up your <Text style={styles.titleAccent}>Life OS</Text>
+        </Text>
         <Text style={styles.subtitle}>Hi {user?.name?.split(' ')[0]} — a quick body scan unlocks your calories, macros & plan. You can skip it for now and add it later.</Text>
       </View>
 
-      {/* Progress */}
       <View style={styles.progressRow}>
         {STEPS.map((s, i) => (
           <View key={s} style={styles.progressItem}>
@@ -248,117 +290,121 @@ export default function OnboardingScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {renderStep()}
+        <GlassCard strong style={styles.stepCard}>
+          {renderStep()}
+        </GlassCard>
       </ScrollView>
 
       <View style={styles.footer}>
         {step > 0 && step < 3 && (
-          <TouchableOpacity style={styles.backBtn} onPress={() => setStep(step - 1)}>
-            <Ionicons name="chevron-back" size={20} color="#444" />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
+          <Button
+            variant="outline"
+            size="md"
+            icon={<Ionicons name="chevron-back" size={18} />}
+            onPress={() => setStep(step - 1)}
+          >
+            Back
+          </Button>
         )}
-        <TouchableOpacity
-          style={[styles.nextBtn, step === 3 && styles.finishBtn]}
+        <Button
+          size="lg"
+          loading={busy}
           onPress={step === 3 ? finish : next}
-          disabled={busy}
-          activeOpacity={0.85}
+          style={[styles.nextBtn, (step === 2 || step === 3) && styles.finishBtn]}
+          textStyle={styles.nextText}
         >
-          {busy
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.nextText}>
-                {step === 2 ? 'Generate my plan' : step === 3 ? 'Start my Life OS' : 'Continue'}
-                {step === 3 ? '' : '  →'}
-              </Text>}
-        </TouchableOpacity>
+          {step === 2 ? 'Generate my plan' : step === 3 ? 'Start my Life OS' : 'Continue'}
+          {step === 3 ? '' : '  →'}
+        </Button>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#085041' },
-  header: { paddingTop: 60, paddingHorizontal: 24, paddingBottom: 12 },
-  title: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  titleAccent: { color: '#c8a96e' },
-  subtitle: { fontSize: 13, color: '#9ee0cb', marginTop: 4, lineHeight: 19 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 8, marginBottom: 4 },
+  header: { paddingTop: 64, paddingHorizontal: spacing.xxl, paddingBottom: spacing.lg },
+  title: { textAlign: 'center' },
+  titleAccent: { color: colors.gold300 },
+  subtitle: { ...typ.bodyMuted, marginTop: spacing.sm, textAlign: 'center', lineHeight: 18 },
+  progressRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, marginVertical: spacing.sm },
   progressItem: { flex: 1, alignItems: 'center', position: 'relative' },
   progressDot: {
-    width: 30, height: 30, borderRadius: 15, backgroundColor: '#0f6b58',
+    width: 30, height: 30, borderRadius: radii.pill, backgroundColor: overlays.soft,
+    borderWidth: 1, borderColor: overlays.border,
     alignItems: 'center', justifyContent: 'center', zIndex: 2,
   },
-  progressDotActive: { backgroundColor: '#c8a96e' },
-  progressDotCurrent: { borderWidth: 2, borderColor: '#fff' },
-  progressDotText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  progressLabel: { fontSize: 9, color: '#7cc4ad', marginTop: 4, textAlign: 'center' },
-  progressLabelActive: { color: '#fff' },
+  progressDotActive: { backgroundColor: colors.violet, borderColor: colors.violet },
+  progressDotCurrent: { borderWidth: 2, borderColor: colors.white },
+  progressDotText: { color: colors.white, fontWeight: '700', fontSize: 13 },
+  progressLabel: { fontSize: 9, color: colors.textFaint, marginTop: spacing.xs, textAlign: 'center' },
+  progressLabelActive: { color: colors.textSoft },
   progressLine: {
     position: 'absolute', top: 15, right: -50, left: '50%', height: 2,
-    backgroundColor: '#0f6b58', width: '100%', zIndex: 1,
+    backgroundColor: overlays.border, width: '100%', zIndex: 1,
   },
-  progressLineActive: { backgroundColor: '#c8a96e' },
-  scroll: { padding: 20, paddingBottom: 110 },
-  form: { marginTop: 14, backgroundColor: '#fff', borderRadius: 16, padding: 18 },
-  label: { fontSize: 12, color: '#666', marginBottom: 6, marginTop: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: {
-    borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 13,
-    fontSize: 16, backgroundColor: '#fafafa', color: '#222',
-  },
-  hint: { fontSize: 12, color: '#999', marginTop: 10, lineHeight: 18 },
-  skipBtn: {
-    marginTop: 14, borderWidth: 1, borderColor: '#c8a96e', borderRadius: 12,
-    paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff',
-  },
-  skipBtnText: { fontSize: 14, color: '#8a6d2f', fontWeight: '600' },
-  skipCard: {
-    marginTop: 16, backgroundColor: '#fff', borderRadius: 16, padding: 20,
-    alignItems: 'center',
-  },
-  skipCardTitle: { fontSize: 15, fontWeight: '700', color: '#222', marginTop: 8 },
-  skipCardText: { fontSize: 13, color: '#666', marginTop: 6, textAlign: 'center', lineHeight: 19 },
-  row: { flexDirection: 'row', gap: 10 },
+  progressLineActive: { backgroundColor: tint(colors.violet, 0.6) },
+  scroll: { padding: spacing.xl, paddingBottom: 110 },
+  stepCard: { marginTop: spacing.xs },
+  stepSub: { marginTop: spacing.xs, ...typ.bodyMuted },
+  form: { marginTop: spacing.xl },
+  field: { marginBottom: spacing.lg },
+  fieldLabel: { ...typ.label, marginBottom: spacing.sm },
+  row: { flexDirection: 'row', gap: spacing.md },
   segBtn: {
-    flex: 1, borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10,
-    padding: 13, alignItems: 'center', backgroundColor: '#fff',
+    flex: 1, borderWidth: 1, borderColor: overlays.border, borderRadius: radii.md,
+    backgroundColor: overlays.soft, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 13,
   },
-  segBtnActive: { borderColor: '#085041', backgroundColor: '#08504122' },
-  segText: { fontSize: 15, color: '#555', fontWeight: '600' },
-  segTextActive: { color: '#085041' },
-  stepTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  stepSub: { fontSize: 13, color: '#9ee0cb', marginTop: 4 },
-  list: { marginTop: 4 },
+  segBtnActive: { backgroundColor: colors.violet, borderColor: colors.violet },
+  segText: { fontSize: 15, color: colors.textMuted, fontWeight: '600' },
+  segTextActive: { color: colors.white },
+  hintBox: { backgroundColor: overlays.faint, borderRadius: radii.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  hintText: { ...typ.small, lineHeight: 18 },
+  skipBtn: {
+    marginTop: spacing.xs, borderWidth: 1, borderColor: overlays.border, borderRadius: radii.md,
+    backgroundColor: overlays.soft, paddingVertical: 13, alignItems: 'center',
+  },
+  skipBtnText: { fontSize: 13, color: colors.textSoft, fontWeight: '600' },
+  skipCard: {
+    marginTop: spacing.lg, backgroundColor: overlays.faint, borderRadius: radii.xl,
+    padding: spacing.xl, borderWidth: 1, borderColor: overlays.border, alignItems: 'center',
+  },
+  skipCardTitle: { ...typ.h3, marginTop: spacing.md },
+  skipCardText: { ...typ.small, marginTop: spacing.sm, textAlign: 'center', lineHeight: 18 },
+  list: { marginTop: spacing.xs },
   option: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
-    borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1.5, borderColor: 'transparent',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: overlays.faint,
+    borderRadius: radii.md, padding: 14, marginBottom: spacing.sm,
+    borderWidth: 1.5, borderColor: overlays.border,
   },
-  optionActive: { borderColor: '#2ecc71' },
+  optionActiveEmerald: { borderColor: tint(colors.emerald, 0.55), backgroundColor: tint(colors.emerald, 0.1) },
+  optionActiveGold: { borderColor: tint(colors.gold, 0.55), backgroundColor: tint(colors.gold, 0.1) },
   optionTextWrap: { flex: 1 },
-  optionTitle: { fontSize: 15, fontWeight: '700', color: '#222' },
-  optionDesc: { fontSize: 12, color: '#888', marginTop: 2 },
-  resultGrid: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  optionTitle: { ...typ.h3 },
+  optionDesc: { ...typ.small, marginTop: 2 },
+  resultGrid: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
   resultCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 16, alignItems: 'center',
+    flex: 1, backgroundColor: overlays.faint, borderRadius: radii.lg, padding: spacing.lg,
+    alignItems: 'center', borderWidth: 1, borderColor: overlays.border,
   },
-  resultLabel: { fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
-  resultLabelGold: { fontSize: 12, color: '#8a6d2f', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
-  resultValue: { fontSize: 26, fontWeight: '800', color: '#222', marginTop: 4 },
-  resultUnit: { fontSize: 10, color: '#aaa', marginTop: 2, textAlign: 'center' },
-  heroCard: { marginTop: 10, backgroundColor: '#fdf6e3', borderWidth: 1.5, borderColor: '#c8a96e' },
-  heroValue: { fontSize: 38, fontWeight: '900', color: '#3d2b1f', marginTop: 4 },
-  macroRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  resultLabel: { fontSize: 10, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
+  resultLabelGold: { fontSize: 11, color: colors.gold300, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '700' },
+  resultValue: { fontSize: 24, fontWeight: '800', color: colors.white, marginTop: spacing.xs },
+  resultUnit: { fontSize: 10, color: colors.textFaint, marginTop: 2, textAlign: 'center' },
+  heroCard: { marginTop: spacing.md, backgroundColor: tint(colors.gold, 0.12), borderColor: tint(colors.gold, 0.35) },
+  heroValue: { fontSize: 36, fontWeight: '900', color: colors.white, marginTop: spacing.xs },
+  macroRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   macroCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1.5,
+    flex: 1, backgroundColor: overlays.faint, borderRadius: radii.md, padding: 14,
+    alignItems: 'center', borderWidth: 1.5,
   },
-  macroValue: { fontSize: 18, fontWeight: '800' },
-  macroLabel: { fontSize: 10, color: '#888', marginTop: 2, textTransform: 'uppercase' },
+  macroValue: { fontSize: 18, fontWeight: '800', color: colors.white, marginTop: 4 },
+  macroLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2, textTransform: 'uppercase' },
   footer: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, padding: 20, paddingBottom: 36,
-    flexDirection: 'row', gap: 12, backgroundColor: '#085041',
+    position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.xl, paddingBottom: 36,
+    flexDirection: 'row', gap: spacing.md, backgroundColor: colors.void,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 28, paddingHorizontal: 16, paddingVertical: 14 },
-  backText: { fontSize: 14, color: '#444', fontWeight: '600' },
-  nextBtn: { flex: 1, backgroundColor: '#c8a96e', borderRadius: 28, paddingVertical: 14, alignItems: 'center' },
-  finishBtn: { backgroundColor: '#2ecc71' },
-  nextText: { fontSize: 15, color: '#fff', fontWeight: '800' },
+  nextBtn: { flex: 1 },
+  finishBtn: { backgroundColor: colors.emerald, ...shadow.glow(colors.emerald) },
+  nextText: { color: colors.white, fontSize: 15, fontWeight: '800' },
 });

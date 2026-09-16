@@ -9,6 +9,9 @@ import { useFitnessStore } from '../../stores/fitnessStore';
 import { fitnessAPI } from '../../services/fitnessService';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
+import Input from '../../components/ui/Input';
+import GlassCard from '../../components/ui/GlassCard';
+import { colors, spacing, radii, type as typ, tint, overlays } from '../../theme';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 const MEAL_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎' };
@@ -137,65 +140,68 @@ export default function LogFoodScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Log Food</Text>
-        <TouchableOpacity onPress={handleSave} disabled={saving}>
+        <TouchableOpacity onPress={handleSave} disabled={saving} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           {saving
-            ? <ActivityIndicator size="small" color="#f39c12" />
+            ? <ActivityIndicator size="small" color={colors.emerald} />
             : <Text style={styles.saveText}>Save</Text>
           }
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* AI Food Photo */}
         <Text style={styles.label}>AI Food Photo</Text>
         <View style={styles.captureRow}>
           <TouchableOpacity style={styles.captureBtn} onPress={() => pickAndAnalyze('camera')} disabled={analyzing}>
-            <Ionicons name="camera" size={20} color="#e74c3c" />
+            <Ionicons name="camera" size={18} color={colors.emerald} />
             <Text style={styles.captureBtnText}>Take photo</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.captureBtn} onPress={() => pickAndAnalyze('gallery')} disabled={analyzing}>
-            <Ionicons name="images" size={20} color="#f39c12" />
+            <Ionicons name="images" size={18} color={colors.sky} />
             <Text style={styles.captureBtnText}>Choose photo</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.aiHint}>Snap your meal — AI will identify it and auto-fill nutrition from the portion weight.</Text>
 
         {photoUri && (
-          <View style={styles.photoCard}>
+          <GlassCard style={styles.photoCard} padded={false}>
             <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
             <View style={styles.photoInfo}>
               {analyzing ? (
                 <>
-                  <ActivityIndicator size="small" color="#f39c12" />
+                  <ActivityIndicator size="small" color={colors.emerald} />
                   <Text style={styles.analyzingText}>AI is identifying your food…</Text>
                 </>
               ) : aiResult ? (
                 <>
-                  <Text style={styles.aiFoodName}>{aiResult.foodName}</Text>
+                  <Text style={styles.aiFoodName} numberOfLines={1}>{aiResult.foodName}</Text>
                   <Text style={styles.aiPer100}>per 100g: {aiResult.per100g.calories} kcal · P {aiResult.per100g.proteinG}g · C {aiResult.per100g.carbsG}g · F {aiResult.per100g.fatG}g</Text>
                   {aiResult.serving && <Text style={styles.aiDetail}>Serving: {aiResult.serving}</Text>}
 
-                  <Text style={styles.label}>Your portion weight (g)</Text>
+                  <Text style={styles.portionLabel}>Your portion weight (g)</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="100"
-                    placeholderTextColor="#444"
+                    placeholderTextColor={colors.textFaint}
                     value={portionG}
                     onChangeText={onPortionChange}
                     keyboardType="numeric"
                   />
-                  <Text style={styles.calcResult}>
-                    → {foodName}: {calories} kcal · P {proteinG}g · C {carbsG}g · F {fatG}g
-                  </Text>
+                  <View style={styles.calcWrap}>
+                    <Ionicons name="arrow-forward" size={13} color={colors.emerald} />
+                    <Text style={styles.calcResult} numberOfLines={2}>
+                      {foodName}: {calories} kcal · P {proteinG}g · C {carbsG}g · F {fatG}g
+                    </Text>
+                  </View>
                 </>
               ) : null}
             </View>
-          </View>
+          </GlassCard>
         )}
 
         {/* Quick add */}
@@ -203,7 +209,7 @@ export default function LogFoodScreen({ navigation }) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickRow}>
           {QUICK_FOODS.map((f) => (
             <TouchableOpacity key={f.name} style={styles.quickChip} onPress={() => fillQuick(f)}>
-              <Text style={styles.quickName}>{f.name}</Text>
+              <Text style={styles.quickName} numberOfLines={1}>{f.name}</Text>
               <Text style={styles.quickCal}>{f.calories} kcal</Text>
             </TouchableOpacity>
           ))}
@@ -227,28 +233,23 @@ export default function LogFoodScreen({ navigation }) {
         </View>
 
         {/* Food details */}
-        <Text style={styles.label}>Food Name *</Text>
-        <TextInput style={styles.input} placeholder="e.g. Chicken Breast" placeholderTextColor="#444" value={foodName} onChangeText={setFoodName} />
-
-        <Text style={styles.label}>Quantity</Text>
-        <TextInput style={styles.input} placeholder="e.g. 100g, 1 cup" placeholderTextColor="#444" value={quantity} onChangeText={setQuantity} />
-
-        <Text style={styles.label}>Calories (kcal) *</Text>
-        <TextInput style={styles.input} placeholder="e.g. 165" placeholderTextColor="#444" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+        <Input label="Food Name *" value={foodName} onChangeText={setFoodName} placeholder="e.g. Chicken Breast" style={styles.fieldSpacing} />
+        <Input label="Quantity" value={quantity} onChangeText={setQuantity} placeholder="e.g. 100g, 1 cup" style={styles.fieldSpacing} />
+        <Input label="Calories (kcal) *" value={calories} onChangeText={setCalories} placeholder="e.g. 165" keyboardType="numeric" style={styles.fieldSpacing} />
 
         <Text style={styles.label}>Macros (optional)</Text>
         <View style={styles.macroRow}>
           {[
-            { label: 'Protein (g)', value: proteinG, setter: setProteinG, color: '#e74c3c' },
-            { label: 'Carbs (g)', value: carbsG, setter: setCarbsG, color: '#f39c12' },
-            { label: 'Fat (g)', value: fatG, setter: setFatG, color: '#9b59b6' },
+            { label: 'Protein (g)', value: proteinG, setter: setProteinG, color: colors.emerald },
+            { label: 'Carbs (g)', value: carbsG, setter: setCarbsG, color: colors.amber },
+            { label: 'Fat (g)', value: fatG, setter: setFatG, color: colors.violet },
           ].map((m) => (
             <View key={m.label} style={styles.macroInput}>
               <Text style={[styles.macroLabel, { color: m.color }]}>{m.label}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="0"
-                placeholderTextColor="#444"
+                placeholderTextColor={colors.textFaint}
                 value={m.value}
                 onChangeText={m.setter}
                 keyboardType="numeric"
@@ -262,54 +263,63 @@ export default function LogFoodScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f1a' },
+  container: { flex: 1, backgroundColor: colors.void },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16, backgroundColor: '#1a1a2e',
+    paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: spacing.lg, backgroundColor: colors.void,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  saveText: { fontSize: 16, color: '#f39c12', fontWeight: '700' },
-  scroll: { padding: 20, paddingBottom: 60 },
-  label: { fontSize: 13, color: '#888', fontWeight: '600', marginBottom: 6, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: '#1a1a2e', borderRadius: 10, padding: 14, color: '#fff', fontSize: 15, borderWidth: 1, borderColor: '#2a2a3e', marginBottom: 4 },
-  captureRow: { flexDirection: 'row', gap: 8 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.white },
+  saveText: { fontSize: 16, color: colors.emerald, fontWeight: '700' },
+  scroll: { padding: spacing.xl, paddingBottom: 60 },
+  label: { ...typ.label, marginTop: spacing.lg, marginBottom: spacing.sm },
+  fieldSpacing: { marginTop: spacing.sm },
+  portionLabel: { ...typ.label, marginBottom: spacing.sm, marginTop: spacing.sm },
+  input: {
+    backgroundColor: overlays.faint, borderRadius: radii.sm, padding: 12,
+    color: colors.text, fontSize: 14, borderWidth: 1, borderColor: overlays.border, marginBottom: 4,
+  },
+  captureRow: { flexDirection: 'row', gap: spacing.sm },
   captureBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: '#2a2a3e',
+    backgroundColor: colors.surface, borderRadius: radii.md, padding: 14,
+    borderWidth: 1, borderColor: colors.edge,
   },
-  captureBtnText: { color: '#ccc', fontSize: 13, fontWeight: '600' },
-  aiHint: { fontSize: 11, color: '#666', marginTop: 6 },
+  captureBtnText: { color: colors.textSoft, fontSize: 13, fontWeight: '600' },
+  aiHint: { fontSize: 11, color: colors.textFaint, marginTop: 6 },
   photoCard: {
-    flexDirection: 'row', gap: 12, marginTop: 12,
-    backgroundColor: '#1a1a2e', borderRadius: 14, padding: 12,
-    borderWidth: 1, borderColor: '#2a2a3e',
+    flexDirection: 'row', gap: spacing.md, marginTop: spacing.md,
+    padding: spacing.lg, borderColor: tint(colors.emerald, 0.3),
   },
-  photoPreview: { width: 88, height: 88, borderRadius: 10, backgroundColor: '#0f0f1a' },
+  photoPreview: { width: 88, height: 88, borderRadius: radii.lg, backgroundColor: colors.abyss },
   photoInfo: { flex: 1, justifyContent: 'center' },
-  analyzingText: { color: '#888', fontSize: 12, marginTop: 8, textAlign: 'center' },
-  aiFoodName: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 2 },
-  aiPer100: { fontSize: 12, color: '#f39c12', marginBottom: 2 },
-  aiDetail: { fontSize: 11, color: '#888', marginBottom: 8 },
-  calcResult: { fontSize: 12, color: '#2ecc71', fontWeight: '600', marginTop: 6 },
+  analyzingText: { color: colors.textMuted, fontSize: 12, marginTop: spacing.sm, textAlign: 'center' },
+  aiFoodName: { fontSize: 16, fontWeight: '700', color: colors.white, marginBottom: 2 },
+  aiPer100: { fontSize: 12, color: colors.emerald, marginBottom: 2 },
+  aiDetail: { fontSize: 11, color: colors.textFaint, marginBottom: spacing.md },
+  calcWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm,
+    backgroundColor: tint(colors.emerald, 0.1), borderRadius: radii.sm,
+    paddingHorizontal: spacing.sm, paddingVertical: 6,
+  },
+  calcResult: { fontSize: 11, color: colors.emerald, fontWeight: '700', flex: 1 },
   quickRow: { marginBottom: 4 },
   quickChip: {
-    backgroundColor: '#1a1a2e', borderRadius: 10, padding: 10,
-    marginRight: 8, borderWidth: 1, borderColor: '#2a2a3e', alignItems: 'center',
+    backgroundColor: colors.surface, borderRadius: radii.md, padding: 10,
+    marginRight: spacing.sm, borderWidth: 1, borderColor: colors.edge, alignItems: 'center', minWidth: 96,
   },
-  quickName: { fontSize: 12, color: '#ccc', fontWeight: '600', maxWidth: 90, textAlign: 'center' },
-  quickCal: { fontSize: 11, color: '#f39c12', marginTop: 2 },
-  mealRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  quickName: { fontSize: 12, color: colors.textSoft, fontWeight: '600', maxWidth: 80, textAlign: 'center' },
+  quickCal: { fontSize: 11, color: colors.emerald, marginTop: 2 },
+  mealRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   mealBtn: {
-    flex: 1, minWidth: '22%', padding: 10, borderRadius: 10,
-    alignItems: 'center', backgroundColor: '#1a1a2e',
-    borderWidth: 1, borderColor: '#2a2a3e',
+    flex: 1, minWidth: '22%', padding: 10, borderRadius: radii.md,
+    alignItems: 'center', backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.edge,
   },
-  mealBtnActive: { borderColor: '#f39c12', backgroundColor: '#2a1800' },
+  mealBtnActive: { borderColor: colors.emerald, backgroundColor: tint(colors.emerald, 0.14) },
   mealBtnEmoji: { fontSize: 18 },
-  mealBtnText: { fontSize: 11, color: '#666', marginTop: 2, fontWeight: '600' },
-  mealBtnTextActive: { color: '#f39c12' },
-  macroRow: { flexDirection: 'row', gap: 8 },
+  mealBtnText: { fontSize: 11, color: colors.textMuted, marginTop: 2, fontWeight: '600' },
+  mealBtnTextActive: { color: colors.emerald },
+  macroRow: { flexDirection: 'row', gap: spacing.sm },
   macroInput: { flex: 1 },
   macroLabel: { fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' },
 });

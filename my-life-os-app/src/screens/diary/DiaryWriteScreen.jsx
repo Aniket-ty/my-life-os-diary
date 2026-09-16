@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { useDiaryStore } from '../../stores/diaryStore';
@@ -9,6 +9,13 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import AttachmentStrip from '../../components/diary/AttachmentStrip';
+import Screen from '../../components/ui/Screen';
+import GlassCard from '../../components/ui/GlassCard';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import {
+  colors, spacing, radii, overlays, tint, shadow,
+} from '../../theme';
 
 const MOODS = [
   { key: 'happy', emoji: '😊' }, { key: 'sad', emoji: '😢' },
@@ -30,7 +37,6 @@ export default function DiaryWriteScreen({ navigation, route }) {
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const scrollRef = useRef(null);
 
-  // Load existing entry when editing so previous data is preserved
   useEffect(() => {
     if (!isEdit) return;
     let cancelled = false;
@@ -159,184 +165,153 @@ export default function DiaryWriteScreen({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      {loading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#c8a96e" />
-        </View>
-      ) : (
-      <>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={24} color="#3d2b1f" />
-        </TouchableOpacity>
-        <Text style={styles.headerDate}>{moment().format('MMMM D, YYYY')}</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          {saving
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={styles.saveBtnText}>Save</Text>
-          }
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+    <Screen style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboard}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Paper sheet */}
-        <View style={styles.paper}>
-          {/* Ruled lines (decorative) */}
-          {Array.from({ length: 20 }).map((_, i) => (
-            <View key={i} style={[styles.ruledLine, { top: 120 + i * 28 }]} />
-          ))}
-
-          {/* Red margin line */}
-          <View style={styles.marginLine} />
-
-          {/* Title input */}
-          <TextInput
-            style={styles.titleInput}
-            placeholder="Title (optional)"
-            placeholderTextColor="#c9b99a"
-            value={title}
-            onChangeText={setTitle}
-            maxLength={100}
-          />
-
-          {/* Content input */}
-          <TextInput
-            style={styles.contentInput}
-            placeholder="Dear Diary..."
-            placeholderTextColor="#c9b99a"
-            value={content}
-            onChangeText={setContent}
-            multiline
-            textAlignVertical="top"
-            autoFocus
-          />
-
-          {/* Attachments strip (paperclip style) */}
-          {pendingAttachments.length > 0 && (
-            <AttachmentStrip
-              attachments={pendingAttachments}
-              onRemove={removeAttachment}
-              pending
-            />
-          )}
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={colors.gold} />
+          </View>
+        ) : (
+        <>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerDate}>{moment().format('MMMM D, YYYY')}</Text>
+          <Button
+            onPress={handleSave}
+            disabled={saving}
+            loading={saving}
+            size="sm"
+            style={styles.saveBtn}
+            textStyle={styles.saveBtnText}
+          >
+            Save
+          </Button>
         </View>
-      </ScrollView>
 
-      {/* Bottom toolbar */}
-      <View style={styles.toolbar}>
-        {/* Mood picker */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodScroll}>
-          {MOODS.map((m) => (
-            <TouchableOpacity
-              key={m.key}
-              style={[styles.moodBtn, mood === m.key && styles.moodBtnActive]}
-              onPress={() => setMood(mood === m.key ? null : m.key)}
-            >
-              <Text style={styles.moodEmoji}>{m.emoji}</Text>
-            </TouchableOpacity>
-          ))}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <GlassCard style={styles.paper}>
+            <Input
+              style={styles.fieldGap}
+              inputStyle={styles.titleInput}
+              placeholder="Title (optional)"
+              placeholderTextColor={colors.textFaint}
+              value={title}
+              onChangeText={setTitle}
+              maxLength={100}
+            />
+            <Input
+              inputStyle={styles.contentInput}
+              placeholder="What's on your mind today?"
+              placeholderTextColor={colors.textFaint}
+              value={content}
+              onChangeText={setContent}
+              multiline
+              autoFocus
+            />
+
+            {pendingAttachments.length > 0 && (
+              <AttachmentStrip
+                attachments={pendingAttachments}
+                onRemove={removeAttachment}
+                pending
+              />
+            )}
+          </GlassCard>
         </ScrollView>
 
-        {/* Attach buttons */}
-        <View style={styles.attachRow}>
-          <TouchableOpacity style={styles.attachBtn} onPress={pickPhoto}>
-            <Ionicons name="image-outline" size={22} color="#8B7355" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.attachBtn} onPress={pickVideo}>
-            <Ionicons name="videocam-outline" size={22} color="#8B7355" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.attachBtn} onPress={pickAudio}>
-            <Ionicons name="musical-notes-outline" size={22} color="#8B7355" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.attachBtn} onPress={pickDocument}>
-            <Ionicons name="document-text-outline" size={22} color="#8B7355" />
-          </TouchableOpacity>
+        <View style={styles.toolbar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodScroll}>
+            {MOODS.map((m) => (
+              <TouchableOpacity
+                key={m.key}
+                style={[styles.moodBtn, mood === m.key && styles.moodBtnActive]}
+                onPress={() => setMood(mood === m.key ? null : m.key)}
+              >
+                <Text style={styles.moodEmoji}>{m.emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <View style={styles.attachRow}>
+            <TouchableOpacity style={styles.attachBtn} onPress={pickPhoto}>
+              <Ionicons name="image-outline" size={22} color={colors.gold} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachBtn} onPress={pickVideo}>
+              <Ionicons name="videocam-outline" size={22} color={colors.gold} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachBtn} onPress={pickAudio}>
+              <Ionicons name="musical-notes-outline" size={22} color={colors.gold} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachBtn} onPress={pickDocument}>
+              <Ionicons name="document-text-outline" size={22} color={colors.gold} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-      </>
-      )}
-    </KeyboardAvoidingView>
+        </>
+        )}
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdf6e3' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fdf6e3' },
+  container: { flex: 1, backgroundColor: colors.void },
+  keyboard: { flex: 1 },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,
-    backgroundColor: '#fdf6e3',
+    paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: spacing.md,
   },
-  headerDate: { fontSize: 15, color: '#8B7355', fontWeight: '500', fontFamily: 'serif' },
+  headerDate: { fontSize: 13, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.3 },
   saveBtn: {
-    backgroundColor: '#c8a96e', borderRadius: 16,
-    paddingHorizontal: 18, paddingVertical: 7,
+    backgroundColor: colors.gold,
+    borderColor: colors.gold,
+    shadowColor: colors.gold,
   },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  saveBtnText: { color: colors.void },
   scroll: { flex: 1 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
-
+  scrollContent: { padding: spacing.xl, paddingBottom: 40 },
   paper: {
-    backgroundColor: '#fffef5',
-    borderRadius: 4,
-    padding: 20,
-    paddingLeft: 52,
-    minHeight: 600,
-    shadowColor: '#8B7355',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 2, height: 4 },
-    elevation: 4,
-    overflow: 'hidden',
-    position: 'relative',
+    padding: spacing.xl,
+    ...shadow.card,
   },
-  ruledLine: {
-    position: 'absolute', left: 52, right: 20,
-    height: 1, backgroundColor: '#e8dcc8',
-  },
-  marginLine: {
-    position: 'absolute', left: 44, top: 0, bottom: 0,
-    width: 1.5, backgroundColor: '#f5a62360',
-  },
-  titleInput: {
-    fontSize: 20, fontWeight: '700', color: '#3d2b1f',
-    fontFamily: 'serif', marginBottom: 16,
-    paddingVertical: 4,
-  },
-  contentInput: {
-    fontSize: 15, color: '#3d2b1f',
-    fontFamily: 'serif', lineHeight: 28,
-    minHeight: 400,
-  },
-
+  fieldGap: { marginBottom: spacing.lg },
+  titleInput: { fontSize: 20, fontWeight: '700', color: colors.white },
+  contentInput: { minHeight: 360, fontSize: 15, lineHeight: 24 },
   toolbar: {
-    backgroundColor: '#fff',
-    borderTopWidth: 1, borderTopColor: '#f0e6d0',
+    backgroundColor: colors.abyss,
+    borderTopWidth: 1, borderTopColor: overlays.border,
     paddingBottom: Platform.OS === 'ios' ? 30 : 12,
     paddingTop: 10,
   },
-  moodScroll: { paddingHorizontal: 16, marginBottom: 8 },
+  moodScroll: { paddingHorizontal: spacing.lg, marginBottom: 8 },
   moodBtn: {
-    padding: 6, borderRadius: 20, marginRight: 4,
-    backgroundColor: '#fdf6e3',
+    padding: 6, borderRadius: radii.pill, marginRight: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'transparent',
   },
-  moodBtnActive: { backgroundColor: '#f5e6c8', borderWidth: 1.5, borderColor: '#c8a96e' },
+  moodBtnActive: {
+    backgroundColor: tint(colors.gold, 0.2),
+    borderColor: colors.gold,
+  },
   moodEmoji: { fontSize: 22 },
   attachRow: {
-    flexDirection: 'row', paddingHorizontal: 16, gap: 8,
+    flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.sm,
   },
   attachBtn: {
-    backgroundColor: '#fdf6e3', borderRadius: 10,
-    padding: 10, borderWidth: 1, borderColor: '#e8dcc8',
+    backgroundColor: overlays.soft,
+    borderRadius: radii.md,
+    padding: 10,
+    borderWidth: 1, borderColor: overlays.borderSoft,
   },
 });

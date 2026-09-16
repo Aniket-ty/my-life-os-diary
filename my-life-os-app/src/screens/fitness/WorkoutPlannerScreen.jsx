@@ -7,6 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWorkoutPlanStore } from '../../stores/workoutPlanStore';
 import { useBodyScanStore } from '../../stores/bodyScanStore';
 import moment from 'moment';
+import GlassCard from '../../components/ui/GlassCard';
+import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { colors, spacing, radii, type as typ, tint, overlays, shadow } from '../../theme';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const GOALS = [
@@ -115,7 +120,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
   if (!scanChecked) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#085041" />
+        <ActivityIndicator size="large" color={colors.emerald} />
       </View>
     );
   }
@@ -123,24 +128,32 @@ export default function WorkoutPlannerScreen({ navigation }) {
   if (!bodyScans || bodyScans.length === 0) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.void} />
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="chevron-back" size={24} color="#3d2b1f" />
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Workout Plan</Text>
           <View style={{ width: 34 }} />
         </View>
-        <View style={styles.gateCard}>
-          <Ionicons name="scan-outline" size={42} color="#e74c3c" />
-          <Text style={styles.gateTitle}>Complete your body scan first</Text>
-          <Text style={styles.gateSub}>
-            Your workout plan is built around your starting measurements. Log a quick body scan (just your weight is enough) to unlock your personalized plan.
-          </Text>
-          <TouchableOpacity style={styles.gateBtn} onPress={() => navigation.navigate('BodyScan')}>
-            <Ionicons name="scan" size={16} color="#fff" />
-            <Text style={styles.gateBtnText}>Go to Body Scan</Text>
-          </TouchableOpacity>
+        <View style={styles.gateWrap}>
+          <GlassCard strong style={styles.gateCard}>
+            <View style={[styles.gateIcon, { backgroundColor: tint(colors.rose, 0.16), borderColor: tint(colors.rose, 0.35) }]}>
+              <Ionicons name="scan-outline" size={28} color={colors.rose} />
+            </View>
+            <Text style={styles.gateTitle}>Complete your body scan first</Text>
+            <Text style={styles.gateSub}>
+              Your workout plan is built around your starting measurements. Log a quick body scan (just your weight is enough) to unlock your personalized plan.
+            </Text>
+            <Button
+              size="md"
+              onPress={() => navigation.navigate('BodyScan')}
+              style={styles.gateBtn}
+              icon={<Ionicons name="scan" size={16} />}
+            >
+              Go to Body Scan
+            </Button>
+          </GlassCard>
         </View>
       </View>
     );
@@ -149,51 +162,59 @@ export default function WorkoutPlannerScreen({ navigation }) {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#085041" />
+        <ActivityIndicator size="large" color={colors.emerald} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.void} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={24} color="#3d2b1f" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Workout Plan</Text>
-        <TouchableOpacity style={styles.genBtn} onPress={() => setShowGen(true)}>
-          <Ionicons name="sparkles" size={18} color="#fff" />
+        <TouchableOpacity style={styles.genBtn} onPress={() => setShowGen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="sparkles" size={16} color={colors.white} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {!activePlan && !generating && (
-          <View style={styles.emptyCard}>
-            <Ionicons name="barbell-outline" size={40} color="#085041" />
-            <Text style={styles.emptyTitle}>No workout plan yet</Text>
-            <Text style={styles.emptySub}>Generate a personalized weekly schedule based on your goal, level and equipment.</Text>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => setShowGen(true)}>
-              <Ionicons name="sparkles" size={16} color="#fff" />
-              <Text style={styles.primaryBtnText}>Generate my plan</Text>
-            </TouchableOpacity>
-          </View>
+          <GlassCard strong style={styles.emptyCard} padded={false}>
+            <View style={styles.emptyInner}>
+              <Ionicons name="barbell-outline" size={40} color={colors.emerald} />
+              <Text style={styles.emptyTitle}>No workout plan yet</Text>
+              <Text style={styles.emptySub}>Generate a personalized weekly schedule based on your goal, level and equipment.</Text>
+              <Button
+                size="md"
+                onPress={() => setShowGen(true)}
+                style={styles.primaryBtn}
+                icon={<Ionicons name="sparkles" size={16} />}
+              >
+                Generate my plan
+              </Button>
+            </View>
+          </GlassCard>
         )}
 
         {generating && (
-          <View style={styles.emptyCard}>
-            <ActivityIndicator size="large" color="#c8a96e" />
-            <Text style={styles.emptyTitle}>Designing your week…</Text>
-            <Text style={styles.emptySub}>The AI is building your plan around your goals.</Text>
-          </View>
+          <GlassCard strong style={styles.emptyCard} padded={false}>
+            <View style={styles.emptyInner}>
+              <ActivityIndicator size="large" color={colors.emerald} />
+              <Text style={styles.emptyTitle}>Designing your week…</Text>
+              <Text style={styles.emptySub}>The AI is building your plan around your goals.</Text>
+            </View>
+          </GlassCard>
         )}
 
         {activePlan && (
           <>
             <View style={styles.planMeta}>
-              <View style={styles.planChip}>
+              <Badge tone="emerald" style={styles.planChip}>
                 <Text style={styles.planChipText}>{activePlan.name}</Text>
-              </View>
+              </Badge>
               <Text style={styles.planMetaText}>
                 {activePlan.fitnessLevel ? `${capitalize(activePlan.fitnessLevel)} · ` : ''}
                 {activePlan.goal ? `${capitalize(activePlan.goal)} · ` : ''}
@@ -201,7 +222,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
               </Text>
             </View>
 
-            <View style={styles.weekCard}>
+            <GlassCard padded={false} style={styles.weekCard}>
               {week().map((d, i) => {
                 const day = activePlan.days.find((x) => x.dayNumber === i);
                 const isToday = d.isSame(moment(), 'day');
@@ -209,30 +230,30 @@ export default function WorkoutPlannerScreen({ navigation }) {
                   <View key={i} style={[styles.dayRow, isToday && styles.dayRowToday]}>
                     <View style={styles.dayCol}>
                       <Text style={styles.dayLabel}>{DAY_LABELS[i]}</Text>
-                      <Text style={styles.dayNum}>{d.date()}</Text>
+                      <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{d.date()}</Text>
                     </View>
                     {!day || day.restDay ? (
                       <View style={styles.restCell}>
-                        <Text style={styles.restText}>🧘 Rest day</Text>
+                        <Badge tone="slate">🧘 Rest day</Badge>
                       </View>
                     ) : (
                       <TouchableOpacity style={styles.dayCell} onPress={() => startEdit(day)}>
-                        <Text style={styles.dayWorkoutName}>{day.workoutName || 'Workout'}</Text>
-                        <Text style={styles.dayMuscle}>{day.muscleGroup}</Text>
+                        <Text style={styles.dayWorkoutName} numberOfLines={1}>{day.workoutName || 'Workout'}</Text>
+                        <Text style={styles.dayMuscle} numberOfLines={1}>{day.muscleGroup}</Text>
                         <Text style={styles.dayExercises} numberOfLines={2}>
                           {day.exercises?.slice(0, 3).map((ex) => ex.name).join(' · ')}
                         </Text>
                       </TouchableOpacity>
                     )}
                     {!day?.restDay && day && (
-                      <TouchableOpacity style={styles.applyBtn} onPress={() => handleApply(day)}>
-                        <Ionicons name="add" size={18} color="#2ecc71" />
+                      <TouchableOpacity style={styles.applyBtn} onPress={() => handleApply(day)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                        <Ionicons name="add" size={18} color={colors.emerald} />
                       </TouchableOpacity>
                     )}
                   </View>
                 );
               })}
-            </View>
+            </GlassCard>
 
             {plans.length > 0 && (
               <View style={styles.plansSection}>
@@ -240,9 +261,9 @@ export default function WorkoutPlannerScreen({ navigation }) {
                 {plans.map((p) => (
                   <View key={p.id} style={[styles.planRow, p.id === activePlan.id && styles.planRowActive]}>
                     <View style={styles.planRowLeft}>
-                      <Ionicons name="barbell-outline" size={18} color={p.id === activePlan.id ? '#2ecc71' : '#999'} />
-                      <View>
-                        <Text style={styles.planRowName}>{p.name}</Text>
+                      <Ionicons name="barbell-outline" size={18} color={p.id === activePlan.id ? colors.emerald : colors.textFaint} />
+                      <View style={styles.planRowInfo}>
+                        <Text style={styles.planRowName} numberOfLines={1}>{p.name}</Text>
                         <Text style={styles.planRowMeta}>{capitalize(p.goal)} · {p.daysPerWeek} days{p.generatedByAI ? ' · ✨ AI' : ''}</Text>
                       </View>
                     </View>
@@ -252,7 +273,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
                         onPress={() => activatePlan(p.id).catch(() => Alert.alert('Error', 'Could not activate plan.'))}
                         disabled={p.id === activePlan.id}
                       >
-                        <Text style={[styles.smallBtnText, p.id === activePlan.id && { color: '#2ecc71' }]}>
+                        <Text style={[styles.smallBtnText, p.id === activePlan.id && { color: colors.emerald }]}>
                           {p.id === activePlan.id ? 'Active' : 'Activate'}
                         </Text>
                       </TouchableOpacity>
@@ -265,7 +286,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
                           ]);
                         }}
                       >
-                        <Ionicons name="trash-outline" size={14} color="#e74c3c" />
+                        <Ionicons name="trash-outline" size={14} color={colors.rose} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -283,7 +304,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Plan preferences</Text>
               <TouchableOpacity onPress={() => setShowGen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color="#666" />
+                <Ionicons name="close" size={22} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -306,7 +327,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
                 ))}
               </View>
 
-              <Text style={styles.modalLabel}>Days per week: {genDays}</Text>
+              <Text style={styles.modalLabel}>Days per week: <Text style={styles.modalLabelHighlight}>{genDays}</Text></Text>
               <View style={styles.sliderRow}>
                 {[2, 3, 4, 5, 6, 7].map((n) => (
                   <TouchableOpacity key={n} style={[styles.dayPill, genDays === n && styles.dayPillActive]} onPress={() => setGenDays(n)}>
@@ -325,14 +346,14 @@ export default function WorkoutPlannerScreen({ navigation }) {
               </View>
             </ScrollView>
 
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => handleGenerate()} disabled={generating}>
-              {generating ? <ActivityIndicator color="#fff" /> : (
-                <>
-                  <Ionicons name="sparkles" size={16} color="#fff" />
-                  <Text style={styles.primaryBtnText}>Generate plan</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            <Button
+              onPress={() => handleGenerate()}
+              loading={generating}
+              style={styles.generateBtn}
+              icon={<Ionicons name="sparkles" size={16} />}
+            >
+              Generate plan
+            </Button>
           </View>
         </View>
       </Modal>
@@ -344,51 +365,52 @@ export default function WorkoutPlannerScreen({ navigation }) {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit {DAY_LABELS[editingDay?.dayNumber || 0]}</Text>
               <TouchableOpacity onPress={() => setEditingDay(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color="#666" />
+                <Ionicons name="close" size={22} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalLabel}>Workout name</Text>
-              <TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholder="Push Day" placeholderTextColor="#bbb" />
-              <Text style={styles.modalLabel}>Muscle group</Text>
-              <TextInput style={styles.input} value={editMuscle} onChangeText={setEditMuscle} placeholder="Chest, Shoulders, Triceps" placeholderTextColor="#bbb" />
+              <Input label="Workout name" value={editName} onChangeText={setEditName} placeholder="Push Day" style={styles.modalField} />
+              <Input label="Muscle group" value={editMuscle} onChangeText={setEditMuscle} placeholder="Chest, Shoulders, Triceps" style={styles.modalField} />
 
               <View style={styles.exTitleRow}>
                 <Text style={styles.modalLabel}>Exercises</Text>
                 <TouchableOpacity style={styles.addExBtn} onPress={() => setEditExercises((prev) => [...prev, { name: '', sets: '3', reps: '10' }])}>
-                  <Ionicons name="add" size={14} color="#085041" />
+                  <Ionicons name="add" size={14} color={colors.emerald} />
                   <Text style={styles.addExText}>Add</Text>
                 </TouchableOpacity>
               </View>
               {editExercises.map((ex, idx) => (
-                <View key={idx} style={styles.exRow}>
+                <View key={idx} style={styles.exRowWrap}>
                   <TextInput
-                    style={[styles.input, { flex: 1 }]} value={ex.name}
+                    style={[styles.exInput, { flex: 1 }]} value={ex.name}
                     onChangeText={(t) => setEditExercises((prev) => prev.map((e, i) => i === idx ? { ...e, name: t } : e))}
-                    placeholder="Exercise name" placeholderTextColor="#bbb"
+                    placeholder="Exercise name" placeholderTextColor={colors.textFaint}
                   />
                   <TextInput
-                    style={[styles.input, styles.smallInput]} value={ex.sets}
+                    style={[styles.exInput, styles.smallInput]} value={ex.sets}
                     onChangeText={(t) => setEditExercises((prev) => prev.map((e, i) => i === idx ? { ...e, sets: t } : e))}
-                    keyboardType="number-pad" placeholder="sets" placeholderTextColor="#bbb"
+                    keyboardType="number-pad" placeholder="sets" placeholderTextColor={colors.textFaint}
                   />
                   <TextInput
-                    style={[styles.input, styles.smallInput]} value={ex.reps}
+                    style={[styles.exInput, styles.smallInput]} value={ex.reps}
                     onChangeText={(t) => setEditExercises((prev) => prev.map((e, i) => i === idx ? { ...e, reps: t } : e))}
-                    placeholder="reps" placeholderTextColor="#bbb"
+                    placeholder="reps" placeholderTextColor={colors.textFaint}
                   />
                   <TouchableOpacity onPress={() => setEditExercises((prev) => prev.filter((_, i) => i !== idx))} style={styles.removeEx}>
-                    <Ionicons name="close" size={16} color="#e74c3c" />
+                    <Ionicons name="close" size={16} color={colors.rose} />
                   </TouchableOpacity>
                 </View>
               ))}
             </ScrollView>
 
-            <TouchableOpacity style={styles.primaryBtn} onPress={saveDay}>
-              <Ionicons name="checkmark" size={16} color="#fff" />
-              <Text style={styles.primaryBtnText}>Save day</Text>
-            </TouchableOpacity>
+            <Button
+              onPress={saveDay}
+              style={styles.generateBtn}
+              icon={<Ionicons name="checkmark" size={16} />}
+            >
+              Save day
+            </Button>
           </View>
         </View>
       </Modal>
@@ -402,85 +424,116 @@ function capitalize(s) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: { flex: 1, backgroundColor: colors.void },
   center: { alignItems: 'center', justifyContent: 'center' },
-  gateCard: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, marginTop: 8,
-  },
-  gateTitle: { fontSize: 19, fontWeight: '800', color: '#1a1a1a', textAlign: 'center', marginTop: 12 },
-  gateSub: { fontSize: 13, color: '#888', textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  gateBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#e74c3c', borderRadius: 24, paddingHorizontal: 22, paddingVertical: 12, marginTop: 20,
-  },
-  gateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,
+    paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: spacing.md,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
-  genBtn: { backgroundColor: '#c8a96e', borderRadius: 10, padding: 8 },
-  scroll: { paddingHorizontal: 20, paddingBottom: 40 },
-  emptyCard: { backgroundColor: '#fff', borderRadius: 16, padding: 30, alignItems: 'center', marginTop: 20 },
-  emptyTitle: { fontSize: 17, fontWeight: '800', color: '#1a1a1a', marginTop: 10 },
-  emptySub: { fontSize: 13, color: '#888', textAlign: 'center', marginTop: 6, lineHeight: 19 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.white },
+  genBtn: {
+    width: 28, height: 28, borderRadius: radii.sm, backgroundColor: colors.emerald,
+    alignItems: 'center', justifyContent: 'center', ...shadow.glow(colors.emerald),
+  },
+  gateWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
+  gateCard: { alignItems: 'center', alignSelf: 'stretch', paddingVertical: 36 },
+  gateIcon: {
+    width: 56, height: 56, borderRadius: 16, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  },
+  gateTitle: { fontSize: 19, fontWeight: '800', color: colors.white, textAlign: 'center', marginTop: spacing.sm },
+  gateSub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 },
+  gateBtn: {
+    backgroundColor: colors.emerald, borderColor: colors.emerald,
+    shadowColor: colors.emerald, marginTop: spacing.xl,
+  },
+  scroll: { paddingHorizontal: spacing.xl, paddingBottom: 40, paddingTop: spacing.sm },
+  emptyCard: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, marginTop: spacing.lg },
+  emptyInner: { alignItems: 'center' },
+  emptyTitle: { fontSize: 17, fontWeight: '800', color: colors.white, marginTop: spacing.md },
+  emptySub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 6, lineHeight: 19 },
   primaryBtn: {
-    backgroundColor: '#085041', borderRadius: 28, paddingVertical: 13, paddingHorizontal: 22,
-    alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 16,
+    backgroundColor: colors.emerald, borderColor: colors.emerald,
+    shadowColor: colors.emerald, marginTop: spacing.xl,
   },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  planMeta: { marginTop: 4, alignItems: 'center' },
-  planChip: { backgroundColor: '#085041', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
-  planChipText: { color: '#9FE1CB', fontWeight: '700', fontSize: 13 },
-  planMetaText: { fontSize: 12, color: '#888', marginTop: 4, textTransform: 'capitalize' },
-  weekCard: { backgroundColor: '#fff', borderRadius: 16, padding: 8, marginTop: 14 },
-  dayRow: { flexDirection: 'row', alignItems: 'center', padding: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#f0f0f0' },
-  dayRowToday: { backgroundColor: '#f0fff4', borderRadius: 10 },
+  planMeta: { marginTop: spacing.xs, alignItems: 'center' },
+  planChip: { paddingHorizontal: 14, paddingVertical: 6 },
+  planChipText: { color: colors.emerald, fontWeight: '700', fontSize: 13 },
+  planMetaText: { fontSize: 12, color: colors.textMuted, marginTop: 4, textTransform: 'capitalize' },
+  weekCard: {
+    backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.sm, marginTop: spacing.lg,
+    borderWidth: 1, borderColor: colors.edge,
+  },
+  dayRow: {
+    flexDirection: 'row', alignItems: 'center', padding: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: overlays.borderSoft,
+  },
+  dayRowToday: { backgroundColor: tint(colors.emerald, 0.06), borderRadius: radii.md },
   dayCol: { width: 52, alignItems: 'center' },
-  dayLabel: { fontSize: 10, fontWeight: '700', color: '#888', textTransform: 'uppercase' },
-  dayNum: { fontSize: 18, fontWeight: '800', color: '#1a1a1a' },
-  dayCell: { flex: 1, backgroundColor: '#fafafa', borderRadius: 10, padding: 10 },
-  dayWorkoutName: { fontSize: 13, fontWeight: '700', color: '#1a1a1a' },
-  dayMuscle: { fontSize: 10, color: '#888', marginTop: 1 },
-  dayExercises: { fontSize: 10, color: '#aaa', marginTop: 3 },
+  dayLabel: { fontSize: 10, fontWeight: '700', color: colors.textFaint, textTransform: 'uppercase' },
+  dayNum: { fontSize: 18, fontWeight: '800', color: colors.text },
+  dayNumToday: { color: colors.emerald },
+  dayCell: { flex: 1, backgroundColor: overlays.faint, borderRadius: radii.md, padding: 10, borderWidth: 1, borderColor: overlays.borderSoft },
+  dayWorkoutName: { fontSize: 13, fontWeight: '700', color: colors.white },
+  dayMuscle: { fontSize: 10, color: colors.textFaint, marginTop: 1 },
+  dayExercises: { fontSize: 10, color: colors.textMuted, marginTop: 3 },
   restCell: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  restText: { fontSize: 12, color: '#aaa' },
-  applyBtn: { marginLeft: 8, padding: 8 },
-  plansSection: { marginTop: 24 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
-  planRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 8 },
-  planRowActive: { borderWidth: 1.5, borderColor: '#2ecc7155' },
-  planRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  planRowName: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
-  planRowMeta: { fontSize: 11, color: '#888', marginTop: 1, textTransform: 'capitalize' },
-  planRowBtns: { flexDirection: 'row', gap: 6 },
-  smallBtn: { backgroundColor: '#f0f0f0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  smallBtnDanger: { backgroundColor: '#fdecea' },
-  smallBtnText: { fontSize: 11, fontWeight: '700', color: '#555' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modal: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a1a' },
-  modalLabel: { fontSize: 12, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 12, marginBottom: 6 },
-  chipRow: { flexDirection: 'row', gap: 8 },
-  chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { backgroundColor: '#f5f5f5', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: 'transparent' },
-  chipActive: { backgroundColor: '#fdf6e3', borderColor: '#c8a96e' },
-  chipText: { fontSize: 13, color: '#666', fontWeight: '600' },
-  chipTextActive: { color: '#8a6d2f' },
-  sliderRow: { flexDirection: 'row', gap: 8 },
-  dayPill: { flex: 1, backgroundColor: '#f5f5f5', borderRadius: 10, paddingVertical: 9, alignItems: 'center' },
-  dayPillActive: { backgroundColor: '#085041' },
-  dayPillText: { fontSize: 14, fontWeight: '700', color: '#888' },
-  dayPillTextActive: { color: '#9FE1CB' },
-  input: {
-    borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 12,
-    fontSize: 15, backgroundColor: '#fafafa', color: '#222', marginBottom: 8,
+  applyBtn: { marginLeft: spacing.sm, padding: spacing.sm },
+  plansSection: { marginTop: spacing.xxl },
+  sectionTitle: { ...typ.label, marginBottom: spacing.sm },
+  planRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: colors.card, borderRadius: radii.lg, padding: 12, marginBottom: spacing.sm,
+    borderWidth: 1, borderColor: colors.edge,
   },
-  smallInput: { width: 62, textAlign: 'center' },
+  planRowActive: { borderColor: colors.emerald, backgroundColor: tint(colors.emerald, 0.05) },
+  planRowLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 },
+  planRowInfo: { flex: 1, minWidth: 0 },
+  planRowName: { fontSize: 14, fontWeight: '600', color: colors.text },
+  planRowMeta: { fontSize: 11, color: colors.textFaint, marginTop: 1, textTransform: 'capitalize' },
+  planRowBtns: { flexDirection: 'row', gap: 6 },
+  smallBtn: { backgroundColor: overlays.soft, borderRadius: radii.sm, paddingHorizontal: 10, paddingVertical: 6 },
+  smallBtnDanger: { backgroundColor: tint(colors.rose, 0.12) },
+  smallBtnText: { fontSize: 11, fontWeight: '700', color: colors.textSoft },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(7,7,13,0.8)', justifyContent: 'flex-end' },
+  modal: {
+    backgroundColor: colors.surface, borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl,
+    padding: spacing.xxl, maxHeight: '85%', borderWidth: 1, borderColor: colors.edge, borderBottomWidth: 0,
+  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: colors.white },
+  modalLabel: { ...typ.label, marginTop: spacing.md, marginBottom: spacing.sm },
+  modalLabelHighlight: { color: colors.emerald },
+  modalField: { marginBottom: spacing.sm },
+  chipRow: { flexDirection: 'row', gap: spacing.sm },
+  chipRowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: {
+    backgroundColor: colors.card, borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 9,
+    borderWidth: 1, borderColor: colors.edge,
+  },
+  chipActive: { backgroundColor: tint(colors.emerald, 0.16), borderColor: tint(colors.emerald, 0.5) },
+  chipText: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
+  chipTextActive: { color: colors.emerald },
+  sliderRow: { flexDirection: 'row', gap: spacing.sm },
+  dayPill: {
+    flex: 1, backgroundColor: colors.card, borderRadius: radii.sm, paddingVertical: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.edge,
+  },
+  dayPillActive: { backgroundColor: colors.emerald, borderColor: colors.emerald },
+  dayPillText: { fontSize: 14, fontWeight: '700', color: colors.textFaint },
+  dayPillTextActive: { color: colors.white },
+  generateBtn: {
+    backgroundColor: colors.emerald, borderColor: colors.emerald,
+    shadowColor: colors.emerald, marginTop: spacing.xl,
+  },
   exTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   addExBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 },
-  addExText: { fontSize: 13, color: '#085041', fontWeight: '600' },
-  exRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  removeEx: { padding: 8 },
+  addExText: { fontSize: 13, color: colors.emerald, fontWeight: '600' },
+  exRowWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm },
+  exInput: {
+    borderWidth: 1, borderColor: overlays.border, borderRadius: radii.md, padding: 10,
+    fontSize: 14, backgroundColor: overlays.faint, color: colors.text,
+  },
+  smallInput: { width: 62, textAlign: 'center' },
+  removeEx: { padding: spacing.sm },
 });

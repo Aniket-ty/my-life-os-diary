@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar,
-  TextInput, Alert, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, Alert, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../../stores/authStore';
+import Screen from '../../components/ui/Screen';
+import PageHeader from '../../components/ui/PageHeader';
+import GlassCard from '../../components/ui/GlassCard';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { colors, radii, tint, type as typ } from '../../theme';
 
 export default function SettingsScreen({ navigation }) {
   const { user, logout, deleteAccount } = useAuthStore();
@@ -46,101 +51,142 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const field = (label, value) => (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <Text style={styles.fieldValue}>{value || '—'}</Text>
+    <View key={label} style={styles.tile}>
+      <Text style={styles.tileLabel}>{label}</Text>
+      <Text style={styles.tileValue}>{value || '—'}</Text>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={24} color="#3d2b1f" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
+    <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Profile</Text>
-        <View style={styles.card}>
+        <PageHeader
+          title="Settings"
+          subtitle="Your profile, security and account"
+          icon={<Ionicons name="settings-outline" />}
+          accent={colors.violet}
+        />
+
+        <Text style={styles.sectionHeading}>
+          <Ionicons name="person-outline" size={16} color={colors.violet} />  Profile
+        </Text>
+        <GlassCard strong style={styles.grid}>
           {field('Name', user?.name)}
           {field('Email', user?.email)}
           {field('Age', user?.age)}
           {field('Height', user?.heightCm ? `${user.heightCm} cm` : null)}
           {field('Activity level', user?.activityLevel?.replace(/([A-Z])/g, ' $1'))}
           {field('Fitness goal', user?.fitnessGoal)}
-        </View>
+        </GlassCard>
 
-        <Text style={styles.sectionTitle}>Session</Text>
-        <TouchableOpacity style={styles.cardRow} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#e74c3c" />
-          <Text style={styles.logoutText}>Sign out</Text>
-        </TouchableOpacity>
+        <Text style={styles.sectionHeading}>
+          <Ionicons name="shield-checkmark-outline" size={16} color={colors.emerald} />  Session
+        </Text>
+        <GlassCard strong>
+          <Button
+            variant="outline"
+            icon={<Ionicons name="log-out-outline" />}
+            onPress={handleLogout}
+          >
+            Sign out of this device
+          </Button>
+        </GlassCard>
 
-        <Text style={[styles.sectionTitle, { color: '#e74c3c' }]}>Danger zone</Text>
-        <View style={[styles.card, styles.dangerCard]}>
+        <Text style={[styles.sectionHeading, { color: colors.rose }]}>
+          <Ionicons name="warning-outline" size={16} color={colors.rose} />  Danger zone
+        </Text>
+        <View style={styles.dangerCard}>
+          <Text style={styles.dangerDesc}>
+            Permanently deletes your account, all diary entries, body scans, workout history and attached media. This cannot be undone.
+          </Text>
+
           {!showDanger ? (
-            <TouchableOpacity style={styles.dangerBtn} onPress={confirmDelete}>
-              <Ionicons name="trash-outline" size={18} color="#fff" />
-              <Text style={styles.dangerBtnText}>Delete my account</Text>
-            </TouchableOpacity>
+            <Button
+              variant="danger"
+              icon={<Ionicons name="trash-outline" />}
+              onPress={confirmDelete}
+            >
+              Delete my account
+            </Button>
           ) : (
-            <View>
+            <View style={styles.dangerInner}>
               <Text style={styles.dangerNote}>
-                Type <Text style={{ fontWeight: '800', color: '#e74c3c' }}>{user?.email}</Text> to confirm, then enter your password.
+                Type <Text style={{ fontWeight: '800' }}>{user?.email}</Text> to confirm, then enter your password.
               </Text>
-              <TextInput
-                style={styles.input} placeholder="Confirm email" value={confirmEmail}
-                onChangeText={setConfirmEmail} autoCapitalize="none" keyboardType="email-address"
-                placeholderTextColor="#bbb"
+              <Input
+                label="Confirm email"
+                placeholder={user?.email}
+                value={confirmEmail}
+                onChangeText={setConfirmEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
-              <TextInput
-                style={styles.input} placeholder="Password" value={password}
-                onChangeText={setPassword} secureTextEntry placeholderTextColor="#bbb"
+              <Input
+                label="Password"
+                placeholder="Your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
               />
-              <TouchableOpacity style={[styles.dangerBtn, { marginTop: 6 }]} onPress={handleDelete} disabled={busy}>
-                {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.dangerBtnText}>Permanently delete account</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelDanger} onPress={() => setShowDanger(false)} disabled={busy}>
-                <Text style={styles.cancelDangerText}>Cancel</Text>
-              </TouchableOpacity>
+              <View style={styles.dangerActions}>
+                <Button variant="danger" loading={busy} onPress={handleDelete}>
+                  Permanently delete
+                </Button>
+                <Pressable onPress={() => setShowDanger(false)} disabled={busy} style={styles.cancelDanger}>
+                  <Text style={styles.cancelDangerText}>Cancel</Text>
+                </Pressable>
+              </View>
             </View>
           )}
         </View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,
+  scroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 60 },
+  sectionHeading: {
+    ...typ.h2,
+    fontSize: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 12,
+    gap: 6,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
-  scroll: { paddingHorizontal: 20, paddingBottom: 40 },
-  sectionTitle: {
-    fontSize: 12, fontWeight: '700', color: '#888',
-    textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 20, marginBottom: 8,
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  tile: {
+    flexGrow: 1,
+    flexBasis: '45%',
+    minWidth: 130,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: radii.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 6, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  field: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee' },
-  fieldLabel: { fontSize: 13, color: '#888' },
-  fieldValue: { fontSize: 13, fontWeight: '600', color: '#1a1a1a', textTransform: 'capitalize' },
-  cardRow: { backgroundColor: '#fff', borderRadius: 14, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16 },
-  logoutText: { fontSize: 15, color: '#e74c3c', fontWeight: '600' },
-  dangerCard: { padding: 10 },
-  dangerBtn: { backgroundColor: '#e74c3c', borderRadius: 10, padding: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  dangerBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  dangerNote: { fontSize: 12, color: '#666', marginBottom: 12, lineHeight: 18 },
-  input: {
-    borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 13,
-    fontSize: 15, backgroundColor: '#fafafa', color: '#222', marginBottom: 10,
+  tileLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, color: colors.textFaint },
+  tileValue: { marginTop: 2, fontSize: 14, fontWeight: '600', color: colors.white, textTransform: 'capitalize' },
+  dangerCard: {
+    borderRadius: radii.xxl,
+    borderWidth: 1,
+    borderColor: tint(colors.rose, 0.25),
+    backgroundColor: tint(colors.rose, 0.04),
+    padding: 20,
   },
-  cancelDanger: { marginTop: 10, alignItems: 'center', padding: 6 },
-  cancelDangerText: { color: '#888', fontSize: 14, fontWeight: '600' },
+  dangerDesc: { ...typ.small, color: colors.textMuted, marginBottom: 16, lineHeight: 20 },
+  dangerInner: { gap: 12 },
+  dangerNote: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fda4af',
+    backgroundColor: tint(colors.rose, 0.06),
+    borderWidth: 1,
+    borderColor: tint(colors.rose, 0.3),
+    borderRadius: radii.lg,
+    padding: 12,
+  },
+  dangerActions: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  cancelDanger: { paddingVertical: 10, paddingHorizontal: 12 },
+  cancelDangerText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
 });

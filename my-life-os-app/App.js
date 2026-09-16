@@ -8,6 +8,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useAuthStore } from './src/stores/authStore';
 import Navigation from './src/navigation';
 import { authenticateWithBiometric, hasSavedSession } from './src/services/biometricAuth';
+import { colors } from './src/theme';
 
 export default function App() {
   const { init, isLoading } = useAuthStore();
@@ -42,8 +43,8 @@ export default function App() {
   if (isLoading || !biometricChecked) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#085041" />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.void }}>
+          <ActivityIndicator size="large" color={colors.violet} />
         </View>
       </GestureHandlerRootView>
     );
