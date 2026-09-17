@@ -133,4 +133,56 @@ const analyzeFoodImage = async (imageBase64, mimeType = 'image/jpeg') => {
   throw new Error('No vision model available');
 };
 
-module.exports = { chatWithAI, analyzeFoodImage };
+// ── Handwriting recognition ────────────────────────────
+
+const HANDWRITING_PROMPT = `You are a handwriting transcription engine. The image contains handwritten notes drawn with a pen or stylus (possibly light-colored strokes on a dark background).
+
+Transcribe EVERYTHING that is written — every word, number, and punctuation — preserving line breaks as separate lines.
+
+Rules:
+- Do not add any commentary, quotes, or markdown formatting.
+- Output only the transcribed text.
+- If you genuinely cannot read something, keep a clear dash "-" in its place.
+- If the image is blank or has no handwriting, output exactly: EMPTY`;
+
+const parseText = (text) => {
+  const cleaned = text.trim().replace(/^```(?:text|txt)?/i, '').replace(/```$/i, '').trim();
+  if (/^EMPTY$/i.test(cleaned)) return '';
+  return cleaned;
+};
+
+const recognizeHandwriting = async (imageBase64, mimeType = 'image/png') => {
+  const dataUri = `data:${mimeType};base64,${imageBase64}`;
+  let lastError = null;
+
+  for (const model of VISION_MODELS) {
+    try {
+      const response = await groq.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: HANDWRITING_PROMPT },
+              { type: 'image_url', image_url: { url: dataUri } },
+            ],
+          },
+        ],
+        temperature: 0,
+        max_tokens: 2048,
+      });
+
+      const content = response.choices[0]?.message?.content || '';
+      const text = parseText(content);
+      if (text) return { text };
+      lastError = new Error('AI returned empty handwriting result');
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  if (lastError) throw lastError;
+  throw new Error('No vision model available');
+};
+
+module.exports = { chatWithAI, analyzeFoodImage, recognizeHandwriting };

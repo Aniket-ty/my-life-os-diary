@@ -1,6 +1,29 @@
 const prisma = require('../config/database');
-const { chatWithAI } = require('../services/ai.service');
+const { chatWithAI, recognizeHandwriting } = require('../services/ai.service');
 const { v4: uuidv4 } = require('uuid');
+
+const recognizeHandwritingText = async (req, res) => {
+  try {
+    const { image, mimeType } = req.body;
+    if (!image || typeof image !== 'string') {
+      return res.status(400).json({ error: 'image (base64 string) is required' });
+    }
+
+    // Accept raw base64, optionally prefixed with a data URI
+    let base64 = image;
+    const dataUriMatch = image.match(/^data:[^;]+;base64,(.+)$/s);
+    if (dataUriMatch) base64 = dataUriMatch[1];
+
+    const allowedMime = mimeType && /^image\/(png|jpe?g|webp)$/.test(mimeType)
+      ? mimeType.replace('jpg', 'jpeg')
+      : 'image/png';
+
+    const result = await recognizeHandwriting(base64, allowedMime);
+    res.json(result);
+  } catch (e) {
+    res.status(502).json({ error: e.message || 'Could not transcribe handwriting' });
+  }
+};
 
 const chat = async (req, res) => {
   try {
@@ -155,4 +178,4 @@ const clearHistory = async (req, res) => {
   }
 };
 
-module.exports = { chat, getChatHistory, addFoodFromAI, addWorkoutFromAI, clearHistory };
+module.exports = { chat, getChatHistory, addFoodFromAI, addWorkoutFromAI, clearHistory, recognizeHandwritingText };

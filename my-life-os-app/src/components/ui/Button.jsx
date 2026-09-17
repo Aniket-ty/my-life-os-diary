@@ -37,6 +37,17 @@ export default function Button({
     ? React.cloneElement(icon, { color: iconColor || base.text, size: icon.props?.size || s.iconSize })
     : null;
 
+  const renderLabel = (labels) =>
+    React.Children.map(labels, (child) =>
+      typeof child === 'string' || typeof child === 'number' ? (
+        <Text style={[styles.label, { fontSize: s.fontSize, color: base.text }, textStyle]}>
+          {child}
+        </Text>
+      ) : (
+        child
+      ),
+    );
+
   return (
     <Pressable
       onPress={isDisabled ? undefined : onPress}
@@ -59,22 +70,14 @@ export default function Button({
       {loading ? (
         <View style={styles.row}>
           <ActivityIndicator size="small" color={base.text} />
-          {typeof children === 'string' && (
-            <Text style={[styles.label, { fontSize: s.fontSize, color: base.text }, textStyle]}>
-              Please wait…
-            </Text>
-          )}
+          <Text style={[styles.label, { fontSize: s.fontSize, color: base.text }, textStyle]}>
+            Please wait…
+          </Text>
         </View>
       ) : (
         <View style={styles.row}>
           {resolvedIcon}
-          {typeof children === 'string' ? (
-            <Text style={[styles.label, { fontSize: s.fontSize, color: base.text }, textStyle]}>
-              {children}
-            </Text>
-          ) : (
-            children
-          )}
+          {renderLabel(children)}
         </View>
       )}
     </Pressable>

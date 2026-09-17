@@ -313,8 +313,7 @@ export default function OnboardingScreen({ navigation }) {
           style={[styles.nextBtn, (step === 2 || step === 3) && styles.finishBtn]}
           textStyle={styles.nextText}
         >
-          {step === 2 ? 'Generate my plan' : step === 3 ? 'Start my Life OS' : 'Continue'}
-          {step === 3 ? '' : '  →'}
+          {step === 2 ? 'Generate my plan' : step === 3 ? 'Start my Life OS' : 'Continue →'}
         </Button>
       </View>
     </Screen>

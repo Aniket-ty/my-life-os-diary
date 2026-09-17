@@ -4,11 +4,13 @@ import {
   StyleSheet, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { useDiaryStore } from '../../stores/diaryStore';
+import { diaryAPI } from '../../services/diaryService';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import AttachmentStrip from '../../components/diary/AttachmentStrip';
+import { MobileHandwritingCanvas } from '../../components/diary/MobileHandwritingCanvas';
 import Screen from '../../components/ui/Screen';
 import GlassCard from '../../components/ui/GlassCard';
 import Input from '../../components/ui/Input';
@@ -29,12 +31,14 @@ export default function DiaryWriteScreen({ navigation, route }) {
   const isEdit = mode === 'edit' && !!id;
   const { createEntry, updateEntry, fetchEntry, uploadMedia } = useDiaryStore();
 
+  const [inputMode, setInputMode] = useState('type');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
+  const canvasRef = useRef(null);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -132,15 +136,43 @@ export default function DiaryWriteScreen({ navigation, route }) {
   };
 
   const handleSave = async () => {
-    if (!content.trim()) {
-      Alert.alert('Empty entry', 'Please write something before saving.');
+    let drawingPng = null;
+    if (canvasRef.current) {
+      drawingPng = await canvasRef.current.exportPng();
+    }
+
+    if (!content.trim() && !drawingPng) {
+      Alert.alert('Empty entry', 'Please write or draw something before saving.');
       return;
     }
+
     setSaving(true);
     try {
+      // Convert handwritten ink to editable text instead of saving an image
+      let recognizedText = '';
+      if (drawingPng) {
+        try {
+          const recognized = await diaryAPI.recognizeHandwriting(drawingPng.base64, drawingPng.mimeType);
+          recognizedText = (recognized?.text || '').trim();
+        } catch {
+          recognizedText = '';
+        }
+      }
+
+      const finalContent = content.trim()
+        ? recognizedText
+          ? `${content.trim()}\n\n${recognizedText}`
+          : content.trim()
+        : recognizedText;
+
+      if (!finalContent) {
+        Alert.alert('Could not read handwriting', 'Please type your entry or try again.');
+        return;
+      }
+
       const entryData = {
         title: title.trim() || null,
-        content: content.trim(),
+        content: finalContent,
         mood,
         entryDate: moment().format('YYYY-MM-DD'),
       };
@@ -156,6 +188,9 @@ export default function DiaryWriteScreen({ navigation, route }) {
         }
       }
 
+      if (drawingPng && !recognizedText) {
+        Alert.alert('Almost there', 'Entry saved, but your handwriting could not be converted to text.');
+      }
       navigation.goBack();
     } catch (e) {
       Alert.alert('Error', 'Could not save entry. Please try again.');
@@ -193,11 +228,39 @@ export default function DiaryWriteScreen({ navigation, route }) {
           </Button>
         </View>
 
+        {/* Input Mode Switcher (Type / Stylus / Both) */}
+        <View style={styles.modeContainer}>
+          <View style={styles.modeBar}>
+            <TouchableOpacity
+              style={[styles.modeTab, inputMode === 'type' && styles.modeTabActive]}
+              onPress={() => setInputMode('type')}
+            >
+              <Ionicons name="keypad-outline" size={13} color={inputMode === 'type' ? colors.void : colors.textMuted} />
+              <Text style={[styles.modeText, inputMode === 'type' && styles.modeTextActive]}>Type</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeTab, inputMode === 'stylus' && styles.modeTabActive]}
+              onPress={() => setInputMode('stylus')}
+            >
+              <Ionicons name="create-outline" size={13} color={inputMode === 'stylus' ? colors.void : colors.textMuted} />
+              <Text style={[styles.modeText, inputMode === 'stylus' && styles.modeTextActive]}>Stylus / Pen</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeTab, inputMode === 'mixed' && styles.modeTabActive]}
+              onPress={() => setInputMode('mixed')}
+            >
+              <Ionicons name="layers-outline" size={13} color={inputMode === 'mixed' ? colors.void : colors.textMuted} />
+              <Text style={[styles.modeText, inputMode === 'mixed' && styles.modeTextActive]}>Both</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <ScrollView
           ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          scrollEnabled={inputMode === 'type'}
         >
           <GlassCard style={styles.paper}>
             <Input
@@ -209,15 +272,30 @@ export default function DiaryWriteScreen({ navigation, route }) {
               onChangeText={setTitle}
               maxLength={100}
             />
-            <Input
-              inputStyle={styles.contentInput}
-              placeholder="What's on your mind today?"
-              placeholderTextColor={colors.textFaint}
-              value={content}
-              onChangeText={setContent}
-              multiline
-              autoFocus
-            />
+
+            {(inputMode === 'type' || inputMode === 'mixed') && (
+              <Input
+                inputStyle={[styles.contentInput, inputMode === 'mixed' && { minHeight: 140 }]}
+                placeholder={inputMode === 'mixed' ? 'Typed reflection…' : "What's on your mind today?"}
+                placeholderTextColor={colors.textFaint}
+                value={content}
+                onChangeText={setContent}
+                multiline
+                autoFocus={inputMode === 'type'}
+              />
+            )}
+
+            {(inputMode === 'stylus' || inputMode === 'mixed') && (
+              <View style={styles.canvasContainer}>
+                {inputMode === 'mixed' && (
+                  <Text style={styles.sectionLabel}>✍️ Stylus / Pen Drawing</Text>
+                )}
+                <MobileHandwritingCanvas
+                  ref={canvasRef}
+                  height={inputMode === 'stylus' ? 420 : 280}
+                />
+              </View>
+            )}
 
             {pendingAttachments.length > 0 && (
               <AttachmentStrip
@@ -273,6 +351,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl, paddingTop: 56, paddingBottom: spacing.md,
   },
   headerDate: { fontSize: 13, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.3 },
+  modeContainer: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.sm,
+  },
+  modeBar: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: radii.pill,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+  },
+  modeTabActive: {
+    backgroundColor: colors.gold,
+  },
+  modeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  modeTextActive: {
+    color: colors.void,
+    fontWeight: '700',
+  },
+  canvasContainer: {
+    marginTop: 8,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.gold300,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
   saveBtn: {
     backgroundColor: colors.gold,
     borderColor: colors.gold,

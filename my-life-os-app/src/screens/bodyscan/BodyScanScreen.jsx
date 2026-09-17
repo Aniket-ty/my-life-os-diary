@@ -19,20 +19,6 @@ import { colors, overlays, radii, spacing, tint, type as typ } from '../../theme
 
 const WIDTH = Dimensions.get('window').width - 40;
 
-const BASELINE = {
-  scanDate: '2026-04-08',
-  weight: 90.0,
-  bodyFatPct: 26.6,
-  muscleMassKg: 36.5,
-  leanBodyMassKg: 66.1,
-  bmr: 1797,
-  tee: 2767,
-  visceralFat: 9,
-  bwiScore: 7.4,
-  bioAge: 23,
-  proteinKg: 13.3,
-};
-
 export default function BodyScanScreen({ navigation }) {
   const { scans, loading, fetchScans, createScan, deleteScan } = useBodyScanStore();
   const profileHeight = useAuthStore.getState().user?.heightCm
@@ -41,6 +27,7 @@ export default function BodyScanScreen({ navigation }) {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [report, setReport] = useState(null);
+  const [goals, setGoals] = useState(null);
   const [form, setForm] = useState(() => ({
     weight: '', heightCm: profileHeight, bodyFatPct: '', muscleMassKg: '',
     leanBodyMassKg: '', bmr: '', tee: '',
@@ -50,6 +37,7 @@ export default function BodyScanScreen({ navigation }) {
   useEffect(() => {
     fetchScans();
     fitnessAPI.getReport(30).then(setReport).catch(() => {});
+    fitnessAPI.getGoals().then(setGoals).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -58,18 +46,15 @@ export default function BodyScanScreen({ navigation }) {
     }
   }, [loading, scans.length]);
 
-  const allScans = [
-    { ...BASELINE, id: 'baseline', isBaseline: true },
-    ...scans,
-  ].sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate));
+  const allScans = [...scans].sort((a, b) => new Date(a.scanDate) - new Date(b.scanDate));
 
   const latest = scans.length > 0 ? scans[0] : null;
-  const baseline = BASELINE;
+  const baseline = scans.length > 0 ? scans[scans.length - 1] : null;
 
   const diff = (key) => {
-    if (!latest) return null;
+    if (!latest || !baseline) return null;
     const d = Number(latest[key]) - Number(baseline[key]);
-    return d;
+    return Number.isNaN(d) ? null : d;
   };
 
   const diffColor = (key, lowerIsBetter = false) => {
@@ -126,6 +111,17 @@ export default function BodyScanScreen({ navigation }) {
   const f = (val) => form[val];
   const s = (val) => (v) => setForm((prev) => ({ ...prev, [val]: v }));
 
+  const targets = goals && goals.dailyCalories
+    ? [
+        { label: 'Daily calories', value: `${goals.dailyCalories} kcal`, icon: '🔥' },
+        { label: 'Protein', value: `${goals.proteinG}g`, icon: '🥩' },
+        { label: 'Carbs', value: `${goals.carbsG}g`, icon: '🍚' },
+        { label: 'Fat', value: `${goals.fatG}g`, icon: '🥑' },
+      ]
+    : latest && latest.tee != null
+      ? [{ label: 'Maintenance calories (TEE)', value: `${latest.tee} kcal`, icon: '🔥' }]
+      : [];
+
   return (
     <Screen>
       <View style={styles.navBar}>
@@ -160,12 +156,16 @@ export default function BodyScanScreen({ navigation }) {
           }
         />
 
-        <View style={styles.baselineBanner}>
-          <Ionicons name="scan-outline" size={16} color={colors.rose} />
-          <Text style={styles.baselineText}>
-            Baseline: scan — 8 Apr 2026 · 90kg · 26.6% fat · BWI 7.4
-          </Text>
-        </View>
+        {baseline && (
+          <View style={styles.baselineBanner}>
+            <Ionicons name="scan-outline" size={16} color={colors.rose} />
+            <Text style={styles.baselineText}>
+              Baseline: {moment(baseline.scanDate).format('D MMM YYYY')} · {Number(baseline.weight).toFixed(1)}kg
+              {baseline.bodyFatPct != null ? ` · ${Number(baseline.bodyFatPct).toFixed(1)}% fat` : ''}
+              {baseline.bwiScore != null ? ` · BWI ${Number(baseline.bwiScore).toFixed(1)}` : ''}
+            </Text>
+          </View>
+        )}
 
         <Text style={styles.sectionTitle}>Progress vs Baseline</Text>
         <View style={styles.progressGrid}>
@@ -178,14 +178,16 @@ export default function BodyScanScreen({ navigation }) {
             <GlassCard key={item.key} style={styles.progressCard}>
               <Text style={styles.progressLabel}>{item.label}</Text>
               <Text style={styles.progressBaseline}>
-                {Number(baseline[item.key]).toFixed(1)}{item.unit}
+                {baseline && baseline[item.key] != null
+                  ? `${Number(baseline[item.key]).toFixed(1)}${item.unit}`
+                  : '—'}
               </Text>
               <Text style={[styles.progressDiff, { color: diffColor(item.key, item.lower) }]}>
-                {latest ? `${diffText(item.key)}${item.unit}` : 'No new scan'}
+                {latest && baseline ? `${diffText(item.key)}${item.unit}` : 'No scan data yet'}
               </Text>
-              {latest && (
+              {latest && latest[item.key] != null && baseline && (
                 <Text style={styles.progressCurrent}>
-                  Now: {Number(latest[item.key] || baseline[item.key]).toFixed(1)}{item.unit}
+                  Now: {Number(latest[item.key]).toFixed(1)}{item.unit}
                 </Text>
               )}
             </GlassCard>
@@ -194,20 +196,18 @@ export default function BodyScanScreen({ navigation }) {
 
         <Text style={styles.sectionTitle}>Your Targets (from scan)</Text>
         <GlassCard style={styles.targetsCard}>
-          {[
-            { label: 'Daily calories', value: '1997–2097 kcal', icon: '🔥' },
-            { label: 'Protein', value: '150g (30%)', icon: '🥩' },
-            { label: 'Carbs', value: '150g (30%)', icon: '🍚' },
-            { label: 'Fat', value: '89g (40%)', icon: '🥑' },
-            { label: 'Target body fat', value: '18–20%', icon: '📉' },
-            { label: 'Target BWI', value: '8.0+ (optimal)', icon: '⭐' },
-          ].map((t) => (
+          {targets.length > 0 ? targets.map((t) => (
             <View key={t.label} style={styles.targetRow}>
               <Text style={styles.targetIcon}>{t.icon}</Text>
               <Text style={styles.targetLabel}>{t.label}</Text>
               <Text style={styles.targetValue}>{t.value}</Text>
             </View>
-          ))}
+          )) : (
+            <View style={styles.targetRow}>
+              <Text style={styles.targetIcon}>📊</Text>
+              <Text style={styles.targetLabel}>Log a body scan with your weight & height to get targets</Text>
+            </View>
+          )}
         </GlassCard>
 
         {allScans.length > 1 && (
@@ -305,8 +305,13 @@ export default function BodyScanScreen({ navigation }) {
         )}
 
         <Text style={styles.sectionTitle}>Scan history</Text>
-        {allScans.map((scan) => (
-          <GlassCard key={scan.id} style={[styles.scanCard, scan.isBaseline && styles.scanCardBaseline]}>
+        {scans.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Ionicons name="scan-outline" size={30} color={colors.rose} />
+            <Text style={styles.emptyText}>No scans yet. Log your first body scan.</Text>
+          </View>
+        ) : scans.map((scan) => (
+          <GlassCard key={scan.id} style={styles.scanCard}>
             <View style={styles.scanCardHeader}>
               <View style={styles.scanIconTile}>
                 <Ionicons name="scan-outline" size={16} color={colors.rose} />
@@ -314,24 +319,21 @@ export default function BodyScanScreen({ navigation }) {
               <View style={styles.scanCardInfo}>
                 <Text style={styles.scanDate}>
                   {moment(scan.scanDate).format('D MMM YYYY')}
-                  {scan.isBaseline ? ' · Baseline' : ''}
                 </Text>
                 <Text style={styles.scanWeight}>{Number(scan.weight).toFixed(1)} kg</Text>
               </View>
-              {!scan.isBaseline && (
-                <TouchableOpacity
-                  onPress={() =>
-                    Alert.alert('Delete', 'Delete this scan?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Delete', style: 'destructive', onPress: () => deleteScan(scan.id) },
-                    ])
-                  }
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={styles.scanDelete}
-                >
-                  <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert('Delete', 'Delete this scan?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: () => deleteScan(scan.id) },
+                  ])
+                }
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.scanDelete}
+              >
+                <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
             </View>
             <View style={styles.scanStats}>
               {[
@@ -339,12 +341,12 @@ export default function BodyScanScreen({ navigation }) {
                 { label: 'Muscle', value: scan.muscleMassKg, unit: 'kg' },
                 { label: 'BMR', value: scan.bmr, unit: 'kcal' },
                 { label: 'BWI', value: scan.bwiScore, unit: '/10' },
-              ].map((s) => s.value ? (
+              ].map((s) => s.value != null && (
                 <View key={s.label} style={styles.scanStat}>
                   <Text style={styles.scanStatValue}>{Number(s.value).toFixed(1)}{s.unit}</Text>
                   <Text style={styles.scanStatLabel}>{s.label}</Text>
                 </View>
-              ) : null)}
+              ))}
             </View>
             {scan.notes ? <Text style={styles.scanNotes}>{scan.notes}</Text> : null}
           </GlassCard>
@@ -460,7 +462,11 @@ const styles = StyleSheet.create({
   legendDot: { width: 10, height: 10, borderRadius: 2 },
   legendText: { fontSize: 10, color: colors.textMuted },
   scanCard: { marginBottom: spacing.md, padding: spacing.lg, borderRadius: radii.lg },
-  scanCardBaseline: { borderColor: tint(colors.rose, 0.4) },
+  emptyCard: {
+    alignItems: 'center', justifyContent: 'center', paddingVertical: 48, gap: spacing.sm,
+    backgroundColor: overlays.faint, borderRadius: radii.lg, borderWidth: 1, borderColor: overlays.border,
+  },
+  emptyText: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   scanCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
   scanIconTile: {
     width: 34, height: 34, borderRadius: radii.sm,

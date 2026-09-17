@@ -70,20 +70,35 @@ export function DiaryWrite() {
 
   async function save() {
     const drawingBlob = await canvasRef.current?.getCanvasBlob()
-    const hasHandwriting = Boolean(drawingBlob)
-
-    let finalContent = content.trim()
-    if (!finalContent) {
-      if (hasHandwriting) {
-        finalContent = title.trim() || 'Handwritten Diary Note ✍️'
-      } else {
-        toast('Write or handwrite something before saving', 'error')
-        return
-      }
+    if (!content.trim() && !drawingBlob) {
+      toast('Write or handwrite something before saving', 'error')
+      return
     }
 
     setSaving(true)
     try {
+      // Convert handwritten ink to editable text instead of saving an image
+      let handwritingText = ''
+      if (drawingBlob) {
+        try {
+          const recognized = await diaryService.recognizeHandwriting(drawingBlob)
+          handwritingText = recognized?.text?.trim() || ''
+        } catch {
+          handwritingText = ''
+        }
+      }
+
+      const finalContent = content.trim()
+        ? handwritingText
+          ? `${content.trim()}\n\n${handwritingText}`
+          : content.trim()
+        : handwritingText
+
+      if (!finalContent) {
+        toast('Could not read your handwriting. Please type your entry or try again.', 'error')
+        return
+      }
+
       const entryData = {
         title: title.trim() || undefined,
         content: finalContent,
@@ -98,16 +113,6 @@ export function DiaryWrite() {
         entry = await diaryService.create(entryData)
       }
 
-      // Upload handwritten drawing if exists
-      if (drawingBlob) {
-        try {
-          const drawingFile = new File([drawingBlob], `handwritten-entry-${date}.png`, { type: 'image/png' })
-          await diaryService.uploadMedia(entry.id, drawingFile, 'photo')
-        } catch {
-          toast('Entry saved, but could not upload handwriting image', 'error')
-        }
-      }
-
       for (const p of picked) {
         try {
           await diaryService.uploadMedia(entry.id, p.file, p.type)
@@ -116,6 +121,9 @@ export function DiaryWrite() {
         }
       }
       toast(isEdit ? 'Entry updated' : 'Entry saved to your journal')
+      if (drawingBlob && !handwritingText) {
+        toast('Entry saved, but your handwriting could not be transcribed', 'error')
+      }
       navigate(`/diary/${entry.id}`)
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Failed to save', 'error')

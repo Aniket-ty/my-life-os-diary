@@ -45,4 +45,9 @@ export const diaryAPI = {
     });
     return data;
   },
+
+  recognizeHandwriting: async (image, mimeType = 'image/png') => {
+    const { data } = await api.post('/ai/recognize-handwriting', { image, mimeType });
+    return data;
+  },
 };

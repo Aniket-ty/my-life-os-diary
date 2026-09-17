@@ -39,6 +39,19 @@ export interface NewDiaryEntry {
   isPinned?: boolean
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const raw = String(reader.result || '')
+      const base64 = raw.includes(',') ? raw.split(',')[1] : raw
+      resolve(base64)
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
 export const diaryService = {
   list: (date?: string, page = 1, limit = 100) =>
     api.get<DiaryListResponse>('/diary', { date, page, limit }),
@@ -56,4 +69,11 @@ export const diaryService = {
   },
   deleteMedia: (id: string, mediaId: string) =>
     api.delete<{ message: string }>(`/diary/${id}/media/${mediaId}`),
+  recognizeHandwriting: (blob: Blob) =>
+    blobToBase64(blob).then((image) =>
+      api.post<{ text: string }>('/ai/recognize-handwriting', {
+        image,
+        mimeType: blob.type || 'image/png',
+      }),
+    ),
 }

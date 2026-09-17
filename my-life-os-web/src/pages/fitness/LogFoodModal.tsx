@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Camera, Sparkles } from 'lucide-react'
+import { Camera, Sparkles, Upload } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { fitnessService, type FoodAnalysisResult } from '@/services/fitness'
 import { Modal } from '@/components/ui/Modal'
@@ -41,6 +41,7 @@ export function LogFoodModal({
   const [aiResult, setAiResult] = useState<FoodAnalysisResult | null>(null)
   const [portionG, setPortionG] = useState('100')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   function reset() {
@@ -55,6 +56,7 @@ export function LogFoodModal({
     setAiResult(null)
     setPortionG('100')
     if (fileInputRef.current) fileInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   function applyPortion(result: FoodAnalysisResult, grams: string) {
@@ -166,14 +168,28 @@ export function LogFoodModal({
             className="hidden"
             onChange={onFilePicked}
           />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={onFilePicked}
+          />
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-slate-400">
               Snap or upload a food photo — AI identifies it and fills nutrition from the portion weight.
             </p>
-            <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={analyzing} className="shrink-0 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10">
-              <Camera size={14} />
-              {analyzing ? 'Analyzing…' : 'Add photo'}
-            </Button>
+            <div className="flex shrink-0 gap-2">
+              <Button size="sm" variant="secondary" onClick={() => cameraInputRef.current?.click()} disabled={analyzing} className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10">
+                <Camera size={14} />
+                {analyzing ? 'Analyzing…' : 'Take photo'}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={analyzing} className="border-white/10 text-slate-300 hover:bg-white/10">
+                <Upload size={14} />
+                Add photo
+              </Button>
+            </div>
           </div>
 
           {photoUrl && (

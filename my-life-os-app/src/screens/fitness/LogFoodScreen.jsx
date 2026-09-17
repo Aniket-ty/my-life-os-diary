@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import Input from '../../components/ui/Input';
 import GlassCard from '../../components/ui/GlassCard';
+import CropPhotoModal from '../../components/fitness/CropPhotoModal';
 import { colors, spacing, radii, type as typ, tint, overlays } from '../../theme';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -27,7 +28,7 @@ const QUICK_FOODS = [
 const PICKS = {
   mediaTypes: ['images'],
   quality: 0.7,
-  allowsEditing: true,
+  allowsEditing: false,
 };
 
 export default function LogFoodScreen({ navigation }) {
@@ -46,8 +47,10 @@ export default function LogFoodScreen({ navigation }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [portionG, setPortionG] = useState('100');
+  const [cropUri, setCropUri] = useState(null);
+  const [cropVisible, setCropVisible] = useState(false);
 
-  const pickAndAnalyze = async (source) => {
+  const pickImage = async (source) => {
     try {
       if (source === 'camera') {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -62,7 +65,30 @@ export default function LogFoodScreen({ navigation }) {
 
       if (result.canceled || !result.assets?.length) return;
 
-      const asset = result.assets[0];
+      setCropUri(result.assets[0].uri);
+      setCropVisible(true);
+    } catch (e) {
+      Alert.alert('Error', 'Could not load the photo. Please try again.');
+    }
+  };
+
+  const handleCropped = async (cropped) => {
+    setCropVisible(false);
+    setCropUri(null);
+    if (!cropped) {
+      return Alert.alert('Crop failed', 'Could not crop the photo. Please try again.');
+    }
+
+    const asset = {
+      uri: cropped.uri,
+      mimeType: 'image/jpeg',
+      fileName: `food-${Date.now()}.jpg`,
+    };
+    await analyzeAsset(asset);
+  };
+
+  const analyzeAsset = async (asset) => {
+    try {
       setPhotoUri(asset.uri);
       setAiResult(null);
       setAnalyzing(true);
@@ -157,11 +183,11 @@ export default function LogFoodScreen({ navigation }) {
         {/* AI Food Photo */}
         <Text style={styles.label}>AI Food Photo</Text>
         <View style={styles.captureRow}>
-          <TouchableOpacity style={styles.captureBtn} onPress={() => pickAndAnalyze('camera')} disabled={analyzing}>
+          <TouchableOpacity style={styles.captureBtn} onPress={() => pickImage('camera')} disabled={analyzing}>
             <Ionicons name="camera" size={18} color={colors.emerald} />
             <Text style={styles.captureBtnText}>Take photo</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.captureBtn} onPress={() => pickAndAnalyze('gallery')} disabled={analyzing}>
+          <TouchableOpacity style={styles.captureBtn} onPress={() => pickImage('gallery')} disabled={analyzing}>
             <Ionicons name="images" size={18} color={colors.sky} />
             <Text style={styles.captureBtnText}>Choose photo</Text>
           </TouchableOpacity>
@@ -258,6 +284,16 @@ export default function LogFoodScreen({ navigation }) {
           ))}
         </View>
       </ScrollView>
+
+      <CropPhotoModal
+        visible={cropVisible}
+        imageUri={cropUri}
+        onCancel={() => {
+          setCropVisible(false);
+          setCropUri(null);
+        }}
+        onCropped={handleCropped}
+      />
     </KeyboardAvoidingView>
   );
 }
