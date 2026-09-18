@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://my-life-os-diary.onrender.com/api/v1'
+const RAW_API_BASE = import.meta.env.VITE_API_BASE ?? 'https://my-life-os-diary.onrender.com/api/v1'
+const API_BASE = RAW_API_BASE.replace(/\/+$/, '')
 
 class ApiError extends Error {
   status: number
@@ -9,14 +10,54 @@ class ApiError extends Error {
   }
 }
 
-let accessToken: string | null = null
+const ACCESS_KEY = 'lifeos_access_token'
+const REFRESH_KEY = 'lifeos_refresh_token'
+
+let accessToken: string | null = typeof window !== 'undefined' ? localStorage.getItem(ACCESS_KEY) : null
 
 export function setAccessToken(token: string | null) {
   accessToken = token
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem(ACCESS_KEY, token)
+    } else {
+      localStorage.removeItem(ACCESS_KEY)
+    }
+  }
 }
 
 export function getAccessToken(): string | null {
+  if (!accessToken && typeof window !== 'undefined') {
+    accessToken = localStorage.getItem(ACCESS_KEY)
+  }
   return accessToken
+}
+
+export function storeRefreshToken(token: string) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(REFRESH_KEY, token)
+  }
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(REFRESH_KEY)
+  }
+  return null
+}
+
+export function clearRefreshToken() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(REFRESH_KEY)
+  }
+}
+
+export function clearAllTokens() {
+  setAccessToken(null)
+  clearRefreshToken()
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('lifeos_user')
+  }
 }
 
 async function request<T>(
@@ -28,12 +69,14 @@ async function request<T>(
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
-  if (accessToken) {
-    headers.set('Authorization', `Bearer ${accessToken}`)
+  const currentToken = getAccessToken()
+  if (currentToken) {
+    headers.set('Authorization', `Bearer ${currentToken}`)
   }
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 15000)
+  // 45 second timeout to allow Render free tier instances to spin up from sleep
+  const timer = setTimeout(() => controller.abort(), 45000)
   let res: Response
   try {
     res = await fetch(`${API_BASE}${path}`, { ...options, headers, signal: controller.signal })
@@ -73,39 +116,37 @@ async function request<T>(
   return body as T
 }
 
-const REFRESH_KEY = 'lifeos_refresh_token'
-
-export function storeRefreshToken(token: string) {
-  localStorage.setItem(REFRESH_KEY, token)
-}
-
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_KEY)
-}
-
-export function clearRefreshToken() {
-  localStorage.removeItem(REFRESH_KEY)
-}
-
 export async function tryRefresh(): Promise<boolean> {
   const refreshToken = getRefreshToken()
   if (!refreshToken) return false
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 30000)
+
   try {
     const res = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
+      signal: controller.signal,
     })
+    clearTimeout(timer)
+
     if (!res.ok) {
-      setAccessToken(null)
-      clearRefreshToken()
+      // ONLY clear tokens when server explicitly states the refresh token is invalid or expired
+      if (res.status === 401 || res.status === 403) {
+        clearAllTokens()
+      }
       return false
     }
+
     const data = (await res.json()) as { accessToken: string; refreshToken: string }
     setAccessToken(data.accessToken)
     storeRefreshToken(data.refreshToken)
     return true
   } catch {
+    clearTimeout(timer)
+    // On network failure or timeout during server wake-up, do NOT clear tokens
     return false
   }
 }
