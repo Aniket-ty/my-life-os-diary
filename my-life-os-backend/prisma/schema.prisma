@@ -10,6 +10,7 @@ datasource db {
 model User {
   id                   String            @id @default(uuid())
   email                String            @unique
+  phoneNumber          String?           @unique @map("phone_number")
   passwordHash         String            @map("password_hash")
   name                 String
   pinHash              String?           @map("pin_hash")
@@ -20,6 +21,7 @@ model User {
   heightCm             Decimal?          @map("height_cm") @db.Decimal(5, 1)
   activityLevel        String?           @map("activity_level")
   fitnessGoal          String?           @map("fitness_goal")
+  defaultCurrency      String            @default("INR") @map("default_currency")
   createdAt            DateTime          @default(now()) @map("created_at")
   updatedAt            DateTime          @updatedAt @map("updated_at")
   chatHistory          ChatMessage[]
@@ -31,6 +33,17 @@ model User {
   workouts             Workout[]
   bodyScans            BodyScan[]
   workoutPlans         WorkoutPlan[]
+  expenses             Expense[]
+  expensesPaid         Expense[]          @relation("ExpensePayer")
+  expenseSplits        ExpenseSplit[]
+  expenseGroupsCreated ExpenseGroup[]     @relation("GroupCreator")
+  groupMemberships     ExpenseGroupMember[]
+  settlementsPaid      ExpenseSettlement[] @relation("SettlementPayer")
+  settlementsReceived  ExpenseSettlement[] @relation("SettlementPayee")
+  receipts             Receipt[]
+  notifications        InAppNotification[]
+  sentInvites          PendingInvite[]    @relation("InviterUser")
+  equipmentScans       EquipmentScanLog[]
 
   @@map("users")
 }
@@ -95,7 +108,9 @@ model WorkoutExercise {
   durationSec  Int?     @map("duration_sec")
   distanceKm   Decimal? @map("distance_km") @db.Decimal(5, 2)
   orderIndex   Int      @default(0) @map("order_index")
+  exerciseId   String?  @map("exercise_id")
   workout      Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise     Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
 
   @@map("workout_exercises")
 }
@@ -249,3 +264,251 @@ model WorkoutPlanDay {
 
   @@map("workout_plan_days")
 }
+
+// ── Expense engine (personal + group / Splitwise-style) ──────────────
+
+model Expense {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  title           String
+  description     String?
+  amount          Decimal  @map("amount") @db.Decimal(12, 2)
+  originalAmount  Decimal  @map("original_amount") @db.Decimal(12, 2)
+  currency        String
+  baseAmount      Decimal  @map("base_amount") @db.Decimal(12, 2)
+  baseCurrency    String   @map("base_currency")
+  exchangeRate    Decimal  @map("exchange_rate") @db.Decimal(12, 6)
+  category        String
+  expenseDate     DateTime @map("expense_date") @db.Date
+  paymentMethod   String?  @map("payment_method")
+  notes           String?
+  source          String   @default("MANUAL")
+  paidById        String?  @map("paid_by_id")
+  groupId         String?  @map("group_id")
+  receiptId       String?  @unique @map("receipt_id")
+  idempotencyKey  String?  @unique @map("idempotency_key")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paidBy          User?    @relation("ExpensePayer", fields: [paidById], references: [id], onDelete: Restrict)
+  group           ExpenseGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  splits          ExpenseSplit[]
+  receipt         Receipt? @relation("ReceiptExpense", fields: [receiptId], references: [id], onDelete: SetNull)
+
+  @@index([userId, expenseDate])
+  @@index([groupId])
+  @@map("expenses")
+}
+
+model ExpenseSplit {
+  id         String   @id @default(uuid())
+  expenseId  String   @map("expense_id")
+  userId     String   @map("user_id")
+  amount     Decimal  @db.Decimal(12, 2)
+  percentage Decimal? @db.Decimal(6, 2)
+  shares     Decimal? @db.Decimal(10, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@index([userId])
+  @@map("expense_splits")
+}
+
+model ExpenseGroup {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  createdBy       String   @map("created_by")
+  defaultCurrency String   @default("INR") @map("default_currency")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  creator         User     @relation("GroupCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  members         ExpenseGroupMember[]
+  expenses        Expense[]
+  settlements     ExpenseSettlement[]
+
+  @@map("expense_groups")
+}
+
+model ExpenseGroupMember {
+  id       String       @id @default(uuid())
+  groupId  String       @map("group_id")
+  userId   String       @map("user_id")
+  role     String       @default("member")
+  joinedAt DateTime     @default(now()) @map("joined_at")
+  group    ExpenseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("expense_group_members")
+}
+
+model ExpenseSettlement {
+  id         String       @id @default(uuid())
+  groupId    String       @map("group_id")
+  fromUserId String       @map("from_user_id")
+  toUserId   String       @map("to_user_id")
+  amount     Decimal      @db.Decimal(12, 2)
+  currency   String
+  note       String?
+  settledAt  DateTime     @default(now()) @map("settled_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  group      ExpenseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUser   User         @relation("SettlementPayer", fields: [fromUserId], references: [id], onDelete: Restrict)
+  toUser     User         @relation("SettlementPayee", fields: [toUserId], references: [id], onDelete: Restrict)
+
+  @@index([groupId])
+  @@map("expense_settlements")
+}
+
+model Receipt {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  expenseId        String?  @unique @map("expense_id")
+  imageUrl         String   @map("image_url")
+  cloudinaryId     String?  @map("cloudinary_id")
+  merchant         String?
+  receiptDate      DateTime? @map("receipt_date") @db.Date
+  currency         String?
+  subtotal         Decimal? @db.Decimal(12, 2)
+  tax              Decimal? @db.Decimal(12, 2)
+  tip              Decimal? @db.Decimal(12, 2)
+  total            Decimal? @db.Decimal(12, 2)
+  items            Json?
+  rawText          String?  @map("raw_text")
+  extractedData    Json?    @map("extracted_data")
+  processingStatus String   @default("extracted") @map("processing_status")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expense          Expense? @relation("ReceiptExpense")
+
+  @@index([userId, processingStatus])
+  @@map("receipts")
+}
+
+model CurrencyRate {
+  id             String   @id @default(uuid())
+  baseCurrency   String   @map("base_currency")
+  targetCurrency String   @map("target_currency")
+  rate           Decimal  @db.Decimal(18, 8)
+  source         String   @default("api")
+  fetchedAt      DateTime @default(now()) @map("fetched_at")
+
+  @@unique([baseCurrency, targetCurrency])
+  @@index([fetchedAt])
+  @@map("currency_rates")
+}
+
+model InAppNotification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String   @default("info")
+  data      Json?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("in_app_notifications")
+}
+
+model PendingInvite {
+  id          String   @id @default(uuid())
+  inviterId   String   @map("inviter_id")
+  email       String?
+  phoneNumber String?  @map("phone_number")
+  groupId     String?  @map("group_id")
+  expenseId   String?  @map("expense_id")
+  amount      Decimal? @db.Decimal(12, 2)
+  status      String   @default("pending")
+  token       String   @unique
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  inviter User @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([phoneNumber])
+  @@map("pending_invites")
+}
+
+// ── Gym Equipment & Exercise Demonstration Catalog ───────────────────
+
+model Equipment {
+  id                 String             @id @default(uuid())
+  name               String             @unique
+  aliases            String[]
+  category           String
+  description        String
+  primaryMuscles     String[]           @map("primary_muscles")
+  secondaryMuscles   String[]           @map("secondary_muscles")
+  instructions       String[]
+  setupInstructions  String[]           @map("setup_instructions")
+  safetyInstructions String[]           @map("safety_instructions")
+  commonMistakes     String[]           @map("common_mistakes")
+  imageUrl           String?            @map("image_url")
+  isActive           Boolean            @default(true) @map("is_active")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  exercises          Exercise[]
+  scanLogs           EquipmentScanLog[]
+
+  @@map("equipment")
+}
+
+model Exercise {
+  id                    String            @id @default(uuid())
+  name                  String            @unique
+  equipmentId           String?           @map("equipment_id")
+  category              String
+  difficultyLevel       String            @map("difficulty_level")
+  primaryMuscle         String            @map("primary_muscle")
+  secondaryMuscles      String[]          @map("secondary_muscles")
+  shortDescription      String            @map("short_description")
+  instructions          String[]
+  startingPosition      String            @map("starting_position")
+  executionTechnique    String            @map("execution_technique")
+  breathingInstructions String            @map("breathing_instructions")
+  commonMistakes        String[]          @map("common_mistakes")
+  safetyTips            String[]          @map("safety_tips")
+  recommendedSets       Int               @default(3) @map("recommended_sets")
+  recommendedReps       String            @default("8-12") @map("recommended_reps")
+  recommendedRestSec    Int               @default(90) @map("recommended_rest_sec")
+  videoUrl              String?           @map("video_url")
+  thumbnailUrl          String?           @map("thumbnail_url")
+  gifUrl                String?           @map("gif_url")
+  images                String[]
+  tags                  String[]
+  alternatives          String[]
+  isActive              Boolean           @default(true) @map("is_active")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  equipment             Equipment?        @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  workoutExercises      WorkoutExercise[]
+
+  @@map("exercises")
+}
+
+model EquipmentScanLog {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  equipmentId  String?    @map("equipment_id")
+  detectedName String?    @map("detected_name")
+  confidence   Decimal?   @db.Decimal(5, 4)
+  provider     String     @default("groq")
+  status       String     @default("success")
+  imageHash    String?    @map("image_hash")
+  cachedResult Json?      @map("cached_result")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  equipment    Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([imageHash])
+  @@map("equipment_scan_logs")
+}
+

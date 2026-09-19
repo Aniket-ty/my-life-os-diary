@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
-import { Camera, Sparkles, Upload } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { Camera, Sparkles, Upload, Search, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { fitnessService, type FoodAnalysisResult } from '@/services/fitness'
+import { fitnessService } from '@/services/fitness'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -17,6 +17,18 @@ const QUICK_FOODS = [
   { name: '🥛 Protein Shake', calories: 120, proteinG: 24, carbsG: 3, fatG: 1.5 },
 ]
 
+interface BaseMacros {
+  calories: number
+  proteinG: number
+  carbsG: number
+  fatG: number
+}
+
+interface ApiFoodResult {
+  name: string
+  macros: BaseMacros
+}
+
 export function LogFoodModal({
   open,
   onClose,
@@ -28,46 +40,70 @@ export function LogFoodModal({
 }) {
   const [mealType, setMealType] = useState<MealType>('lunch')
   const [name, setName] = useState('')
-  const [quantity, setQuantity] = useState('')
+  const [quantityStr, setQuantityStr] = useState('')
+  const [weightStr, setWeightStr] = useState('')
   const [calories, setCalories] = useState('')
   const [protein, setProtein] = useState('')
   const [carbs, setCarbs] = useState('')
   const [fat, setFat] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // AI Scanning
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoName, setPhotoName] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
-  const [aiResult, setAiResult] = useState<FoodAnalysisResult | null>(null)
-  const [portionG, setPortionG] = useState('100')
+
+  // API Search
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<ApiFoodResult[]>([])
+  
+  // Base macros & Multiplier (for both AI and API)
+  const [baseMacros, setBaseMacros] = useState<BaseMacros | null>(null)
+  const [multiplier, setMultiplier] = useState('1')
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   function reset() {
     setName('')
-    setQuantity('')
+    setQuantityStr('')
+    setWeightStr('')
     setCalories('')
     setProtein('')
     setCarbs('')
     setFat('')
     setPhotoUrl(null)
     setPhotoName(null)
-    setAiResult(null)
-    setPortionG('100')
+    setBaseMacros(null)
+    setMultiplier('1')
+    setSearchQuery('')
+    setSearchResults([])
     if (fileInputRef.current) fileInputRef.current.value = ''
     if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
-  function applyPortion(result: FoodAnalysisResult, grams: string) {
-    const g = Math.max(0, Number(grams) || 0)
-    const factor = g / 100
-    setName(result.foodName)
-    setCalories(String(Math.max(0, Math.round(result.per100g.calories * factor))))
-    setProtein(String(Math.max(0, Math.round(result.per100g.proteinG * factor * 10) / 10)))
-    setCarbs(String(Math.max(0, Math.round(result.per100g.carbsG * factor * 10) / 10)))
-    setFat(String(Math.max(0, Math.round(result.per100g.fatG * factor * 10) / 10)))
-    setQuantity(`${g}g`)
+  function applyBaseMacros(foodName: string, macros: BaseMacros, defaultMultiplier = '1') {
+    setName(foodName)
+    setBaseMacros(macros)
+    setMultiplier(defaultMultiplier)
+    updateMacrosWithMultiplier(macros, defaultMultiplier)
+  }
+
+  function updateMacrosWithMultiplier(macros: BaseMacros, mult: string) {
+    const m = Math.max(0, Number(mult) || 0)
+    setCalories(String(Math.max(0, Math.round(macros.calories * m))))
+    setProtein(String(Math.max(0, Math.round(macros.proteinG * m * 10) / 10)))
+    setCarbs(String(Math.max(0, Math.round(macros.carbsG * m * 10) / 10)))
+    setFat(String(Math.max(0, Math.round(macros.fatG * m * 10) / 10)))
+  }
+
+  function onMultiplierChange(val: string) {
+    setMultiplier(val)
+    if (baseMacros) {
+      updateMacrosWithMultiplier(baseMacros, val)
+    }
   }
 
   async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -75,16 +111,14 @@ export function LogFoodModal({
     if (!file) return
     setPhotoUrl(URL.createObjectURL(file))
     setPhotoName(file.name)
-    setAiResult(null)
+    setBaseMacros(null)
     setAnalyzing(true)
     try {
       const data = await fitnessService.analyzeFoodImage(file)
       if (!data.foodName || !data.per100g) {
         throw new Error('AI could not identify this food. Try a clearer photo.')
       }
-      setAiResult(data)
-      setPortionG('100')
-      applyPortion(data, '100')
+      applyBaseMacros(data.foodName, data.per100g, '1')
     } catch (err) {
       setPhotoUrl(null)
       setPhotoName(null)
@@ -94,9 +128,42 @@ export function LogFoodModal({
     }
   }
 
-  function onPortionChange(value: string) {
-    setPortionG(value)
-    if (aiResult) applyPortion(aiResult, value)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([])
+      return
+    }
+    const delayDebounceFn = setTimeout(() => {
+      searchFood(searchQuery)
+    }, 500)
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
+
+  async function searchFood(query: string) {
+    setIsSearching(true)
+    try {
+      const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5`)
+      const data = await res.json()
+      if (data.products && data.products.length > 0) {
+        const results: ApiFoodResult[] = data.products.map((p: any) => ({
+          name: p.product_name || 'Unknown Food',
+          macros: {
+            calories: p.nutriments?.['energy-kcal_100g'] || p.nutriments?.['energy-kcal'] || 0,
+            proteinG: p.nutriments?.['proteins_100g'] || 0,
+            carbsG: p.nutriments?.['carbohydrates_100g'] || 0,
+            fatG: p.nutriments?.['fat_100g'] || 0,
+          }
+        }))
+        setSearchResults(results)
+      } else {
+        setSearchResults([])
+      }
+    } catch (err) {
+      console.error(err)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   async function save() {
@@ -106,6 +173,7 @@ export function LogFoodModal({
     }
     setSaving(true)
     try {
+      const finalQuantity = [quantityStr.trim(), weightStr.trim() ? `${weightStr.trim()}g` : ''].filter(Boolean).join(' - ')
       await fitnessService.logFood({
         foodName: name.trim(),
         mealType,
@@ -113,9 +181,9 @@ export function LogFoodModal({
         proteinG: protein ? Number(protein) : undefined,
         carbsG: carbs ? Number(carbs) : undefined,
         fatG: fat ? Number(fat) : undefined,
-        quantity: quantity.trim() || undefined,
+        quantity: finalQuantity || undefined,
         logDate: toISODate(new Date()),
-        aiSuggested: !!aiResult,
+        aiSuggested: !!baseMacros,
       })
       toast(`${name.trim()} logged`)
       reset()
@@ -129,11 +197,12 @@ export function LogFoodModal({
   }
 
   function applyQuick(food: (typeof QUICK_FOODS)[number]) {
-    setName(food.name)
-    setCalories(String(food.calories))
-    setProtein(String(food.proteinG))
-    setCarbs(String(food.carbsG))
-    setFat(String(food.fatG))
+    applyBaseMacros(food.name, {
+      calories: food.calories,
+      proteinG: food.proteinG,
+      carbsG: food.carbsG,
+      fatG: food.fatG,
+    }, '1')
   }
 
   return (
@@ -178,7 +247,7 @@ export function LogFoodModal({
           />
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-slate-400">
-              Snap or upload a food photo — AI identifies it and fills nutrition from the portion weight.
+              Snap or upload a food photo — AI identifies it and estimates macros.
             </p>
             <div className="flex shrink-0 gap-2">
               <Button size="sm" variant="secondary" onClick={() => cameraInputRef.current?.click()} disabled={analyzing} className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10">
@@ -198,21 +267,57 @@ export function LogFoodModal({
               <div className="min-w-0 flex-1">
                 {analyzing ? (
                   <p className="text-sm text-slate-300">AI is identifying your food…</p>
-                ) : aiResult ? (
+                ) : baseMacros ? (
                   <div className="space-y-1.5">
-                    <p className="truncate text-sm font-semibold text-white">{aiResult.foodName}</p>
+                    <p className="truncate text-sm font-semibold text-white">{name}</p>
                     <p className="text-xs text-emerald-300">
-                      per 100g: {aiResult.per100g.calories} kcal · P {aiResult.per100g.proteinG}g · C {aiResult.per100g.carbsG}g · F {aiResult.per100g.fatG}g
+                      Base: {baseMacros.calories} kcal · P {baseMacros.proteinG}g · C {baseMacros.carbsG}g · F {baseMacros.fatG}g
                     </p>
-                    {aiResult.serving && <p className="text-xs text-slate-400">Serving: {aiResult.serving}</p>}
-                    <div className="grid grid-cols-[120px_1fr] items-center gap-2">
-                      <Input label="Portion (g)" type="number" value={portionG} onChange={(e) => onPortionChange(e.target.value)} placeholder="100" />
-                      <p className="self-end pb-1.5 text-xs font-semibold text-teal-300">
-                        → {calories} kcal · P {protein}g · C {carbs}g · F {fat}g
-                      </p>
-                    </div>
                   </div>
                 ) : null}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* API Food Search */}
+        <div className="relative z-10 space-y-1.5">
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="h-4 w-4 text-slate-400" />
+            </div>
+            <Input 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search OpenFoodFacts database..."
+              className="pl-10"
+            />
+            {isSearching && (
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+              </div>
+            )}
+          </div>
+          
+          {searchResults.length > 0 && (
+            <div className="absolute left-0 top-full mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-black/90 shadow-2xl backdrop-blur-xl">
+              <div className="max-h-48 overflow-y-auto">
+                {searchResults.map((res, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      applyBaseMacros(res.name, res.macros, '1')
+                      setSearchQuery('')
+                      setSearchResults([])
+                    }}
+                    className="flex w-full flex-col items-start px-4 py-2 hover:bg-white/10"
+                  >
+                    <span className="truncate text-sm font-medium text-slate-200">{res.name}</span>
+                    <span className="text-[10px] text-slate-400">
+                      {res.macros.calories} kcal · P {res.macros.proteinG}g · C {res.macros.carbsG}g · F {res.macros.fatG}g
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -231,20 +336,37 @@ export function LogFoodModal({
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Input label="Food" value={name} onChange={(e) => setName(e.target.value)} placeholder="Grilled chicken salad" />
-          <Input label="Quantity" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="1 bowl, 150g…" />
+          <Input label="Food Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Grilled chicken salad" />
+          {baseMacros ? (
+             <Input label="Multiplier / Quantity" type="number" step="0.1" value={multiplier} onChange={(e) => onMultiplierChange(e.target.value)} placeholder="1" />
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Input label="Quantity" value={quantityStr} onChange={(e) => setQuantityStr(e.target.value)} placeholder="1 bowl" />
+              <Input label="Weight (g)" type="number" value={weightStr} onChange={(e) => setWeightStr(e.target.value)} placeholder="150" />
+            </div>
+          )}
         </div>
-        <Input
-          label="Calories"
-          type="number"
-          value={calories}
-          onChange={(e) => setCalories(e.target.value)}
-          placeholder="320"
-        />
-        <div className="grid grid-cols-3 gap-3">
-          <Input label="Protein (g)" type="number" value={protein} onChange={(e) => setProtein(e.target.value)} placeholder="25" />
-          <Input label="Carbs (g)" type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} placeholder="40" />
-          <Input label="Fat (g)" type="number" value={fat} onChange={(e) => setFat(e.target.value)} placeholder="10" />
+        
+        {baseMacros && (
+          <div className="grid grid-cols-2 gap-2">
+              <Input label="Quantity (Optional)" value={quantityStr} onChange={(e) => setQuantityStr(e.target.value)} placeholder="1 bowl" />
+              <Input label="Weight (g) (Optional)" type="number" value={weightStr} onChange={(e) => setWeightStr(e.target.value)} placeholder="150" />
+          </div>
+        )}
+
+        <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+          <Input
+            label="Total Calories"
+            type="number"
+            value={calories}
+            onChange={(e) => setCalories(e.target.value)}
+            placeholder="320"
+          />
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <Input label="Protein (g)" type="number" step="0.1" value={protein} onChange={(e) => setProtein(e.target.value)} placeholder="25" />
+            <Input label="Carbs (g)" type="number" step="0.1" value={carbs} onChange={(e) => setCarbs(e.target.value)} placeholder="40" />
+            <Input label="Fat (g)" type="number" step="0.1" value={fat} onChange={(e) => setFat(e.target.value)} placeholder="10" />
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

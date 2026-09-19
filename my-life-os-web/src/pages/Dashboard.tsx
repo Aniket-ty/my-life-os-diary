@@ -12,6 +12,7 @@ import {
   Flame,
   CheckCircle2,
   TrendingUp,
+  Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { diaryService, type DiaryEntry } from '@/services/diary'
@@ -81,6 +82,16 @@ const modules = [
     iconColor: 'text-rose-300',
     border: 'hover:border-rose-500/40',
     glow: 'group-hover:shadow-rose-500/20',
+  },
+  {
+    to: '/expenses',
+    title: 'Expense OS',
+    desc: 'Personal spending, Splitwise & receipt scanner',
+    icon: Wallet,
+    gradient: 'from-violet-500/25 to-indigo-500/10',
+    iconColor: 'text-violet-brand',
+    border: 'hover:border-violet-500/40',
+    glow: 'group-hover:shadow-violet-500/20',
   },
 ]
 

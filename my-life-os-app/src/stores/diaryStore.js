@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { diaryAPI } from '../services/diaryService';
+import { offlineSyncService } from '../services/offlineSyncService';
 
 export const useDiaryStore = create((set, get) => ({
   entries: [],
@@ -8,12 +9,23 @@ export const useDiaryStore = create((set, get) => ({
   error: null,
 
   fetchEntries: async () => {
-    set({ loading: true, error: null });
+    // 1. Optimistic load from local cache so the screen is never blank while waiting for Render
+    const cached = await offlineSyncService.getCachedDiary();
+    if (cached && cached.length > 0) {
+      set({ entries: cached });
+    } else {
+      set({ loading: true, error: null });
+    }
+
     try {
       const data = await diaryAPI.getEntries();
-      set({ entries: data.entries || [], loading: false });
+      const entries = data.entries || [];
+      set({ entries, loading: false, error: null });
+      await offlineSyncService.cacheDiary(entries);
     } catch (e) {
-      set({ error: e.message, loading: false });
+      console.warn('Network error fetching diary, using offline cache:', e.message);
+      const cached = await offlineSyncService.getCachedDiary();
+      set({ entries: cached || [], loading: false, error: null });
     }
   },
 
@@ -24,6 +36,13 @@ export const useDiaryStore = create((set, get) => ({
       set({ currentEntry: entry, loading: false });
       return entry;
     } catch (e) {
+      // Look up in cached entries
+      const cached = await offlineSyncService.getCachedDiary();
+      const found = cached.find((item) => item.id === id || item.localId === id);
+      if (found) {
+        set({ currentEntry: found, loading: false });
+        return found;
+      }
       set({ error: e.message, loading: false });
     }
   },
@@ -32,9 +51,22 @@ export const useDiaryStore = create((set, get) => ({
     try {
       const entry = await diaryAPI.createEntry(data);
       set((state) => ({ entries: [entry, ...state.entries] }));
+      const cached = await offlineSyncService.getCachedDiary();
+      await offlineSyncService.cacheDiary([entry, ...cached.filter((e) => e.id !== entry.id)]);
       return entry;
     } catch (e) {
-      set({ error: e.message });
+      console.warn('Network error creating diary entry, queueing offline:', e.message);
+      const queued = await offlineSyncService.queueDiaryEntry(data);
+      const localEntry = {
+        ...data,
+        id: queued.localId,
+        localId: queued.localId,
+        isPendingSync: true,
+        createdAt: new Date().toISOString(),
+        attachments: [],
+      };
+      set((state) => ({ entries: [localEntry, ...state.entries], error: null }));
+      return localEntry;
     }
   },
 
@@ -58,7 +90,9 @@ export const useDiaryStore = create((set, get) => ({
         entries: state.entries.filter((e) => e.id !== id),
       }));
     } catch (e) {
-      set({ error: e.message });
+      set((state) => ({
+        entries: state.entries.filter((e) => e.id !== id),
+      }));
     }
   },
 

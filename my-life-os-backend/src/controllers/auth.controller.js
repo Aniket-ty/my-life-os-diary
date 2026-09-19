@@ -5,6 +5,9 @@ const { z } = require('zod');
 const { calculateAll } = require('../services/calorie.service');
 const prisma = new PrismaClient();
 
+const { notifyUser } = require('../services/notification.service');
+const { normalizePhoneNumber, getPhoneSearchPatterns } = require('../utils/phone');
+
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
     { userId },
@@ -22,6 +25,7 @@ const generateTokens = (userId) => {
 const serializeUser = (user) => ({
   id: user.id,
   email: user.email,
+  phoneNumber: user.phoneNumber || null,
   name: user.name,
   createdAt: user.createdAt,
   onboardingCompleted: user.onboardingCompleted,
@@ -30,7 +34,60 @@ const serializeUser = (user) => ({
   heightCm: user.heightCm ? Number(user.heightCm) : null,
   activityLevel: user.activityLevel,
   fitnessGoal: user.fitnessGoal,
+  defaultCurrency: user.defaultCurrency || 'INR',
 });
+
+/**
+ * Claim any pending group invites for this email or phone number
+ */
+const claimPendingInvites = async (userId, email, phoneNumber) => {
+  try {
+    const phonePatterns = phoneNumber ? getPhoneSearchPatterns(phoneNumber) : [];
+    const orConditions = [
+      ...(email ? [{ email: email.toLowerCase() }] : []),
+      ...(phoneNumber ? [{ phoneNumber }] : []),
+      ...phonePatterns.map((p) => ({ phoneNumber: { contains: p } })),
+    ];
+    if (orConditions.length === 0) return;
+
+    const pending = await prisma.pendingInvite.findMany({
+      where: {
+        status: 'pending',
+        OR: orConditions,
+      },
+    });
+
+    for (const inv of pending) {
+      if (inv.groupId) {
+        await prisma.expenseGroupMember.upsert({
+          where: { groupId_userId: { groupId: inv.groupId, userId } },
+          create: { groupId: inv.groupId, userId, role: 'member' },
+          update: {},
+        });
+      }
+
+      await prisma.pendingInvite.update({
+        where: { id: inv.id },
+        data: { status: 'accepted' },
+      });
+
+      await notifyUser(userId, {
+        title: 'Group Invitation Claimed',
+        message: 'You have been automatically linked to your shared expenses group.',
+        type: 'group',
+        data: { groupId: inv.groupId },
+      });
+
+      await notifyUser(inv.inviterId, {
+        title: 'Friend Joined Life OS!',
+        message: 'Your invited friend has joined and claimed their group access.',
+        type: 'info',
+      });
+    }
+  } catch (err) {
+    console.error('[CLAIM INVITES ERROR]', err.message);
+  }
+};
 
 // POST /auth/register
 const register = async (req, res) => {
@@ -38,6 +95,7 @@ const register = async (req, res) => {
     email: z.string().email(),
     password: z.string().min(8),
     name: z.string().min(1),
+    phoneNumber: z.string().optional(),
   });
 
   const result = schema.safeParse(req.body);
@@ -45,18 +103,35 @@ const register = async (req, res) => {
     return res.status(400).json({ error: result.error.errors });
   }
 
-  const { email, password, name } = result.data;
+  const { email, password, name, phoneNumber } = result.data;
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
   if (existing) {
     return res.status(409).json({ error: 'Email already registered' });
+  }
+
+  if (cleanPhone) {
+    const existingPhone = await prisma.user.findUnique({ where: { phoneNumber: cleanPhone } });
+    if (existingPhone) {
+      return res.status(409).json({ error: 'Phone number already registered' });
+    }
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
 
   const user = await prisma.user.create({
-    data: { email, passwordHash, name },
+    data: {
+      email: cleanEmail,
+      phoneNumber: cleanPhone,
+      passwordHash,
+      name,
+    },
   });
+
+  // Auto-claim any pending invites for this email or phone
+  await claimPendingInvites(user.id, user.email, user.phoneNumber);
 
   const { accessToken, refreshToken } = generateTokens(user.id);
 
@@ -134,6 +209,7 @@ const completeOnboarding = async (req, res) => {
     age: z.number().int().min(10).max(100),
     gender: z.enum(['male', 'female']),
     heightCm: z.number().min(100).max(250),
+    phoneNumber: z.string().optional(),
     weightKg: z.number().min(30).max(300).optional(),
     bodyFatPct: z.number().min(2).max(70).optional(),
     muscleMassKg: z.number().min(10).max(150).optional(),
@@ -147,8 +223,21 @@ const completeOnboarding = async (req, res) => {
     return res.status(400).json({ error: result.error.errors });
   }
 
-  const { age, gender, heightCm, weightKg, bodyFatPct, muscleMassKg, activityLevel, goal } = result.data;
+  const { age, gender, heightCm, phoneNumber, weightKg, bodyFatPct, muscleMassKg, activityLevel, goal } = result.data;
   const skipBodyScan = result.data.skipBodyScan || weightKg == null;
+  const cleanPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
+
+  if (cleanPhone) {
+    const existingPhone = await prisma.user.findFirst({
+      where: {
+        phoneNumber: cleanPhone,
+        id: { not: req.user.id },
+      },
+    });
+    if (existingPhone) {
+      return res.status(409).json({ error: 'Phone number already associated with another account' });
+    }
+  }
 
   let calc = null;
   let scan = null;
@@ -200,18 +289,27 @@ const completeOnboarding = async (req, res) => {
     });
   }
 
-  // Mark onboarding complete and store profile fields
+  // Mark onboarding complete and store profile fields + phone number
+  const updateData = {
+    onboardingCompleted: true,
+    age,
+    gender,
+    heightCm,
+    activityLevel,
+    fitnessGoal: goal,
+  };
+  if (cleanPhone) {
+    updateData.phoneNumber = cleanPhone;
+  }
+
   const user = await prisma.user.update({
     where: { id: req.user.id },
-    data: {
-      onboardingCompleted: true,
-      age,
-      gender,
-      heightCm,
-      activityLevel,
-      fitnessGoal: goal,
-    },
+    data: updateData,
   });
+
+  if (cleanPhone) {
+    await claimPendingInvites(user.id, user.email, cleanPhone);
+  }
 
   res.status(201).json({
     user: serializeUser(user),
@@ -345,8 +443,62 @@ const deleteAccount = async (req, res) => {
   res.json({ message: 'Account permanently deleted' });
 };
 
+// GET /auth/users/search?q=...
+const searchUsers = async (req, res) => {
+  try {
+    const q = req.query.q ? String(req.query.q).trim() : '';
+    if (!q || q.length < 2) {
+      return res.json({ users: [] });
+    }
+
+    const phonePatterns = getPhoneSearchPatterns(q);
+
+    const users = await prisma.user.findMany({
+      where: {
+        AND: [
+          { id: { not: req.user.id } },
+          {
+            OR: [
+              { phoneNumber: { contains: q, mode: 'insensitive' } },
+              { email: { contains: q, mode: 'insensitive' } },
+              { name: { contains: q, mode: 'insensitive' } },
+              ...phonePatterns.map((p) => ({ phoneNumber: { contains: p } })),
+            ],
+          },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+      },
+      take: 20,
+    });
+
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// PUT /auth/fcm-token
+const updateFcmToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { fcmToken: fcmToken || null },
+    });
+    res.json({ message: 'FCM push token registered successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   register, login, refresh, me, setPin,
   completeOnboarding, onboardingStatus,
   getProfile, updateProfile, deleteAccount,
+  searchUsers, updateFcmToken,
 };

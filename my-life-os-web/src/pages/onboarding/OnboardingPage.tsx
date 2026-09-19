@@ -9,6 +9,7 @@ import { useAuth, type OnboardingResult } from '@/context/AuthContext'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { CountryCodePhoneInput } from '@/components/ui/CountryCodePhoneInput'
 import { cn } from '@/lib/utils'
 
 const STEPS = ['Your profile', 'Body scan', 'Lifestyle', 'Your numbers']
@@ -63,6 +64,7 @@ export function OnboardingPage() {
   const [age, setAge] = useState('')
   const [gender, setGender] = useState<'male' | 'female'>('male')
   const [heightCm, setHeightCm] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   // Step 2 — body
   const [weightKg, setWeightKg] = useState('')
   const [bodyFatPct, setBodyFatPct] = useState('')
@@ -93,6 +95,7 @@ export function OnboardingPage() {
         age: Number(age),
         gender,
         heightCm: Number(heightCm),
+        phoneNumber: phoneNumber.trim() || undefined,
         weightKg: skip ? undefined : Number(weightKg),
         bodyFatPct: bodyFatPct ? Number(bodyFatPct) : undefined,
         muscleMassKg: muscleMassKg ? Number(muscleMassKg) : undefined,
@@ -167,6 +170,11 @@ export function OnboardingPage() {
                 <Input label="Age" type="number" min={10} max={100} value={age} onChange={(e) => setAge(e.target.value)} placeholder="25" icon={<User size={16} />} />
                 <Input label="Height (cm)" type="number" min={100} max={250} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="175" icon={<Ruler size={16} />} />
               </div>
+              <CountryCodePhoneInput
+                label="Phone Number (Any Country)"
+                value={phoneNumber}
+                onChange={setPhoneNumber}
+              />
               <div>
                 <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-slate-400">Gender</label>
                 <div className="grid grid-cols-2 gap-3">

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { diaryService, type DiaryEntry } from '@/services/diary'
+import { offlineSync } from '@/services/offlineSync'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { MOODS, type Mood, toISODate } from '@/lib/utils'
@@ -76,6 +77,7 @@ export function DiaryWrite() {
     }
 
     setSaving(true)
+    let finalContent = content.trim()
     try {
       // Convert handwritten ink to editable text instead of saving an image
       let handwritingText = ''
@@ -88,7 +90,7 @@ export function DiaryWrite() {
         }
       }
 
-      const finalContent = content.trim()
+      finalContent = content.trim()
         ? handwritingText
           ? `${content.trim()}\n\n${handwritingText}`
           : content.trim()
@@ -126,6 +128,18 @@ export function DiaryWrite() {
       }
       navigate(`/diary/${entry.id}`)
     } catch (err) {
+      if (!isEdit) {
+        offlineSync.queueDiaryEntry({
+          title: title.trim() || undefined,
+          content: finalContent,
+          mood: mood ?? undefined,
+          entryDate: date,
+          isPinned: pinned,
+        })
+        toast('Saved offline! Will automatically sync once server connects.', 'info')
+        navigate('/diary')
+        return
+      }
       toast(err instanceof Error ? err.message : 'Failed to save', 'error')
     } finally {
       setSaving(false)

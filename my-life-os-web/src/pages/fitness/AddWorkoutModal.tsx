@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Trash2, Play } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { fitnessService, type Workout } from '@/services/fitness'
+import { offlineSync } from '@/services/offlineSync'
+import { equipmentService, type ExerciseDetail } from '@/services/equipment'
+import { ExerciseDemo } from '@/components/fitness/ExerciseDemo'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -34,7 +37,15 @@ export function AddWorkoutModal({
     { exerciseName: '' },
   ])
   const [saving, setSaving] = useState(false)
+  const [demoExerciseName, setDemoExerciseName] = useState<string | null>(null)
+  const [catalogExercises, setCatalogExercises] = useState<ExerciseDetail[]>([])
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (open) {
+      equipmentService.listExercises().then(setCatalogExercises).catch(() => {})
+    }
+  }, [open])
 
   function reset() {
     setName('')
@@ -51,16 +62,17 @@ export function AddWorkoutModal({
       toast('Give the workout a name', 'error')
       return
     }
+    const cleanExercises = exercises
+      .filter((e) => e.exerciseName.trim())
+      .map((e) => ({
+        exerciseName: e.exerciseName.trim(),
+        sets: e.sets ? Number(e.sets) : undefined,
+        reps: e.reps ? Number(e.reps) : undefined,
+        weightKg: e.weightKg ? Number(e.weightKg) : undefined,
+      }))
+
     setSaving(true)
     try {
-      const cleanExercises = exercises
-        .filter((e) => e.exerciseName.trim())
-        .map((e) => ({
-          exerciseName: e.exerciseName.trim(),
-          sets: e.sets ? Number(e.sets) : undefined,
-          reps: e.reps ? Number(e.reps) : undefined,
-          weightKg: e.weightKg ? Number(e.weightKg) : undefined,
-        }))
       const workout = await fitnessService.createWorkout({
         name: name.trim(),
         workoutDate: date,
@@ -75,7 +87,40 @@ export function AddWorkoutModal({
       onSaved(workout)
       onClose()
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to save', 'error')
+      const queued = offlineSync.queueWorkout({
+        name: name.trim(),
+        workoutDate: date,
+        durationMin: durationMin ? Number(durationMin) : undefined,
+        totalCaloriesBurned: calories ? Number(calories) : undefined,
+        notes: notes || undefined,
+        exercises: cleanExercises.map((e) => ({
+          name: e.exerciseName,
+          sets: e.sets || 3,
+          reps: String(e.reps || '10'),
+          weightKg: e.weightKg,
+        })),
+      })
+      toast('Saved offline! Will automatically sync once server connects.', 'info')
+      reset()
+      onSaved({
+        id: queued.localId,
+        name: name.trim(),
+        workoutDate: date,
+        status,
+        durationMin: durationMin ? Number(durationMin) : undefined,
+        totalCaloriesBurned: calories ? Number(calories) : undefined,
+        notes: notes || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        exercises: cleanExercises.map((e, idx) => ({
+          id: `offline_ex_${idx}`,
+          exerciseName: e.exerciseName,
+          sets: e.sets || 3,
+          reps: e.reps || 10,
+          weightKg: e.weightKg,
+        })),
+      })
+      onClose()
     } finally {
       setSaving(false)
     }
@@ -88,7 +133,8 @@ export function AddWorkoutModal({
   }
 
   return (
-    <Modal open={open} onClose={() => { onClose(); reset() }} title="Add workout" wide>
+    <>
+      <Modal open={open} onClose={() => { onClose(); reset() }} title="Add workout" wide>
       <div className="space-y-4">
         <Input
           label="Workout name"
@@ -154,13 +200,16 @@ export function AddWorkoutModal({
           </div>
           <div className="space-y-2">
             {exercises.map((ex, i) => (
-              <div key={i} className="glass grid grid-cols-[1fr_64px_64px_72px_36px] items-center gap-2 rounded-xl p-2">
-                <input
-                  value={ex.exerciseName}
-                  onChange={(e) => updateExercise(i, 'exerciseName', e.target.value)}
-                  placeholder="Bench press"
-                  className="rounded-lg border border-white/5 bg-white/[0.04] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500/40 focus:outline-none"
-                />
+              <div key={i} className="glass grid grid-cols-[1fr_64px_64px_72px_36px_36px] items-center gap-2 rounded-xl p-2">
+                <div className="relative">
+                  <input
+                    value={ex.exerciseName}
+                    onChange={(e) => updateExercise(i, 'exerciseName', e.target.value)}
+                    list="catalog-exercise-suggestions"
+                    placeholder="Bench press, Lat pulldown…"
+                    className="w-full rounded-lg border border-white/5 bg-white/[0.04] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500/40 focus:outline-none"
+                  />
+                </div>
                 <input
                   value={ex.sets ?? ''}
                   onChange={(e) => updateExercise(i, 'sets', e.target.value)}
@@ -179,6 +228,15 @@ export function AddWorkoutModal({
                   placeholder="kg"
                   className="rounded-lg border border-white/5 bg-white/[0.04] px-2 py-2 text-center text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none"
                 />
+                <button
+                  type="button"
+                  disabled={!ex.exerciseName.trim()}
+                  onClick={() => setDemoExerciseName(ex.exerciseName.trim())}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-violet-500/20 hover:text-violet-300 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  title="Watch HD Exercise Demonstration"
+                >
+                  <Play size={14} className="fill-current" />
+                </button>
                 <button
                   onClick={() => setExercises((prev) => prev.filter((_, idx) => idx !== i))}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-rose-500/10 hover:text-rose-300"
@@ -205,7 +263,19 @@ export function AddWorkoutModal({
             Add workout
           </Button>
         </div>
+        <datalist id="catalog-exercise-suggestions">
+          {catalogExercises.map((c) => (
+            <option key={c.id} value={c.name}>{c.primaryMuscle}</option>
+          ))}
+        </datalist>
       </div>
     </Modal>
+
+      <ExerciseDemo
+        open={Boolean(demoExerciseName)}
+        onClose={() => setDemoExerciseName(null)}
+        exerciseName={demoExerciseName}
+      />
+    </>
   )
 }

@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarDays, Sparkles, Plus, Trash2, PenLine, X, Check, Dumbbell,
-  ChevronLeft, ChevronRight, Loader2, Save, ScanLine,
+  ChevronLeft, ChevronRight, Loader2, Save, ScanLine, Play,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { ExerciseDemo } from '@/components/fitness/ExerciseDemo'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -33,6 +34,19 @@ const LEVELS = [
 
 const EQUIPMENT_OPTIONS = ['None', 'Dumbbells', 'Barbell', 'Resistance bands', 'Pull-up bar', 'Treadmill', 'Kettlebells', 'Bodyweight', 'Gym machines']
 
+const SPLIT_OPTIONS = [
+  'Push Pull Legs (PPL)',
+  'Upper / Lower',
+  'Full Body',
+  'Arnold Split',
+  'Bro Split (1 Muscle/Day)',
+  'Cardio & Conditioning',
+  'Dumbbell / Home Only',
+  'Strength & Power',
+]
+
+const DURATION_OPTIONS = ['30-45 mins', '45-60 mins', '60-75 mins', '75+ mins']
+
 export function WorkoutPlanner() {
   const { toast } = useToast()
   const [plans, setPlans] = useState<WorkoutPlan[]>([])
@@ -49,6 +63,9 @@ export function WorkoutPlanner() {
   const [daysPerWeek, setDaysPerWeek] = useState(5)
   const [equipment, setEquipment] = useState<string[]>([])
   const [focus, setFocus] = useState('')
+  const [splitType, setSplitType] = useState('Push Pull Legs (PPL)')
+  const [workoutDuration, setWorkoutDuration] = useState('45-60 mins')
+  const [preferences, setPreferences] = useState('')
 
   // Editor
   const [editingDay, setEditingDay] = useState<PlanDay | null>(null)
@@ -56,6 +73,37 @@ export function WorkoutPlanner() {
   const [editMuscle, setEditMuscle] = useState('')
   const [editExercises, setEditExercises] = useState<PlanExercise[]>([])
   const [savingDay, setSavingDay] = useState(false)
+
+  // Exercise & Workout Demo states
+  const [demoExerciseName, setDemoExerciseName] = useState<string | null>(null)
+  const [demoDay, setDemoDay] = useState<PlanDay | null>(null)
+  const [demoCustomSets, setDemoCustomSets] = useState<number | string | null>(null)
+  const [demoCustomReps, setDemoCustomReps] = useState<string | null>(null)
+  const [demoCustomRestSec, setDemoCustomRestSec] = useState<number | string | null>(null)
+
+  const openExerciseInPlanDay = (day: PlanDay, ex: PlanExercise) => {
+    setDemoDay(day)
+    setDemoExerciseName(ex.name)
+    setDemoCustomSets(ex.sets || null)
+    setDemoCustomReps(ex.reps || null)
+    setDemoCustomRestSec(ex.restSec || 90)
+  }
+
+  const openFullPlanDay = (day: PlanDay) => {
+    setDemoDay(day)
+    if (day.exercises && day.exercises.length > 0) {
+      const first = day.exercises[0]
+      setDemoExerciseName(first.name)
+      setDemoCustomSets(first.sets || null)
+      setDemoCustomReps(first.reps || null)
+      setDemoCustomRestSec(first.restSec || 90)
+    } else {
+      setDemoExerciseName(day.workoutName || 'Workout')
+      setDemoCustomSets(null)
+      setDemoCustomReps(null)
+      setDemoCustomRestSec(null)
+    }
+  }
 
   const loadPlans = async () => {
     setLoading(true)
@@ -99,6 +147,9 @@ export function WorkoutPlanner() {
         daysPerWeek,
         equipment,
         focus: focus || undefined,
+        splitType: splitType || undefined,
+        workoutDuration: workoutDuration || undefined,
+        preferences: preferences || undefined,
       })
       // Save generated plan
       const saved = await workoutPlanService.create({
@@ -356,8 +407,65 @@ export function WorkoutPlanner() {
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <Input label="Focus (optional)" value={focus} onChange={(e) => setFocus(e.target.value)}
-                  placeholder="e.g. glutes, core, full body…" />
+                <Input label="Focus areas (optional)" value={focus} onChange={(e) => setFocus(e.target.value)}
+                  placeholder="e.g. chest & biceps, glutes & quads, back thickness…" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-slate-400">
+                  Preferred Workout Split / Style
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SPLIT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setSplitType(opt)}
+                      className={cn(
+                        'rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all',
+                        splitType === opt
+                          ? 'border-emerald-400/60 bg-emerald-400/15 text-white shadow-sm'
+                          : 'border-white/10 text-slate-400 hover:border-white/25'
+                      )}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-slate-400">
+                  Target Session Duration
+                </label>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  {DURATION_OPTIONS.map((dur) => (
+                    <button
+                      key={dur}
+                      onClick={() => setWorkoutDuration(dur)}
+                      className={cn(
+                        'rounded-xl border px-2 py-1.5 text-xs font-semibold text-center transition-all',
+                        workoutDuration === dur
+                          ? 'border-emerald-400/60 bg-emerald-400/15 text-white'
+                          : 'border-white/10 text-slate-400 hover:border-white/25'
+                      )}
+                    >
+                      {dur}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                    Preferences & Special Instructions
+                  </label>
+                  <span className="text-[11px] text-emerald-400/80">Customize how & what you want to train</span>
+                </div>
+                <textarea
+                  value={preferences}
+                  onChange={(e) => setPreferences(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                  placeholder="Tell the AI how and which type of workout you want (e.g. Focus on hypertrophy with drop sets, avoid barbell squats due to knee pain, emphasize upper chest, include 5-min mobility warmup...)"
+                />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-3">
@@ -418,16 +526,41 @@ export function WorkoutPlanner() {
                     </div>
                   ) : (
                     <div className="flex flex-1 flex-col rounded-xl bg-white/[0.04] p-2.5">
-                      <p className="text-xs font-bold text-white leading-tight">{day.workoutName || 'Workout'}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-500">{day.muscleGroup}</p>
+                      <div
+                        className="cursor-pointer group/title"
+                        onClick={() => openFullPlanDay(day)}
+                        title="Click to view workout demonstration, sets, reps & rest timer"
+                      >
+                        <p className="text-xs font-bold text-white group-hover/title:text-emerald-300 transition-colors leading-tight flex items-center justify-between">
+                          <span>{day.workoutName || 'Workout'}</span>
+                          <Play size={9} className="text-emerald-400 opacity-60 group-hover/title:opacity-100 fill-emerald-400" />
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-slate-500">{day.muscleGroup}</p>
+                      </div>
                       <div className="mt-1.5 space-y-1">
                         {day.exercises?.slice(0, 3).map((ex, exi) => (
-                          <p key={exi} className="line-clamp-1 text-[10px] text-slate-400">
-                            • {ex.name}{ex.sets ? ` ×${ex.sets}` : ''}
-                          </p>
+                          <button
+                            key={exi}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openExerciseInPlanDay(day, ex);
+                            }}
+                            className="flex w-full items-center gap-1 line-clamp-1 text-[10px] text-slate-300 hover:text-violet-300 transition-colors text-left"
+                            title="Watch exercise demonstration video & rest timer"
+                          >
+                            <Play size={8} className="text-violet-400 shrink-0 fill-current" />
+                            <span className="truncate">{ex.name}</span>
+                            {ex.sets ? <span className="text-slate-500">· {ex.sets}×{ex.reps ?? ''}</span> : ''}
+                            {ex.restSec ? <span className="text-amber-400/80">· {ex.restSec}s</span> : ''}
+                          </button>
                         ))}
                         {(day.exercises?.length ?? 0) > 3 && (
-                          <p className="text-[10px] text-slate-500">+{(day.exercises?.length ?? 0) - 3} more</p>
+                          <button
+                            onClick={() => openFullPlanDay(day)}
+                            className="text-[10px] text-emerald-400 hover:underline block text-left"
+                          >
+                            +{(day.exercises?.length ?? 0) - 3} more · view all
+                          </button>
                         )}
                       </div>
                       <div className="mt-auto flex gap-1 pt-2">
@@ -573,6 +706,39 @@ export function WorkoutPlanner() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ExerciseDemo
+        open={Boolean(demoExerciseName || demoDay)}
+        onClose={() => {
+          setDemoExerciseName(null);
+          setDemoDay(null);
+          setDemoCustomSets(null);
+          setDemoCustomReps(null);
+          setDemoCustomRestSec(null);
+        }}
+        exerciseName={demoExerciseName}
+        workoutName={demoDay?.workoutName}
+        customSets={demoCustomSets}
+        customReps={demoCustomReps}
+        customRestSec={demoCustomRestSec}
+        workoutExercises={demoDay?.exercises?.map((e) => ({
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          restSec: e.restSec,
+        }))}
+        onSelectExercise={(exName) => {
+          setDemoExerciseName(exName);
+          const matched = demoDay?.exercises?.find(
+            (e) => e.name.toLowerCase() === exName.toLowerCase()
+          );
+          if (matched) {
+            setDemoCustomSets(matched.sets || null);
+            setDemoCustomReps(matched.reps || null);
+            setDemoCustomRestSec(matched.restSec || 90);
+          }
+        }}
+      />
     </div>
   )
 }

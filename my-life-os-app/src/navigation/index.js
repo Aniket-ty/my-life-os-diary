@@ -16,6 +16,11 @@ import WorkoutPlannerScreen from '../screens/fitness/WorkoutPlannerScreen';
 import AIChatScreen from '../screens/ai/AIChatScreen';
 import TodoScreen from '../screens/todo/TodoScreen';
 import BodyScanScreen from '../screens/bodyscan/BodyScanScreen';
+import ExpenseScreen from '../screens/expenses/ExpenseScreen';
+import AddExpenseScreen from '../screens/expenses/AddExpenseScreen';
+import GroupDetailScreen from '../screens/expenses/GroupDetailScreen';
+import ScanBillScreen from '../screens/expenses/ScanBillScreen';
+import VoiceAssistantScreen from '../screens/expenses/VoiceAssistantScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +48,11 @@ export default function Navigation() {
             <Stack.Screen name="AIChat" component={AIChatScreen} />
             <Stack.Screen name="TodoList" component={TodoScreen} />
             <Stack.Screen name="BodyScan" component={BodyScanScreen} />
+            <Stack.Screen name="ExpenseList" component={ExpenseScreen} />
+            <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
+            <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
+            <Stack.Screen name="ScanBill" component={ScanBillScreen} />
+            <Stack.Screen name="VoiceAssistant" component={VoiceAssistantScreen} />
           </>
         ) : (
           <>

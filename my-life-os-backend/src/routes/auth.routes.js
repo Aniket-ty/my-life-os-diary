@@ -4,6 +4,7 @@ const {
   register, login, refresh, me, setPin,
   completeOnboarding, onboardingStatus,
   getProfile, updateProfile, deleteAccount,
+  searchUsers, updateFcmToken,
 } = require('../controllers/auth.controller');
 const { authenticate } = require('../middleware/auth');
 
@@ -31,6 +32,8 @@ router.post('/onboarding', authenticate, completeOnboarding);
 router.get('/onboarding-status', authenticate, onboardingStatus);
 router.get('/profile', authenticate, getProfile);
 router.put('/profile', authenticate, updateProfile);
+router.get('/users/search', authenticate, searchUsers);
+router.put('/fcm-token', authenticate, updateFcmToken);
 router.delete('/account', authenticate, deleteLimiter, deleteAccount);
 
 module.exports = router;

@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Command,
+  Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { initials } from '@/lib/utils'
@@ -23,6 +24,7 @@ const items = [
   { to: '/fitness/planner', label: 'Workout Plan', icon: CalendarRange },
   { to: '/ai', label: 'AI Coach', icon: Sparkles },
   { to: '/todo', label: 'To-Do', icon: ListTodo },
+  { to: '/expenses', label: 'Expenses', icon: Wallet },
   { to: '/body-scan', label: 'Body Scan', icon: ScanLine },
 ]
 
@@ -129,6 +131,7 @@ export function Sidebar() {
           { to: '/fitness', label: 'Fitness', icon: Dumbbell },
           { to: '/ai', label: 'AI', icon: Sparkles },
           { to: '/todo', label: 'To-Do', icon: ListTodo },
+          { to: '/expenses', label: 'Expenses', icon: Wallet },
           { to: '/body-scan', label: 'Scan', icon: ScanLine },
           { to: '/settings', label: 'Settings', icon: Settings },
         ].map(({ to, label, icon: Icon, exact }) => (

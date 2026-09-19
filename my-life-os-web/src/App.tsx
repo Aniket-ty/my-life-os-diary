@@ -14,6 +14,7 @@ import { TodoPage } from '@/pages/todo/TodoPage'
 import { BodyScanPage } from '@/pages/bodyscan/BodyScanPage'
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
+import { ExpenseDashboard } from '@/pages/expenses/ExpenseDashboard'
 import { Loading } from '@/components/ui/Loading'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
@@ -50,6 +51,7 @@ function ProtectedRoutes() {
         <Route path="/todo" element={<TodoPage />} />
         <Route path="/body-scan" element={<BodyScanPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/expenses" element={<ExpenseDashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

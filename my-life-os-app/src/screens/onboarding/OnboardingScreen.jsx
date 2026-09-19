@@ -8,6 +8,7 @@ import Screen from '../../components/ui/Screen';
 import Button from '../../components/ui/Button';
 import GlassCard from '../../components/ui/GlassCard';
 import Input from '../../components/ui/Input';
+import CountryPhoneInput from '../../components/ui/CountryPhoneInput';
 import { colors, overlays, radii, shadow, spacing, tint, type as typ } from '../../theme';
 
 const ACTIVITY_LEVELS = [
@@ -36,6 +37,7 @@ export default function OnboardingScreen({ navigation }) {
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('male');
   const [heightCm, setHeightCm] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   // Step 2
   const [weightKg, setWeightKg] = useState('');
   const [bodyFatPct, setBodyFatPct] = useState('');
@@ -67,6 +69,7 @@ export default function OnboardingScreen({ navigation }) {
         age: Number(age),
         gender,
         heightCm: Number(heightCm),
+        phoneNumber: phoneNumber.trim() || undefined,
         weightKg: skip ? undefined : Number(weightKg),
         bodyFatPct: bodyFatPct ? Number(bodyFatPct) : undefined,
         muscleMassKg: muscleMassKg ? Number(muscleMassKg) : undefined,
@@ -107,6 +110,13 @@ export default function OnboardingScreen({ navigation }) {
                 onChangeText={setHeightCm}
                 keyboardType="numeric"
                 placeholder="175"
+                style={styles.field}
+              />
+              <CountryPhoneInput
+                label="Phone Number (Any Country)"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="98765 43210 (optional)"
                 style={styles.field}
               />
               <View style={styles.field}>

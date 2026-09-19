@@ -18,6 +18,9 @@ import {
   NotebookPen,
   ScanLine,
   CalendarRange,
+  Camera,
+  Play,
+  BookOpen,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { fitnessService, type DailySummary, type Workout, type FitnessGoals } from '@/services/fitness'
@@ -31,6 +34,11 @@ import { toISODate, formatDay, MEALS, MEAL_LABEL } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { AddWorkoutModal } from './AddWorkoutModal'
 import { LogFoodModal } from './LogFoodModal'
+import { GymEquipmentScanner } from '@/components/fitness/GymEquipmentScanner'
+import { ExerciseDemo } from '@/components/fitness/ExerciseDemo'
+import { EquipmentExplorer } from '@/components/fitness/EquipmentExplorer'
+import { AdminEquipmentModal } from '@/components/fitness/AdminEquipmentModal'
+import { offlineSync } from '@/services/offlineSync'
 
 const DEFAULT_GOALS: FitnessGoals = {
   dailyCalories: 2097,
@@ -48,10 +56,52 @@ export function Fitness() {
   const [showFood, setShowFood] = useState(false)
   const [scanChecked, setScanChecked] = useState(false)
   const [hasScan, setHasScan] = useState(true)
+
+  // Equipment Scanner & Exercise Demonstration states
+  const [showScanner, setShowScanner] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(false)
+  const [demoExerciseName, setDemoExerciseName] = useState<string | null>(null)
+  const [demoExerciseId, setDemoExerciseId] = useState<string | null>(null)
+  const [demoWorkout, setDemoWorkout] = useState<Workout | null>(null)
+  const [demoCustomSets, setDemoCustomSets] = useState<number | string | null>(null)
+  const [demoCustomReps, setDemoCustomReps] = useState<string | number | null>(null)
+  const [demoCustomWeightKg, setDemoCustomWeightKg] = useState<number | string | null>(null)
   const { toast } = useToast()
 
+  const openExerciseInWorkout = (w: Workout, ex: any) => {
+    setDemoWorkout(w)
+    setDemoExerciseName(ex.exerciseName)
+    setDemoCustomSets(ex.sets || null)
+    setDemoCustomReps(ex.reps != null ? String(ex.reps) : null)
+    setDemoCustomWeightKg(ex.weightKg || null)
+  }
+
+  const openFullWorkout = (w: Workout) => {
+    setDemoWorkout(w)
+    if (w.exercises && w.exercises.length > 0) {
+      const first = w.exercises[0]
+      setDemoExerciseName(first.exerciseName)
+      setDemoCustomSets(first.sets || null)
+      setDemoCustomReps(first.reps != null ? String(first.reps) : null)
+      setDemoCustomWeightKg(first.weightKg || null)
+    } else {
+      setDemoExerciseName(w.name)
+      setDemoCustomSets(null)
+      setDemoCustomReps(null)
+      setDemoCustomWeightKg(null)
+    }
+  }
+
   const load = useCallback(async () => {
-    setLoading(true)
+    const cached = offlineSync.getCachedWorkouts<Workout>()
+    if (cached && cached.length > 0) {
+      setWorkouts(cached)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
+
     try {
       const [s, w] = await Promise.all([
         fitnessService.getSummary(date),
@@ -59,8 +109,14 @@ export function Fitness() {
       ])
       setSummary(s)
       setWorkouts(w)
+      offlineSync.cacheWorkouts(w)
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to load fitness', 'error')
+      const cached = offlineSync.getCachedWorkouts<Workout>()
+      if (cached && cached.length > 0) {
+        setWorkouts(cached)
+      } else {
+        toast(err instanceof Error ? err.message : 'Failed to load fitness', 'error')
+      }
     } finally {
       setLoading(false)
     }
@@ -219,8 +275,33 @@ export function Fitness() {
           {/* Workouts */}
           <section>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-display text-lg font-semibold text-white">Workouts</h2>
               <div className="flex items-center gap-2">
+                <h2 className="font-display text-lg font-semibold text-white">Workouts</h2>
+                <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-slate-400">
+                  {workouts.length}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setShowScanner(true)}
+                  className="gap-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/20"
+                >
+                  <Camera size={14} />
+                  Scan Gym Machine
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setShowLibrary((prev) => !prev)}
+                  className={cn(
+                    'gap-1.5 border-white/10 text-slate-300',
+                    showLibrary && 'border-violet-500/40 bg-violet-500/10 text-violet-300'
+                  )}
+                >
+                  <BookOpen size={14} />
+                  {showLibrary ? 'Hide Library' : 'Exercise Library'}
+                </Button>
                 <Link to="/fitness/planner">
                   <Button size="sm" variant="secondary" className="gap-1.5 border-teal-500/30 text-teal-300 hover:bg-teal-500/10">
                     <CalendarRange size={14} />
@@ -233,6 +314,23 @@ export function Fitness() {
                 </Button>
               </div>
             </div>
+
+            {/* Collapsible Exercise & Equipment Explorer Library */}
+            <AnimatePresence>
+              {showLibrary && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden mb-6 rounded-3xl border border-white/10 bg-slate-950/70 p-5 backdrop-blur-xl"
+                >
+                  <EquipmentExplorer
+                    onOpenScanner={() => setShowScanner(true)}
+                    onOpenAdmin={() => setShowAdmin(true)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
             {workouts.length === 0 ? (
               <div className="glass flex flex-col items-center justify-center rounded-2xl py-12 text-center">
                 <Dumbbell size={30} className="mb-2 text-emerald-300/50" />
@@ -266,10 +364,14 @@ export function Fitness() {
                             <Circle size={22} className="text-slate-600 hover:text-slate-400" />
                           )}
                         </button>
-                        <div className="flex-1">
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => openFullWorkout(w)}
+                          title="Click to view workout demonstration with video, sets & rest timer"
+                        >
                           <p
                             className={cn(
-                              'font-semibold text-white',
+                              'font-semibold text-white hover:text-emerald-300 transition-colors',
                               w.status === 'completed' && 'text-slate-400 line-through',
                             )}
                           >
@@ -287,10 +389,20 @@ export function Fitness() {
                               </span>
                             )}
                             {w.exercises.length > 0 && (
-                              <span>{w.exercises.length} exercises</span>
+                              <span className="text-slate-400 font-medium">{w.exercises.length} exercises · Click to view demos</span>
                             )}
                           </div>
                         </div>
+
+                        <button
+                          onClick={() => openFullWorkout(w)}
+                          className="flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-all shadow-sm"
+                          title="View video demonstration, sets, reps & rest timer"
+                        >
+                          <Play size={10} className="fill-emerald-400 text-emerald-400" />
+                          <span>View Demo</span>
+                        </button>
+
                         <Badge tone={w.status === 'completed' ? 'emerald' : 'default'}>
                           {w.status}
                         </Badge>
@@ -298,14 +410,17 @@ export function Fitness() {
                       {w.exercises.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2 border-t border-white/5 pt-3">
                           {w.exercises.map((ex) => (
-                            <span
+                            <button
                               key={ex.id ?? ex.exerciseName}
-                              className="rounded-lg bg-white/[0.05] px-2.5 py-1 text-xs text-slate-300"
+                              onClick={() => openExerciseInWorkout(w, ex)}
+                              className="group flex items-center gap-1.5 rounded-lg bg-white/[0.05] px-2.5 py-1 text-xs text-slate-300 hover:bg-violet-500/20 hover:text-white transition-colors"
+                              title="Click to view HD demonstration and instructions"
                             >
-                              {ex.exerciseName}
-                              {ex.sets ? ` · ${ex.sets}×${ex.reps ?? ''}` : ''}
-                              {ex.weightKg ? ` · ${ex.weightKg} kg` : ''}
-                            </span>
+                              <Play size={10} className="text-violet-400 group-hover:scale-110 transition-transform fill-violet-400/40" />
+                              <span>{ex.exerciseName}</span>
+                              {ex.sets ? <span className="text-slate-500">· {ex.sets}×{ex.reps ?? ''}</span> : ''}
+                              {ex.weightKg ? <span className="text-slate-500">· {ex.weightKg} kg</span> : ''}
+                            </button>
                           ))}
                         </div>
                       )}
@@ -384,6 +499,57 @@ export function Fitness() {
 
       <AddWorkoutModal open={showWorkout} onClose={() => setShowWorkout(false)} onSaved={(w) => { setWorkouts((prev) => [w, ...prev]); load() }} />
       <LogFoodModal open={showFood} onClose={() => setShowFood(false)} onSaved={() => load()} />
+
+      {/* Gym Equipment Photo Scanner */}
+      <GymEquipmentScanner
+        open={showScanner}
+        onClose={() => setShowScanner(false)}
+        onExerciseAdded={() => void load()}
+      />
+
+      {/* Exercise & Workout Demonstration Modal */}
+      <ExerciseDemo
+        open={Boolean(demoExerciseName || demoExerciseId || demoWorkout)}
+        onClose={() => {
+          setDemoExerciseName(null);
+          setDemoExerciseId(null);
+          setDemoWorkout(null);
+          setDemoCustomSets(null);
+          setDemoCustomReps(null);
+          setDemoCustomWeightKg(null);
+        }}
+        exerciseName={demoExerciseName}
+        exerciseId={demoExerciseId}
+        workoutName={demoWorkout?.name}
+        customSets={demoCustomSets}
+        customReps={demoCustomReps}
+        customWeightKg={demoCustomWeightKg}
+        workoutExercises={demoWorkout?.exercises.map((e) => ({
+          name: e.exerciseName,
+          sets: e.sets,
+          reps: e.reps,
+          weightKg: e.weightKg,
+        }))}
+        onSelectExercise={(exName) => {
+          setDemoExerciseName(exName);
+          const matched = demoWorkout?.exercises.find(
+            (e) => e.exerciseName.toLowerCase() === exName.toLowerCase()
+          );
+          if (matched) {
+            setDemoCustomSets(matched.sets || null);
+            setDemoCustomReps(matched.reps != null ? String(matched.reps) : null);
+            setDemoCustomWeightKg(matched.weightKg || null);
+          }
+        }}
+        onAddedToWorkout={() => void load()}
+      />
+
+      {/* Admin Catalog Manager */}
+      <AdminEquipmentModal
+        open={showAdmin}
+        onClose={() => setShowAdmin(false)}
+        onSaved={() => void load()}
+      />
     </div>
   )
 }

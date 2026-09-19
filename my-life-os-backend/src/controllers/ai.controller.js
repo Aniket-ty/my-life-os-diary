@@ -1,6 +1,6 @@
 const prisma = require('../config/database');
 const { chatWithAI, recognizeHandwriting } = require('../services/ai.service');
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('../utils/uuid');
 
 const recognizeHandwritingText = async (req, res) => {
   try {

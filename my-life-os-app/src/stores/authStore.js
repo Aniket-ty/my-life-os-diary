@@ -29,8 +29,13 @@ export const useAuthStore = create((set, get) => ({
     set({ user: data.user, accessToken: data.accessToken });
   },
 
-  register: async (email, password, name) => {
-    const { data } = await api.post('/auth/register', { email, password, name });
+  register: async (email, password, name, phoneNumber) => {
+    const { data } = await api.post('/auth/register', {
+      email,
+      password,
+      name,
+      phoneNumber: phoneNumber ? phoneNumber.trim() : undefined,
+    });
     await SecureStore.setItemAsync('refreshToken', data.refreshToken);
     api.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
     set({ user: data.user, accessToken: data.accessToken });

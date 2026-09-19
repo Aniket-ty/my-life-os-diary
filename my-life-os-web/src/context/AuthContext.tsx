@@ -20,6 +20,7 @@ import {
 export interface User {
   id: string
   email: string
+  phoneNumber?: string | null
   name: string
   createdAt?: string
   onboardingCompleted?: boolean
@@ -28,6 +29,7 @@ export interface User {
   heightCm?: number | null
   activityLevel?: string | null
   fitnessGoal?: string | null
+  defaultCurrency?: string
 }
 
 export interface OnboardingResult {

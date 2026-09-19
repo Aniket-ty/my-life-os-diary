@@ -6,11 +6,13 @@ import Screen from '../../components/ui/Screen';
 import Button from '../../components/ui/Button';
 import GlassCard from '../../components/ui/GlassCard';
 import Input from '../../components/ui/Input';
+import CountryPhoneInput from '../../components/ui/CountryPhoneInput';
 import { colors, radii, shadow, spacing, tint, type as typ } from '../../theme';
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuthStore();
@@ -20,7 +22,7 @@ export default function RegisterScreen({ navigation }) {
     if (password.length < 8) return Alert.alert('Error', 'Password must be at least 8 characters');
     setLoading(true);
     try {
-      await register(email.trim(), password, name.trim());
+      await register(email.trim(), password, name.trim(), phoneNumber.trim());
     } catch (e) {
       Alert.alert('Registration failed', e?.response?.data?.error || 'Something went wrong');
     } finally {
@@ -60,6 +62,13 @@ export default function RegisterScreen({ navigation }) {
             autoCapitalize="none"
             keyboardType="email-address"
             icon={<Ionicons name="mail-outline" size={16} color={colors.textFaint} />}
+            style={styles.field}
+          />
+          <CountryPhoneInput
+            label="Phone Number (Any Country)"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            placeholder="98765 43210 (optional)"
             style={styles.field}
           />
           <Input

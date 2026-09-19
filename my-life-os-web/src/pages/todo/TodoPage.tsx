@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { todoService, type Todo } from '@/services/todo'
+import { offlineSync } from '@/services/offlineSync'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -33,11 +34,25 @@ export function TodoPage() {
   const { toast } = useToast()
 
   const load = useCallback(async () => {
+    const cached = offlineSync.getCachedTodos<Todo>()
+    if (cached && cached.length > 0) {
+      setTodos(cached)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
+
     try {
       const data = await todoService.list()
       setTodos(data)
+      offlineSync.cacheTodos(data)
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to load todos', 'error')
+      const cached = offlineSync.getCachedTodos<Todo>()
+      if (cached && cached.length > 0) {
+        setTodos(cached)
+      } else {
+        toast(err instanceof Error ? err.message : 'Failed to load todos', 'error')
+      }
     } finally {
       setLoading(false)
     }
@@ -290,22 +305,51 @@ function TodoModal({
       toast('Task needs a title', 'error')
       return
     }
+    const payload = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      category: category || undefined,
+      priority,
+      dueDate: dueDate || undefined,
+      isRecurring,
+      recurPattern: isRecurring ? recurPattern : undefined,
+    }
     setSaving(true)
     try {
-      const payload = {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        category: category || undefined,
-        priority,
-        dueDate: dueDate || undefined,
-        isRecurring,
-        recurPattern: isRecurring ? recurPattern : undefined,
-      }
       const saved = editing ? await todoService.update(editing.id, payload) : await todoService.create(payload)
       toast(editing ? 'Task updated' : 'Task added')
       onSaved(saved)
       onClose()
     } catch (err) {
+      if (!editing) {
+        const queued = offlineSync.queueTodo({
+          title: payload.title,
+          description: payload.description,
+          category: payload.category,
+          priority: payload.priority,
+          dueDate: payload.dueDate,
+          isCompleted: false,
+        })
+        toast('Saved offline! Will automatically sync once server connects.', 'info')
+        onSaved({
+          id: queued.localId,
+          title: payload.title,
+          description: payload.description || null,
+          category: payload.category || null,
+          priority: payload.priority,
+          dueDate: payload.dueDate || null,
+          reminderAt: null,
+          reminderSent: false,
+          isCompleted: false,
+          completedAt: null,
+          isRecurring: false,
+          recurPattern: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        onClose()
+        return
+      }
       toast(err instanceof Error ? err.message : 'Save failed', 'error')
     } finally {
       setSaving(false)

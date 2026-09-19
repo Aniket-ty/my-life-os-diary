@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { PenLine, Search, Pin, Trash2, BookHeart, Paperclip, CalendarDays } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { diaryService, type DiaryEntry } from '@/services/diary'
+import { offlineSync } from '@/services/offlineSync'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Loading } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
@@ -24,11 +25,24 @@ export function DiaryList() {
   }, [])
 
   async function loadEntries() {
+    // 1. Optimistically display cached diary entries immediately
+    const cached = offlineSync.getCachedDiary<DiaryEntry>()
+    if (cached && cached.length > 0) {
+      setEntries(cached)
+      setLoading(false)
+    }
+
     try {
       const res = await diaryService.list()
       setEntries(res.entries)
+      offlineSync.cacheDiary(res.entries)
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to load diary', 'error')
+      const cached = offlineSync.getCachedDiary<DiaryEntry>()
+      if (cached && cached.length > 0) {
+        setEntries(cached)
+      } else {
+        toast(err instanceof Error ? err.message : 'Failed to load diary', 'error')
+      }
     } finally {
       setLoading(false)
     }

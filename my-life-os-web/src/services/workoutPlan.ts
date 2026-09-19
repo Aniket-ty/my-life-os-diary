@@ -4,6 +4,7 @@ export interface PlanExercise {
   name: string
   sets?: number
   reps?: string
+  restSec?: number
   weightKg?: number
   durationSec?: number
   distanceKm?: number
@@ -40,6 +41,9 @@ export interface GeneratePlanInput {
   daysPerWeek: number
   equipment: string[]
   focus?: string
+  preferences?: string
+  splitType?: string
+  workoutDuration?: string
 }
 
 export const workoutPlanService = {
