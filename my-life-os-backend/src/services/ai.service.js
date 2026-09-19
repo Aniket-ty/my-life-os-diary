@@ -1,6 +1,24 @@
-const Groq = require('groq-sdk');
+const python = require('./ai/pythonClient');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let openai = null;
+if (process.env.OPENAI_API_KEY) {
+  try {
+    const OpenAI = require('openai');
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  } catch {
+    // ignore
+  }
+}
+
+let groq = null;
+if (process.env.GROQ_API_KEY) {
+  try {
+    const Groq = require('groq-sdk');
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  } catch {
+    // ignore
+  }
+}
 
 const SYSTEM_PROMPT = `You are a personal health and fitness assistant inside "My Life OS" app.
 
@@ -21,6 +39,26 @@ Only include an ACTION block when the user explicitly says to log, add, or track
 Keep responses under 200 words unless explaining a detailed topic.`;
 
 const chatWithAI = async (userMessage, history, userContext) => {
+  // 1. Try dedicated Python service (which uses inline local scripts first for 0-cost & instant replies)
+  if (python.isConfigured()) {
+    try {
+      const pyRes = await python.postJson('/assistant/chat', {
+        message: userMessage,
+        history,
+        userContext,
+      });
+      if (pyRes && pyRes.text) {
+        return {
+          text: pyRes.text,
+          action: pyRes.action || null,
+          source: pyRes.source || 'python-inline',
+        };
+      }
+    } catch {
+      // Fall through to Node-side OpenAI fallback
+    }
+  }
+
   const messages = [
     {
       role: 'system',
@@ -33,14 +71,31 @@ const chatWithAI = async (userMessage, history, userContext) => {
     { role: 'user', content: userMessage },
   ];
 
-  const response = await groq.chat.completions.create({
-    model: 'openai/gpt-oss-120b',
-    messages,
-    temperature: 0.7,
-    max_tokens: 1024,
-  });
+  let fullText = '';
 
-  const fullText = response.choices[0]?.message?.content || '';
+  if (openai) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini',
+        messages,
+        temperature: 0.7,
+        max_tokens: 1024,
+      });
+      fullText = response.choices[0]?.message?.content || '';
+    } catch (err) {
+      console.warn('OpenAI chat failed, falling back to Groq:', err.message);
+    }
+  }
+
+  if (!fullText && groq) {
+    const response = await groq.chat.completions.create({
+      model: 'openai/gpt-oss-120b',
+      messages,
+      temperature: 0.7,
+      max_tokens: 1024,
+    });
+    fullText = response.choices[0]?.message?.content || '';
+  }
 
   // Parse action block if present
   const actionMatch = fullText.match(/ACTION:(\{.*\})/s);
@@ -89,23 +144,24 @@ const parseJson = (text) => {
 
 const analyzeFoodImage = async (imageBase64, mimeType = 'image/jpeg') => {
   const dataUri = `data:${mimeType};base64,${imageBase64}`;
-  let lastError = null;
+  const messages = [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: FOOD_IMAGE_PROMPT },
+        { type: 'image_url', image_url: { url: dataUri } },
+      ],
+    },
+  ];
 
-  for (const model of VISION_MODELS) {
+  if (openai) {
     try {
-      const response = await groq.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: FOOD_IMAGE_PROMPT },
-              { type: 'image_url', image_url: { url: dataUri } },
-            ],
-          },
-        ],
+      const response = await openai.chat.completions.create({
+        model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
+        messages,
         temperature: 0.2,
         max_tokens: 512,
+        response_format: { type: 'json_object' },
       });
 
       const content = response.choices[0]?.message?.content || '';
@@ -123,14 +179,43 @@ const analyzeFoodImage = async (imageBase64, mimeType = 'image/jpeg') => {
           note: parsed.note || null,
         };
       }
-      lastError = new Error('AI returned an unparseable nutrition response');
-    } catch (e) {
-      lastError = e;
+    } catch (err) {
+      console.warn('OpenAI food analysis failed, trying Groq:', err.message);
     }
   }
 
-  if (lastError) throw lastError;
-  throw new Error('No vision model available');
+  if (groq) {
+    for (const model of VISION_MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          messages,
+          temperature: 0.2,
+          max_tokens: 512,
+        });
+
+        const content = response.choices[0]?.message?.content || '';
+        const parsed = parseJson(content);
+        if (parsed?.foodName && parsed?.per100g) {
+          return {
+            foodName: parsed.foodName,
+            per100g: {
+              calories: Math.max(0, Math.round(Number(parsed.per100g.calories) || 0)),
+              proteinG: Math.max(0, Math.round((Number(parsed.per100g.proteinG) || 0) * 10) / 10),
+              carbsG: Math.max(0, Math.round((Number(parsed.per100g.carbsG) || 0) * 10) / 10),
+              fatG: Math.max(0, Math.round((Number(parsed.per100g.fatG) || 0) * 10) / 10),
+            },
+            serving: parsed.serving || null,
+            note: parsed.note || null,
+          };
+        }
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  throw new Error('No vision model available for food analysis');
 };
 
 // ── Handwriting recognition ────────────────────────────
@@ -153,21 +238,21 @@ const parseText = (text) => {
 
 const recognizeHandwriting = async (imageBase64, mimeType = 'image/png') => {
   const dataUri = `data:${mimeType};base64,${imageBase64}`;
-  let lastError = null;
+  const messages = [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: HANDWRITING_PROMPT },
+        { type: 'image_url', image_url: { url: dataUri } },
+      ],
+    },
+  ];
 
-  for (const model of VISION_MODELS) {
+  if (openai) {
     try {
-      const response = await groq.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: HANDWRITING_PROMPT },
-              { type: 'image_url', image_url: { url: dataUri } },
-            ],
-          },
-        ],
+      const response = await openai.chat.completions.create({
+        model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
+        messages,
         temperature: 0,
         max_tokens: 2048,
       });
@@ -175,14 +260,31 @@ const recognizeHandwriting = async (imageBase64, mimeType = 'image/png') => {
       const content = response.choices[0]?.message?.content || '';
       const text = parseText(content);
       if (text) return { text };
-      lastError = new Error('AI returned empty handwriting result');
-    } catch (e) {
-      lastError = e;
+    } catch (err) {
+      console.warn('OpenAI handwriting failed, trying Groq:', err.message);
     }
   }
 
-  if (lastError) throw lastError;
-  throw new Error('No vision model available');
+  if (groq) {
+    for (const model of VISION_MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          messages,
+          temperature: 0,
+          max_tokens: 2048,
+        });
+
+        const content = response.choices[0]?.message?.content || '';
+        const text = parseText(content);
+        if (text) return { text };
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  throw new Error('No vision model available for handwriting transcription');
 };
 
 module.exports = { chatWithAI, analyzeFoodImage, recognizeHandwriting };

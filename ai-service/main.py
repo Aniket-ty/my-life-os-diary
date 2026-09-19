@@ -9,9 +9,11 @@ load_dotenv()
 
 from schemas.commands import VoiceCommandRequest, VoiceCommandResponse, TranscribeResponse
 from schemas.receipt import ReceiptExtractionRequest, ReceiptExtractionResponse
+from schemas.assistant import AssistantChatRequest, AssistantChatResponse
 from ocr.receipt_parser import get_ocr_provider
 from voice.command_parser import parse_voice_command
 from voice.speech_to_text import transcribe_audio_bytes
+from assistant.assistant_engine import process_assistant_chat
 
 app = FastAPI(
     title="My Life OS - AI Assistant & OCR Service",
@@ -81,6 +83,17 @@ def parse_command_endpoint(
         return VoiceCommandResponse(**parsed)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Command parsing failed: {str(e)}")
+
+@app.post("/assistant/chat", response_model=AssistantChatResponse)
+async def assistant_chat_endpoint(
+    req: AssistantChatRequest,
+    auth: bool = Depends(verify_internal_key)
+):
+    try:
+        res = await process_assistant_chat(req.message, req.history, req.userContext)
+        return AssistantChatResponse(**res)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Assistant processing failed: {str(e)}")
 
 @app.post("/voice/transcribe", response_model=TranscribeResponse)
 async def transcribe_endpoint(
