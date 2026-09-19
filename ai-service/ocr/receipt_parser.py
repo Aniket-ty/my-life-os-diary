@@ -24,12 +24,14 @@ class LocalRegexOCRProvider(OCRProvider):
             from PIL import Image
             import io
             image = Image.open(io.BytesIO(image_bytes))
-            # If pytesseract is available
-            try:
-                import pytesseract
+            # Safely check for pytesseract dynamically without unresolved import warnings
+            import importlib
+            pytesseract_spec = importlib.util.find_spec("pytesseract")
+            if pytesseract_spec is not None:
+                pytesseract = importlib.import_module("pytesseract")
                 raw_text = pytesseract.image_to_string(image)
-            except Exception:
-                raw_text = "RECEIPT\nDominos Pizza\nDate: 2026-09-19\nPizza: 600.00\nGarlic Bread: 200.00\nSubtotal: 800.00\nTax: 144.00\nTotal: 944.00"
+            else:
+                raw_text = "RECEIPT\nStore Purchase\nDate: 2026-09-19\nItem 1: 500.00\nTotal: 500.00"
         except Exception:
             raw_text = "RECEIPT\nStore Purchase\nDate: 2026-09-19\nItem 1: 500.00\nTotal: 500.00"
 
@@ -111,11 +113,17 @@ class LocalRegexOCRProvider(OCRProvider):
 
 class VisionLLMOCRProvider(OCRProvider):
     """
-    Cloud Vision / LLM provider (Groq Llama 3.2 Vision, OpenAI GPT-4o-mini, or Gemini Vision).
+    Cloud Vision / LLM provider (OpenAI GPT-4o-mini, Groq Llama 3.2 Vision).
     """
-    def __init__(self, api_key: str, model: str = "llama-3.2-11b-vision-preview"):
+    def __init__(self, api_key: str, provider_type: str = "openai"):
         self.api_key = api_key
-        self.model = model
+        self.provider_type = provider_type
+        if provider_type == "openai":
+            self.endpoint = "https://api.openai.com/v1/chat/completions"
+            self.model = os.getenv("OPENAI_VISION_MODEL", "gpt-4o-mini")
+        else:
+            self.endpoint = "https://api.groq.com/openai/v1/chat/completions"
+            self.model = "llama-3.2-11b-vision-preview"
 
     async def extract_receipt(self, image_bytes: bytes, mime_type: str) -> Dict[str, Any]:
         b64 = base64.b64encode(image_bytes).decode("utf-8")
@@ -140,7 +148,7 @@ If a field is missing, estimate or set it sensibly. Ensure numbers are numeric f
 """
         async with httpx.AsyncClient(timeout=30.0) as client:
             res = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
+                self.endpoint,
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
@@ -164,13 +172,22 @@ If a field is missing, estimate or set it sensibly. Ensure numbers are numeric f
             data = res.json()
             content = data["choices"][0]["message"]["content"]
             parsed = json.loads(content)
-            parsed["provider"] = "groq-vision"
+            parsed["provider"] = f"{self.provider_type}-vision"
             parsed["confidence"] = 0.98
             return parsed
 
 def get_ocr_provider() -> OCRProvider:
-    provider_name = os.getenv("OCR_PROVIDER", "local").lower()
+    provider_name = os.getenv("OCR_PROVIDER", "auto").lower()
+    openai_key = os.getenv("OPENAI_API_KEY")
     groq_key = os.getenv("GROQ_API_KEY")
-    if provider_name in ["groq", "vision", "cloud"] and groq_key:
-        return VisionLLMOCRProvider(api_key=groq_key)
+
+    if provider_name == "local":
+        return LocalRegexOCRProvider()
+
+    if openai_key or provider_name in ["openai", "cloud", "vision"]:
+        if openai_key:
+            return VisionLLMOCRProvider(api_key=openai_key, provider_type="openai")
+    if groq_key or provider_name == "groq":
+        if groq_key:
+            return VisionLLMOCRProvider(api_key=groq_key, provider_type="groq")
     return LocalRegexOCRProvider()
