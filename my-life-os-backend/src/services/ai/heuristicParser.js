@@ -168,14 +168,22 @@ function parseCommandHeuristic(text, context = {}) {
   }
 
   // ---- Multi-Module Navigation ----
-  if (/(open|write|my|show)\s+(diary|journal)/.test(clean)) return { intent: 'OPEN_DIARY', confidence: 0.95, entities: {}, clarification: null };
-  if (/(open|show|my)\s+(fitness|workout|workouts|gym)/.test(clean)) return { intent: 'OPEN_FITNESS', confidence: 0.95, entities: {}, clarification: null };
-  if (/(open|show)\s+(workout\s+planner|planner|workout\s+plan)/.test(clean)) return { intent: 'OPEN_WORKOUT_PLANNER', confidence: 0.95, entities: {}, clarification: null };
-  if (/(open|show|my)\s+(todo|todos|tasks|task|to-do)/.test(clean)) return { intent: 'OPEN_TODOS', confidence: 0.95, entities: {}, clarification: null };
-  if (/(open|show)\s+(body\s+scan|scan\s+body|composition)/.test(clean)) return { intent: 'OPEN_BODY_SCAN', confidence: 0.95, entities: {}, clarification: null };
-  if (/(open|go\s+to)\s+(dashboard|home)/.test(clean)) return { intent: 'OPEN_DASHBOARD', confidence: 0.95, entities: {}, clarification: null };
-  if (/(open|chat\s+with|ask)\s+(ai|assistant|ai\s+chat)/.test(clean)) return { intent: 'OPEN_AI', confidence: 0.95, entities: {}, clarification: null };
-  if (/(scan\s+bill|scan\s+receipt)/.test(clean)) return { intent: 'SCAN_BILL', confidence: 0.95, entities: {}, clarification: null };
+  if (/^(?:open|show|my|read|go\s+to)?\s*(?:diary|journal)(?:\s+entry)?$/i.test(clean) || /(?:open|show|my|read)\s+(?:diary|journal)/i.test(clean)) {
+    return { intent: 'OPEN_DIARY', confidence: 0.95, entities: {}, clarification: null };
+  }
+  if (/^(?:open|show|my|view|go\s+to)?\s*(?:fitness|workout|workouts|gym)$/i.test(clean) || /(?:open|show|my)\s+(?:fitness|workout|workouts|gym)/i.test(clean)) {
+    return { intent: 'OPEN_FITNESS', confidence: 0.95, entities: {}, clarification: null };
+  }
+  if (/(?:open|show|my)\s+(?:workout\s+planner|planner|workout\s+plan)/i.test(clean)) {
+    return { intent: 'OPEN_WORKOUT_PLANNER', confidence: 0.95, entities: {}, clarification: null };
+  }
+  if (/^(?:open|show|my|view|go\s+to)?\s*(?:todo|todos|tasks|task|to-do|to\s+do)s?$/i.test(clean) || /(?:open|show|my|view)\s+(?:todo|todos|tasks|task|to-do|to\s+do)/i.test(clean)) {
+    return { intent: 'OPEN_TODOS', confidence: 0.95, entities: {}, clarification: null };
+  }
+  if (/(open|show)\s+(body\s+scan|scan\s+body|composition)/i.test(clean)) return { intent: 'OPEN_BODY_SCAN', confidence: 0.95, entities: {}, clarification: null };
+  if (/(open|go\s+to)\s+(dashboard|home)/i.test(clean)) return { intent: 'OPEN_DASHBOARD', confidence: 0.95, entities: {}, clarification: null };
+  if (/(open|chat\s+with|ask)\s+(ai|assistant|ai\s+chat)/i.test(clean)) return { intent: 'OPEN_AI', confidence: 0.95, entities: {}, clarification: null };
+  if (/(scan\s+bill|scan\s+receipt)/i.test(clean)) return { intent: 'SCAN_BILL', confidence: 0.95, entities: {}, clarification: null };
 
   // ── Gym Equipment & Exercise Voice Intents ──────────────────
   if (/(what\s+machine\s+is\s+this|what\s+is\s+this\s+machine|identify\s+(this\s+)?(machine|equipment)|scan\s+(gym\s+)?(machine|equipment))/i.test(clean)) {
@@ -186,6 +194,24 @@ function parseCommandHeuristic(text, context = {}) {
     const eqMatch = clean.match(/(?:use|adjust|on)\s+(?:the\s+|this\s+)?([a-z\s]+?)(?:\s+machine|\s+equipment|$)/i);
     const equipmentName = eqMatch && !['this', 'the', 'a', 'an', ''].includes(eqMatch[1].trim()) ? titleCase(eqMatch[1].trim()) : null;
     return { intent: 'GET_EQUIPMENT_GUIDE', confidence: 0.9, entities: { equipmentName }, clarification: null };
+  }
+
+  // Target Muscle & Workout Queries (e.g. "legs workout", "suggest a workout for legs", "chest exercises", "leg exercises")
+  const muscleWorkoutMatch = clean.match(/(?:(?:suggest|give|show|recommend|what should i do for)\s+(?:me\s+)?(?:a\s+)?)?([a-z]+)\s+(?:workouts?|exercises?|routine)|(?:workouts?|exercises?|routine)\s+(?:for|of)?\s*([a-z]+)/i);
+  if (muscleWorkoutMatch) {
+    const rawM = (muscleWorkoutMatch[1] || muscleWorkoutMatch[2] || '').toLowerCase();
+    const muscleMap = {
+      leg: 'Legs', legs: 'Legs', quad: 'Legs', quads: 'Legs', hamstring: 'Legs', hamstrings: 'Legs', calf: 'Legs', calves: 'Legs', thigh: 'Legs', thighs: 'Legs',
+      chest: 'Chest', chests: 'Chest', pec: 'Chest', pecs: 'Chest',
+      back: 'Back', backs: 'Back', lat: 'Back', lats: 'Back',
+      shoulder: 'Shoulders', shoulders: 'Shoulders', delt: 'Shoulders', delts: 'Shoulders',
+      arm: 'Arms', arms: 'Arms', bicep: 'Arms', biceps: 'Arms', tricep: 'Arms', triceps: 'Arms',
+      abs: 'Core', ab: 'Core', core: 'Core', abdominal: 'Core',
+      glute: 'Glutes', glutes: 'Glutes', butt: 'Glutes',
+    };
+    if (muscleMap[rawM]) {
+      return { intent: 'GET_MACHINE_EXERCISE', confidence: 0.95, entities: { muscle: muscleMap[rawM] }, clarification: null };
+    }
   }
 
   if (/(?:show\s+(?:me\s+)?(?:an\s+)?exercise\s+for|exercises?\s+for)\s+([a-z]+)/i.test(clean)) {
@@ -208,18 +234,20 @@ function parseCommandHeuristic(text, context = {}) {
   }
 
   // Multi-Module Task & Contact Actions
-  if (/^(add\s+(a\s+)?task|create\s+(a\s+)?todo|remind\s+me\s+to)\b/.test(clean)) {
-    const title = clean.replace(/^(add\s+(a\s+)?task|create\s+(a\s+)?todo|remind\s+me\s+to)\s+/i, '').trim();
-    return { intent: 'CREATE_TODO', confidence: 0.9, entities: { title: titleCase(title) }, clarification: null };
+  if (/^(?:add\s+(?:a\s+)?(?:task|todo|to-do|to\s+do)|create\s+(?:a\s+)?(?:todo|task|to-do|to\s+do)|remind\s+me\s+to|todo|to\s+do)\s+(.+)/i.test(clean)) {
+    const match = clean.match(/^(?:add\s+(?:a\s+)?(?:task|todo|to-do|to\s+do)|create\s+(?:a\s+)?(?:todo|task|to-do|to\s+do)|remind\s+me\s+to|todo|to\s+do)\s+(.+)/i);
+    const title = titleCase(match[1].trim());
+    return { intent: 'CREATE_TODO', confidence: 0.95, entities: { title }, clarification: null };
   }
-  if (/^(contact|invite|search\s+user|search\s+friend|find\s+friend)\b/.test(clean)) {
+  if (/^(contact|invite|search\s+user|search\s+friend|find\s+friend)\b/i.test(clean)) {
     const query = clean.replace(/^(contact|invite|search\s+user|search\s+friend|find\s+friend)\s+/i, '').trim();
     return { intent: 'CONTACT_USER', confidence: 0.85, entities: { query }, clarification: null };
   }
 
   // Multi-Module Diary Logging
-  if (/^(?:write\s+(?:a\s+)?diary|log\s+(?:a\s+)?diary|save\s+(?:a\s+)?diary|new\s+diary|diary)\b/i.test(clean) && !/^(?:open|show|go to)\b/i.test(clean)) {
-    const rawContent = clean.replace(/^(?:write\s+(?:a\s+)?diary(?:\s+entry)?|log\s+(?:a\s+)?diary(?:\s+entry)?|save\s+(?:a\s+)?diary(?:\s+(?:note|entry))?|new\s+diary(?:\s+entry)?|diary)\s*/i, '').trim();
+  if (/^(?:write\s+(?:in\s+)?(?:a\s+)?diary(?:\s+entry)?|log\s+(?:a\s+)?diary(?:\s+entry)?|save\s+(?:a\s+)?diary(?:\s+entry)?|new\s+diary(?:\s+entry)?|diary\s+entry|diary[:\s])\s*(.+)/i.test(clean)) {
+    const match = clean.match(/^(?:write\s+(?:in\s+)?(?:a\s+)?diary(?:\s+entry)?|log\s+(?:a\s+)?diary(?:\s+entry)?|save\s+(?:a\s+)?diary(?:\s+entry)?|new\s+diary(?:\s+entry)?|diary\s+entry|diary[:\s])\s*(.+)/i);
+    const rawContent = match[1].trim();
     let mood = 'productive';
     if (/\b(happy|great|awesome|joy|excited)\b/i.test(rawContent)) mood = 'happy';
     else if (/\b(tired|exhausted|sleepy)\b/i.test(rawContent)) mood = 'tired';
@@ -228,10 +256,10 @@ function parseCommandHeuristic(text, context = {}) {
 
     return {
       intent: 'LOG_DIARY',
-      confidence: 0.9,
+      confidence: 0.95,
       entities: {
-        content: rawContent || 'Reflected on today.',
-        title: titleCase(rawContent.slice(0, 30)) || 'Voice Reflection',
+        content: rawContent,
+        title: titleCase(rawContent.slice(0, 35)),
         mood,
       },
       clarification: null,

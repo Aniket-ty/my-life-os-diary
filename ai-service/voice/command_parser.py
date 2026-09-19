@@ -85,12 +85,78 @@ def parse_voice_command(text: str, context: Optional[Dict[str, Any]] = None) -> 
     groups = ctx.get("groups", [])
     members = ctx.get("members", [])
 
-    # 1. Navigation intents
+    # 1. Multi-Module Navigation intents
     if re.search(r"\b(?:open|show|go to)\s+(?:expenses?|spending)\b", lower):
         return {"intent": "OPEN_EXPENSES", "confidence": 0.98, "entities": {"route": "/expenses"}}
 
     if re.search(r"\b(?:open|show|go to)\s+(?:groups?|splitwise)\b", lower):
         return {"intent": "OPEN_GROUP", "confidence": 0.98, "entities": {"route": "/expenses?tab=groups"}}
+
+    # Diary Navigation & Entries
+    if re.search(r"^(?:open|show|my|read|go\s+to)?\s*(?:diary|journal)(?:\s+entry)?$", lower) or re.search(r"\b(?:open|show|my|read|go\s+to)\s+(?:diary|journal)\b", lower):
+        return {"intent": "OPEN_DIARY", "confidence": 0.96, "entities": {}}
+
+    m_diary = re.search(r"^(?:write\s+(?:in\s+)?(?:a\s+)?diary(?:\s+entry)?|log\s+(?:a\s+)?diary(?:\s+entry)?|save\s+(?:a\s+)?diary(?:\s+entry)?|new\s+diary(?:\s+entry)?|diary\s+entry)\s+(.+)$", lower)
+    if m_diary:
+        content = m_diary.group(1).strip()
+        mood = "productive"
+        if re.search(r"\b(happy|great|awesome|joy|excited)\b", content):
+            mood = "happy"
+        elif re.search(r"\b(tired|exhausted|sleepy)\b", content):
+            mood = "tired"
+        elif re.search(r"\b(calm|peaceful|relaxed)\b", content):
+            mood = "calm"
+        elif re.search(r"\b(motivated|inspired|focused)\b", content):
+            mood = "motivated"
+        return {
+            "intent": "LOG_DIARY",
+            "confidence": 0.96,
+            "entities": {
+                "content": content,
+                "title": content[:35].capitalize(),
+                "mood": mood
+            }
+        }
+
+    # Todo / Tasks Navigation & Creation
+    if re.search(r"^(?:open|show|my|view|go\s+to)?\s*(?:todos?|tasks?|to-dos?|to\s+dos?)$", lower) or re.search(r"\b(?:open|show|my|view|go\s+to)\s+(?:todos?|tasks?|to-dos?|to\s+dos?)\b", lower):
+        return {"intent": "OPEN_TODOS", "confidence": 0.96, "entities": {}}
+
+    m_todo = re.search(r"^(?:add\s+(?:a\s+)?(?:task|todo|to-do|to\s+do)|create\s+(?:a\s+)?(?:todo|task|to-do|to\s+do)|remind\s+me\s+to|todo|to\s+do)\s+(.+)$", lower)
+    if m_todo:
+        title = m_todo.group(1).strip().capitalize()
+        return {
+            "intent": "CREATE_TODO",
+            "confidence": 0.96,
+            "entities": {"title": title}
+        }
+
+    # Fitness Navigation, Machine Scan, & Muscle Workout Queries
+    if re.search(r"^(?:open|show|my|go\s+to)?\s*(?:fitness|workout|workouts|gym)$", lower) or re.search(r"\b(?:open|show|my|go\s+to)\s+(?:fitness|workout|workouts|gym)\b", lower):
+        return {"intent": "OPEN_FITNESS", "confidence": 0.96, "entities": {}}
+
+    if re.search(r"\b(?:scan|what\s+machine|identify)\s*(?:gym\s+)?(?:machine|equipment)?\b", lower):
+        return {"intent": "SCAN_GYM_EQUIPMENT", "confidence": 0.96, "entities": {}}
+
+    # Muscle Workout Query: e.g. "legs workout", "leg workout", "workout for legs", "exercises for chest", "leg exercises"
+    m_workout = re.search(r"(?:(?:suggest|give|show|recommend|what should i do for)\s+(?:me\s+)?(?:a\s+)?)?([a-z]+)\s+(?:workouts?|exercises?|routine)|(?:workouts?|exercises?|routine)\s+(?:for|of)?\s*([a-z]+)", lower)
+    if m_workout:
+        raw_m = (m_workout.group(1) or m_workout.group(2) or "").lower()
+        muscle_map = {
+            "leg": "Legs", "legs": "Legs", "quad": "Legs", "quads": "Legs", "hamstring": "Legs", "hamstrings": "Legs", "calf": "Legs", "calves": "Legs", "thigh": "Legs", "thighs": "Legs",
+            "chest": "Chest", "chests": "Chest", "pec": "Chest", "pecs": "Chest",
+            "back": "Back", "backs": "Back", "lat": "Back", "lats": "Back",
+            "shoulder": "Shoulders", "shoulders": "Shoulders", "delt": "Shoulders", "delts": "Shoulders",
+            "arm": "Arms", "arms": "Arms", "bicep": "Arms", "biceps": "Arms", "tricep": "Arms", "triceps": "Arms",
+            "abs": "Core", "ab": "Core", "core": "Core", "abdominal": "Core",
+            "glute": "Glutes", "glutes": "Glutes", "butt": "Glutes"
+        }
+        if raw_m in muscle_map:
+            return {
+                "intent": "GET_MACHINE_EXERCISE",
+                "confidence": 0.96,
+                "entities": {"muscle": muscle_map[raw_m]}
+            }
 
     m_group_nav = re.search(r"\b(?:open|show|view)\s+(?:my\s+)?([a-z0-9 ]+?)(?:\s+trip|\s+group)?$", lower)
     if m_group_nav and ("trip" in lower or "group" in lower or any(g.get("name", "").lower() in lower for g in groups)):

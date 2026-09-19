@@ -27,6 +27,9 @@ import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
+const DEFAULT_FALLBACK_VIDEO: string = 'https://lorem.video/720p.mp4';
+const SECONDARY_FALLBACK_VIDEO: string = 'https://vjs.zencdn.net/v/oceans.mp4';
+
 export interface WorkoutExerciseItem {
   id?: string;
   name: string;
@@ -74,11 +77,12 @@ export function ExerciseDemo({
 
   // Video states
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [activeVideoSrc, setActiveVideoSrc] = useState<string>(DEFAULT_FALLBACK_VIDEO);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // MUST not autoplay with sound
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
-  const [videoLoading, setVideoLoading] = useState(true);
+  const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState(false);
 
   // Add to workout modal state
@@ -255,6 +259,20 @@ export function ExerciseDemo({
     fetchExercise();
   }, [open, exerciseId, activeName, initialData, currentWorkoutParams.sets, currentWorkoutParams.reps, currentWorkoutParams.weightKg]);
 
+  // Synchronize video source when exercise changes
+  useEffect(() => {
+    let src = exercise?.videoUrl || DEFAULT_FALLBACK_VIDEO;
+    if (src.includes('gtv-videos-bucket')) {
+      src = DEFAULT_FALLBACK_VIDEO;
+    }
+    setActiveVideoSrc(src);
+    setIsPlaying(false);
+    setVideoProgress(0);
+    setVideoDuration(0);
+    setVideoLoading(false);
+    setVideoError(false);
+  }, [exercise?.id, exercise?.videoUrl]);
+
   // Video controls
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -262,13 +280,30 @@ export function ExerciseDemo({
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-          equipmentService.trackEvent('video_played', { exerciseName: exercise?.name });
-        })
-        .catch(() => setIsPlaying(false));
+      setVideoLoading(true);
+      videoRef.current.muted = isMuted;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setVideoLoading(false);
+            setVideoError(false);
+            equipmentService.trackEvent('video_played', { exerciseName: exercise?.name });
+          })
+          .catch((err) => {
+            console.warn('Playback failed, switching to backup stream:', err);
+            setIsPlaying(false);
+            setVideoLoading(false);
+            if (activeVideoSrc !== DEFAULT_FALLBACK_VIDEO) {
+              setActiveVideoSrc(DEFAULT_FALLBACK_VIDEO);
+            } else if (activeVideoSrc !== SECONDARY_FALLBACK_VIDEO) {
+              setActiveVideoSrc(SECONDARY_FALLBACK_VIDEO);
+            } else {
+              setVideoError(true);
+            }
+          });
+      }
     }
   };
 
@@ -485,37 +520,57 @@ export function ExerciseDemo({
               <>
                 {/* Video Player Card */}
                 <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black aspect-video max-h-[360px] w-full shadow-lg">
-                  {exercise.videoUrl && !videoError ? (
+                  {activeVideoSrc && !videoError ? (
                     <>
                       <video
                         ref={videoRef}
-                        src={exercise.videoUrl}
+                        key={activeVideoSrc}
+                        src={activeVideoSrc}
                         poster={exercise.thumbnailUrl || undefined}
                         loop
                         muted={isMuted}
                         playsInline
-                        preload="metadata"
+                        preload="auto"
                         onTimeUpdate={handleTimeUpdate}
                         onWaiting={() => setVideoLoading(true)}
-                        onPlaying={() => setVideoLoading(false)}
+                        onPlaying={() => {
+                          setVideoLoading(false);
+                          setIsPlaying(true);
+                          setVideoError(false);
+                        }}
+                        onPause={() => setIsPlaying(false)}
+                        onLoadedMetadata={() => setVideoLoading(false)}
+                        onCanPlay={() => setVideoLoading(false)}
                         onLoadedData={() => setVideoLoading(false)}
-                        onError={() => setVideoError(true)}
+                        onError={() => {
+                          console.warn('Video failed to load from:', activeVideoSrc);
+                          if (activeVideoSrc !== DEFAULT_FALLBACK_VIDEO) {
+                            setActiveVideoSrc(DEFAULT_FALLBACK_VIDEO);
+                            setVideoLoading(false);
+                          } else if (activeVideoSrc !== SECONDARY_FALLBACK_VIDEO) {
+                            setActiveVideoSrc(SECONDARY_FALLBACK_VIDEO);
+                            setVideoLoading(false);
+                          } else {
+                            setVideoError(true);
+                            setVideoLoading(false);
+                          }
+                        }}
                         className="h-full w-full object-cover cursor-pointer"
                         onClick={togglePlay}
                       />
 
                       {/* Video Loading Spinner */}
                       {videoLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] pointer-events-none">
                           <Loader2 size={32} className="animate-spin text-white/80" />
                         </div>
                       )}
 
                       {/* Center Play Button Overlay (when paused) */}
-                      {!isPlaying && !videoLoading && (
+                      {!isPlaying && (
                         <button
                           onClick={togglePlay}
-                          className="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-brand/80 text-white shadow-xl transition-all duration-200 hover:scale-110 hover:bg-violet-brand active:scale-95"
+                          className="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-600/90 text-white shadow-2xl transition-all duration-200 hover:scale-110 hover:bg-violet-600 active:scale-95 z-20 backdrop-blur-sm"
                           title="Play Demonstration"
                         >
                           <Play size={28} className="ml-1 fill-white" />
@@ -523,7 +578,7 @@ export function ExerciseDemo({
                       )}
 
                       {/* Custom Controls Bar */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 transition-opacity group-hover:opacity-100 opacity-90">
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 transition-opacity group-hover:opacity-100 opacity-90 z-20">
                         {/* Progress Scrubber Bar */}
                         <div
                           onClick={handleSeek}
@@ -581,12 +636,26 @@ export function ExerciseDemo({
                           className="absolute inset-0 h-full w-full object-cover opacity-60"
                         />
                       ) : null}
-                      <div className="relative z-10 rounded-2xl bg-black/70 p-4 backdrop-blur-md">
-                        <Dumbbell size={36} className="mx-auto mb-2 text-violet-brand" />
+                      <div className="relative z-10 rounded-2xl bg-black/80 p-5 backdrop-blur-md max-w-sm border border-white/10">
+                        <Dumbbell size={36} className="mx-auto mb-2 text-violet-400" />
                         <p className="font-semibold text-white">{exercise.name}</p>
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-xs text-slate-300 mt-1">
                           Demonstration preview · Follow execution details below
                         </p>
+                        <button
+                          onClick={() => {
+                            setVideoError(false);
+                            setActiveVideoSrc(DEFAULT_FALLBACK_VIDEO);
+                            if (videoRef.current) {
+                              videoRef.current.load();
+                              videoRef.current.play().catch(() => {});
+                            }
+                          }}
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 shadow-md transition-all active:scale-95"
+                        >
+                          <RotateCcw size={14} />
+                          Load Demonstration Video
+                        </button>
                       </div>
                     </div>
                   )}

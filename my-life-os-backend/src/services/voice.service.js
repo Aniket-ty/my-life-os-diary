@@ -195,6 +195,40 @@ async function sumExpenses(userId, { category, period, date }) {
   return { total: toNumber(total), count: rows.length, range: range.label, category };
 }
 
+function getMuscleMatchTerms(muscle) {
+  const m = String(muscle || '').toLowerCase();
+  if (/leg|quad|hamstring|calf|calves|thigh|squat/.test(m)) {
+    return ['quadriceps', 'hamstring', 'calf', 'calves', 'glute', 'adductor', 'leg', 'thigh', 'squat'];
+  }
+  if (/chest|pec/.test(m)) {
+    return ['chest', 'pectoral', 'pec'];
+  }
+  if (/back|lat|row|pull/.test(m)) {
+    return ['lat', 'back', 'rhomboid', 'trapezius', 'trap'];
+  }
+  if (/shoulder|delt/.test(m)) {
+    return ['shoulder', 'deltoid', 'delt'];
+  }
+  if (/arm|bicep|tricep|curl|dip/.test(m)) {
+    return ['bicep', 'tricep', 'brachialis', 'forearm', 'arm'];
+  }
+  if (/core|ab|abdominal/.test(m)) {
+    return ['core', 'abs', 'abdominal'];
+  }
+  if (/glute|hip|butt/.test(m)) {
+    return ['glute', 'hip'];
+  }
+  return [m];
+}
+
+function matchesMuscleGroup(exercise, matchTerms) {
+  const pm = (exercise.primaryMuscle || '').toLowerCase();
+  const sm = Array.isArray(exercise.secondaryMuscles) ? exercise.secondaryMuscles.map((s) => String(s).toLowerCase()) : [];
+  const name = (exercise.name || '').toLowerCase();
+
+  return matchTerms.some((term) => pm.includes(term) || sm.some((s) => s.includes(term)) || name.includes(term));
+}
+
 // ── Action preparation ────────────────────────────────────────────────
 
 async function prepareAction(userId, transcript, parsed, { user, groups }) {
@@ -301,10 +335,87 @@ async function prepareAction(userId, transcript, parsed, { user, groups }) {
     case 'OPEN_REPORTS': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'reports', params: {}, resultText: 'Opening reports.' };
     case 'OPEN_SETTINGS': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'settings', params: {}, resultText: 'Opening settings.' };
     case 'SCAN_BILL': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'scan', params: {}, resultText: 'Opening the bill scanner.' };
-    case 'OPEN_DIARY': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'diary', params: {}, resultText: 'Opening your Diary.' };
+    case 'OPEN_DIARY': {
+      const totalEntries = await prisma.diaryEntry.count({ where: { userId } });
+      const latestEntry = await prisma.diaryEntry.findFirst({
+        where: { userId },
+        orderBy: { entryDate: 'desc' },
+      });
+
+      if (totalEntries === 0) {
+        const text = 'Opening your Diary. You have no saved reflections yet. Speak "diary entry" followed by your thoughts to log one!';
+        return {
+          intent,
+          confidence: parsed.confidence,
+          provider: parsed.provider,
+          kind: 'navigate',
+          route: 'diary',
+          params: {},
+          resultText: text,
+          speechText: 'Opening your Diary. You have no saved reflections yet. Ready to write your first reflection?',
+          data: { totalEntries: 0 },
+        };
+      }
+
+      const dateStr = latestEntry.entryDate ? new Date(latestEntry.entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'recently';
+      const previewTitle = latestEntry.title || latestEntry.content?.slice(0, 30) || 'Journal';
+      const resultText = `Opening your Diary. You have ${totalEntries} saved reflection${totalEntries > 1 ? 's' : ''}.\nLatest entry: "${previewTitle}" (${dateStr}).`;
+      const speechText = `Opening your Diary. You have ${totalEntries} saved reflection${totalEntries > 1 ? 's' : ''}, with your latest entry "${previewTitle}".`;
+      return {
+        intent,
+        confidence: parsed.confidence,
+        provider: parsed.provider,
+        kind: 'navigate',
+        route: 'diary',
+        params: {},
+        resultText,
+        speechText,
+        data: { totalEntries, latestEntry },
+      };
+    }
     case 'OPEN_FITNESS': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'fitness', params: {}, resultText: 'Opening Fitness Journal.' };
     case 'OPEN_WORKOUT_PLANNER': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'workout-planner', params: {}, resultText: 'Opening Workout Planner.' };
-    case 'OPEN_TODOS': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'todo', params: {}, resultText: 'Opening your To-Do list.' };
+    case 'OPEN_TODOS': {
+      const pendingTodos = await prisma.todo.findMany({
+        where: { userId, isCompleted: false },
+        orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+        take: 5,
+      });
+      const totalPending = await prisma.todo.count({
+        where: { userId, isCompleted: false },
+      });
+
+      if (totalPending === 0) {
+        const text = 'Opening your To-Do list. You have no pending tasks. Great job staying organized!';
+        return {
+          intent,
+          confidence: parsed.confidence,
+          provider: parsed.provider,
+          kind: 'navigate',
+          route: 'todo',
+          params: {},
+          resultText: text,
+          speechText: 'You have no pending tasks on your to-do list. Opening your to-do list.',
+          data: { totalPending: 0, todos: [] },
+        };
+      }
+
+      const listBullets = pendingTodos.map((t, idx) => `${idx + 1}. ${t.title}`).join('\n');
+      const spokenTitles = pendingTodos.slice(0, 3).map((t) => t.title).join(', ');
+      const moreText = totalPending > pendingTodos.length ? ` and ${totalPending - pendingTodos.length} more` : '';
+
+      return {
+        intent,
+        confidence: parsed.confidence,
+        provider: parsed.provider,
+        kind: 'navigate',
+        route: 'todo',
+        params: {},
+        resultText: `Opening your To-Do list. You have ${totalPending} pending task${totalPending > 1 ? 's' : ''}:\n${listBullets}`,
+        speechText: `You have ${totalPending} pending task${totalPending > 1 ? 's' : ''}: ${spokenTitles}${moreText}. Opening your to-do list.`,
+        data: { totalPending, todos: pendingTodos },
+      };
+    }
     case 'OPEN_BODY_SCAN': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'body-scan', params: {}, resultText: 'Opening Body Scan tracker.' };
     case 'OPEN_DASHBOARD': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'dashboard', params: {}, resultText: 'Opening Dashboard.' };
     case 'OPEN_AI': return { intent, confidence: parsed.confidence, provider: parsed.provider, kind: 'navigate', route: 'ai', params: {}, resultText: 'Opening AI Assistant.' };
@@ -365,51 +476,63 @@ async function prepareAction(userId, transcript, parsed, { user, groups }) {
         const match = await matchEquipmentInDb(e.equipmentName);
         eq = match?.equipment;
       }
-      if (!eq) {
-        const latestScan = await prisma.equipmentScanLog.findFirst({
-          where: { userId, status: 'success', equipmentId: { not: null } },
-          orderBy: { createdAt: 'desc' },
+
+      const targetMuscle = (e.muscle || (eq ? 'all' : 'Legs')).toLowerCase();
+      const matchTerms = getMuscleMatchTerms(targetMuscle);
+
+      // If user specified equipment by name, search exercises on that equipment first
+      if (eq) {
+        const exercises = await prisma.exercise.findMany({
+          where: { equipmentId: eq.id, isActive: true },
           include: { equipment: true },
         });
-        eq = latestScan?.equipment;
-      }
-      if (!eq) {
-        eq = await prisma.equipment.findFirst({ where: { isActive: true } });
+        const matched = exercises.find((ex) => matchesMuscleGroup(ex, matchTerms)) || exercises[0];
+        if (matched) {
+          const resultText = `For ${targetMuscle} on the ${eq.name}, try ${matched.name} (${matched.recommendedSets || 3} sets × ${matched.recommendedReps || '10-12'}). ${matched.shortDescription || ''}`.trim();
+          const speechText = `For ${targetMuscle} on the ${eq.name}, try ${matched.name} for ${matched.recommendedSets || 3} sets of ${matched.recommendedReps || '10 to 12'} reps.`;
+          return {
+            intent,
+            confidence: parsed.confidence,
+            provider: parsed.provider,
+            kind: 'result',
+            route: 'fitness',
+            resultText,
+            speechText,
+            data: { exercise: matched, equipmentName: eq.name },
+          };
+        }
       }
 
-      const targetMuscle = (e.muscle || 'Chest').toLowerCase();
-      const exercises = await prisma.exercise.findMany({
-        where: {
-          equipmentId: eq?.id,
-          isActive: true,
-        },
+      // If no equipment specified or machine has no match: query across all exercises in DB!
+      const allExercises = await prisma.exercise.findMany({
+        where: { isActive: true },
+        include: { equipment: true },
+        orderBy: { name: 'asc' },
       });
 
-      const matchedEx = exercises.find((ex) =>
-        ex.primaryMuscle.toLowerCase().includes(targetMuscle) ||
-        (Array.isArray(ex.secondaryMuscles) && ex.secondaryMuscles.some((m) => m.toLowerCase().includes(targetMuscle)))
-      ) || exercises[0];
+      const matchedList = allExercises.filter((ex) => matchesMuscleGroup(ex, matchTerms));
+      const workoutPlan = matchedList.length > 0 ? matchedList.slice(0, 4) : allExercises.slice(0, 4);
 
-      if (!matchedEx) {
-        return {
-          intent,
-          confidence: parsed.confidence,
-          provider: parsed.provider,
-          kind: 'result',
-          resultText: `I didn't find a specific ${targetMuscle} exercise for the ${eq?.name || 'machine'}, but you can view all supported exercises in the library.`,
-          data: { equipment: eq },
-        };
-      }
+      const muscleLabel = targetMuscle.charAt(0).toUpperCase() + targetMuscle.slice(1);
+      const exerciseBullets = workoutPlan
+        .map((ex, i) => `${i + 1}. ${ex.name} (${ex.recommendedSets || 3} sets × ${ex.recommendedReps || '10-12'}${ex.equipment ? ` • ${ex.equipment.name}` : ''})`)
+        .join('\n');
+
+      const spokenExercises = workoutPlan.map((ex) => ex.name).join(', ');
+      const resultText = `Recommended ${muscleLabel} Workout Routine:\n${exerciseBullets}\n\nLet's crush this workout!`;
+      const speechText = `Here is a great ${muscleLabel} workout routine: ${spokenExercises}. Start with ${workoutPlan[0]?.name || 'the first exercise'}.`;
 
       return {
         intent,
         confidence: parsed.confidence,
         provider: parsed.provider,
         kind: 'result',
-        resultText: `For ${targetMuscle} on the ${eq?.name || 'machine'}, try ${matchedEx.name} (${matchedEx.recommendedSets} sets × ${matchedEx.recommendedReps}). ${matchedEx.shortDescription || ''}`,
+        route: 'workout-planner',
+        resultText,
+        speechText,
         data: {
-          exercise: matchedEx,
-          equipmentName: eq?.name,
+          muscle: muscleLabel,
+          exercises: workoutPlan,
         },
       };
     }
@@ -537,20 +660,23 @@ async function prepareAction(userId, transcript, parsed, { user, groups }) {
 
   // ── Multi-Module Write / Contact intents ──
   if (intent === 'CREATE_TODO') {
-    const title = e.title || transcript.replace(/^(add\s+(a\s+)?task|create\s+(a\s+)?todo|remind\s+me\s+to)\s+/i, '').trim() || 'New Task';
+    const rawTitle = e.title || transcript.replace(/^(?:add\s+(?:a\s+)?(?:task|todo|to-do|to\s+do)|create\s+(?:a\s+)?(?:todo|task|to-do|to\s+do)|remind\s+me\s+to|todo:?|to\s+do:?)\s+/i, '').trim() || 'New Task';
+    const cleanTitle = rawTitle.replace(/^["']|["']$/g, '').trim();
+    const formattedTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
     const todo = await prisma.todo.create({
       data: {
         userId,
-        title,
+        title: formattedTitle,
         priority: 'medium',
       },
     });
-    const msg = `Added new task to your To-Do list: "${todo.title}".`;
+    const msg = `Added "${todo.title}" to your To-Do list.`;
     return {
       intent,
       confidence: 0.95,
       provider: parsed.provider,
       kind: 'result',
+      route: 'todo',
       executionMessage: msg,
       resultText: msg,
       speechText: `Added ${todo.title} to your to-do list.`,
@@ -690,27 +816,29 @@ async function prepareAction(userId, transcript, parsed, { user, groups }) {
   }
 
   if (intent === 'LOG_DIARY') {
-    const content = e.content || transcript;
-    const title = e.title || 'Voice Reflection';
+    const rawContent = (e.content || transcript.replace(/^(?:diary\s+entry:?|diary:?|write\s+(?:in\s+)?diary:?|log\s+diary:?)\s*/i, '') || transcript).trim();
+    const title = e.title || (rawContent.length > 35 ? rawContent.slice(0, 32) + '...' : rawContent) || 'Voice Reflection';
+    const formattedTitle = title.charAt(0).toUpperCase() + title.slice(1);
     const mood = e.mood || 'productive';
 
     const entry = await prisma.diaryEntry.create({
       data: {
         userId,
-        title,
-        content,
+        title: formattedTitle,
+        content: rawContent,
         mood,
         entryDate: new Date(),
       },
     });
 
     const msg = `Saved diary reflection "${entry.title}".`;
-    const speech = `Your diary reflection for today has been saved.`;
+    const speech = `Your diary reflection "${entry.title}" has been saved.`;
     return {
       intent,
       confidence: 0.95,
       provider: parsed.provider,
       kind: 'result',
+      route: 'diary',
       executionMessage: msg,
       resultText: msg,
       speechText: speech,

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Loader2, Sparkles, CheckCircle2, AlertCircle, X, Volume2, VolumeX, Send } from 'lucide-react'
+import { Mic, MicOff, Loader2, Sparkles, CheckCircle2, AlertCircle, X, Volume2, VolumeX, Send, ArrowRight } from 'lucide-react'
 import { voiceService, type VoiceCommandResponse } from '../../services/voice'
 import { offlineSync } from '../../services/offlineSync'
 import { useToast } from '../ui/Toast'
@@ -301,9 +301,37 @@ export function VoiceCommandBar({ onActionCompleted, triggerListening, onResetTr
                   )}
 
                   {/* Query results */}
-                  {response.kind === 'result' && (
-                    <div className="rounded-xl bg-white/5 p-3 text-sm text-slate-200">
-                      {response.resultText}
+                  {response.kind === 'result' && response.resultText && (
+                    <div className="rounded-xl bg-white/5 p-3.5 text-sm text-slate-200 whitespace-pre-line leading-relaxed space-y-3">
+                      <div>{response.resultText}</div>
+                      {response.route && (
+                        <div className="pt-2 border-t border-white/10 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const routeMap: Record<string, string> = {
+                                diary: '/diary',
+                                fitness: '/fitness',
+                                'workout-planner': '/fitness/planner',
+                                todo: '/todo',
+                                'body-scan': '/body-scan',
+                                dashboard: '/',
+                                ai: '/ai',
+                                expenses: '/expenses',
+                                settings: '/settings',
+                                reports: '/expenses',
+                              }
+                              const path = routeMap[response.route || ''] || '/expenses'
+                              navigate(path)
+                              closeOverlay()
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-xs font-semibold text-white transition shadow-sm"
+                          >
+                            <span>Open {response.route === 'workout-planner' ? 'Workout Planner' : response.route === 'todo' ? 'To-Do' : response.route === 'diary' ? 'Diary' : response.route === 'fitness' ? 'Fitness' : 'Details'}</span>
+                            <ArrowRight size={14} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 

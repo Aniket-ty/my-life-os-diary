@@ -55,7 +55,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '10-12',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
         tags: ['back', 'pull', 'lats', 'wings', 'upper body'],
         alternatives: ['Close-Grip Pulldown', 'Assisted Pull-Up', 'Dumbbell Row']
@@ -81,7 +81,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '10-12',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&auto=format&fit=crop&q=80',
         tags: ['back', 'lats', 'v-bar', 'close-grip'],
         alternatives: ['Wide-Grip Lat Pulldown', 'Seated Cable Row']
@@ -139,7 +139,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '12-15',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
         tags: ['chest', 'cable', 'fly', 'pecs'],
         alternatives: ['Pec Deck Fly', 'Dumbbell Fly']
@@ -165,7 +165,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '12-15',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&auto=format&fit=crop&q=80',
         tags: ['triceps', 'arms', 'pushdown', 'rope'],
         alternatives: ['Dips', 'Skull Crushers', 'Close-Grip Bench Press']
@@ -222,7 +222,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '10-12',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&auto=format&fit=crop&q=80',
         tags: ['back', 'row', 'cable', 'thickness'],
         alternatives: ['Barbell Row', 'Dumbbell Row', 'Chest-Supported T-Bar Row']
@@ -279,7 +279,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '8-12',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
         tags: ['chest', 'push', 'press', 'pecs'],
         alternatives: ['Barbell Bench Press', 'Dumbbell Bench Press', 'Push-Ups']
@@ -336,7 +336,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '12-15',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
         tags: ['chest', 'isolation', 'pecs', 'fly'],
         alternatives: ['Cable Crossover', 'Dumbbell Fly']
@@ -362,7 +362,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '15-20',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&auto=format&fit=crop&q=80',
         tags: ['shoulders', 'rear delts', 'posture', 'back'],
         alternatives: ['Face Pull', 'Dumbbell Reverse Fly']
@@ -416,7 +416,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '8-10',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&auto=format&fit=crop&q=80',
         tags: ['shoulders', 'press', 'delts', 'upper body'],
         alternatives: ['Dumbbell Shoulder Press', 'Barbell Military Press']
@@ -475,7 +475,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '10-12',
         recommendedRestSec: 120,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
         tags: ['legs', 'quads', 'press', 'glutes'],
         alternatives: ['Barbell Squat', 'Hack Squat', 'Goblet Squat']
@@ -528,7 +528,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '12-15',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&auto=format&fit=crop&q=80',
         tags: ['legs', 'quads', 'isolation', 'extension'],
         alternatives: ['Sissy Squat', 'Goblet Squat', 'Walking Lunges']
@@ -581,7 +581,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '10-12',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
         tags: ['legs', 'hamstrings', 'curls', 'posterior chain'],
         alternatives: ['Romanian Deadlift', 'Swiss Ball Leg Curl', 'Nordic Curl']
@@ -634,7 +634,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '8-10',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&auto=format&fit=crop&q=80',
         tags: ['legs', 'smith machine', 'squat', 'quads'],
         alternatives: ['Barbell Squat', 'Leg Press', 'Hack Squat']
@@ -688,7 +688,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '6-8',
         recommendedRestSec: 120,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
         tags: ['legs', 'squat', 'barbell', 'strength', 'quads'],
         alternatives: ['Front Squat', 'Leg Press', 'Hack Squat']
@@ -740,7 +740,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '5',
         recommendedRestSec: 150,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
         tags: ['back', 'deadlift', 'posterior chain', 'strength', 'legs'],
         alternatives: ['Trap Bar Deadlift', 'Romanian Deadlift', 'Rack Pull']
@@ -792,7 +792,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '12-15',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&auto=format&fit=crop&q=80',
         tags: ['shoulders', 'lateral delts', 'isolation', 'dumbbells'],
         alternatives: ['Cable Lateral Raise', 'Machine Lateral Raise']
@@ -844,7 +844,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '8-12',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
         tags: ['chest', 'upper chest', 'incline', 'press'],
         alternatives: ['Incline Barbell Bench Press', 'Incline Hammer Strength Press']
@@ -897,7 +897,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '10-12',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&auto=format&fit=crop&q=80',
         tags: ['arms', 'biceps', 'curls', 'guns'],
         alternatives: ['Incline Dumbbell Curl', 'Barbell Bicep Curl', 'Hammer Curl']
@@ -950,7 +950,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '8-10',
         recommendedRestSec: 90,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
         tags: ['back', 'pullup', 'assisted', 'lats'],
         alternatives: ['Lat Pulldown Machine', 'Bodyweight Pull-Up']
@@ -1003,7 +1003,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '15-20',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&auto=format&fit=crop&q=80',
         tags: ['glutes', 'hips', 'abduction', 'legs'],
         alternatives: ['Cable Hip Abduction', 'Banded Lateral Walks']
@@ -1056,7 +1056,7 @@ const equipmentData = [
         recommendedSets: 3,
         recommendedReps: '12-15',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&auto=format&fit=crop&q=80',
         tags: ['inner thigh', 'adductors', 'legs', 'groin'],
         alternatives: ['Copenhagen Plank', 'Sumo Squat']
@@ -1110,7 +1110,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '12-15',
         recommendedRestSec: 60,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop&q=80',
         tags: ['calves', 'legs', 'calfraises', 'standing'],
         alternatives: ['Seated Calf Raise', 'Leg Press Calf Raise', 'Single-Leg Dumbbell Calf Raise']
@@ -1165,7 +1165,7 @@ const equipmentData = [
         recommendedSets: 4,
         recommendedReps: '8-12',
         recommendedRestSec: 120,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+        videoUrl: 'https://lorem.video/720p.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&auto=format&fit=crop&q=80',
         tags: ['legs', 'quads', 'hacksquat', 'strength'],
         alternatives: ['Leg Press', 'Front Squat', 'Goblet Squat']
