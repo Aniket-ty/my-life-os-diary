@@ -102,7 +102,7 @@ export default function ExpenseScreen({ navigation }) {
       }
 
       if (groups.length > 0) {
-        text += `👥 SPLITWISE GROUP BALANCES:\n`;
+        text += `👥 GROUP BALANCES:\n`;
         groups.forEach((g) => {
           const net = g.userNetBalance || 0;
           const status =
@@ -117,7 +117,7 @@ export default function ExpenseScreen({ navigation }) {
       }
 
       text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      text += `Generated via Life OS Personal & Splitwise Finance`;
+      text += `Generated via Life OS Expense Tracker`;
 
       await Share.share({
         title: `Expense Statement - ${monthYear}`,
@@ -158,7 +158,7 @@ export default function ExpenseScreen({ navigation }) {
         >
           <Ionicons name="chevron-back" size={22} color={colors.textSoft} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Expense OS</Text>
+        <Text style={styles.headerTitle}>Expenses</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity
             onPress={handleShareStatement}
@@ -249,7 +249,7 @@ export default function ExpenseScreen({ navigation }) {
             activeOpacity={0.8}
           >
             <Ionicons name="mic" size={20} color={colors.emerald} />
-            <Text style={[styles.actionBtnText, { color: colors.emerald }]}>Voice AI</Text>
+            <Text style={[styles.actionBtnText, { color: colors.emerald }]}>Voice</Text>
           </TouchableOpacity>
         </View>
 
@@ -269,7 +269,7 @@ export default function ExpenseScreen({ navigation }) {
             onPress={() => setActiveTab('groups')}
           >
             <Text style={[styles.tabText, activeTab === 'groups' && styles.tabTextActive]}>
-              Splitwise ({groups.length})
+              Group Splits ({groups.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -332,7 +332,7 @@ export default function ExpenseScreen({ navigation }) {
           </View>
         )}
 
-        {/* TAB 2: Splitwise Groups */}
+        {/* TAB 2: Groups */}
         {activeTab === 'groups' && (
           <View style={styles.listContainer}>
             {groups.length === 0 ? (

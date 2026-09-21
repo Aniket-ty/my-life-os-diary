@@ -230,7 +230,7 @@ export default function OnboardingScreen({ navigation }) {
                 <Text style={styles.skipCardTitle}>You skipped the body scan</Text>
                 <Text style={styles.skipCardText}>
                   Open Body Scan anytime to enter your starting measurements — that unlocks your
-                  calorie targets, macros and AI workout plans.
+                  calorie targets, macros and workout plans.
                 </Text>
               </View>
             </View>

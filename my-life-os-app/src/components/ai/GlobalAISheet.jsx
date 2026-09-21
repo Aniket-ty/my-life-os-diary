@@ -220,7 +220,7 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
             <View style={styles.statusDot} />
           </View>
           <View>
-            <Text style={styles.headerTitle}>AI Assistant</Text>
+            <Text style={styles.headerTitle}>Coach</Text>
             <Text style={styles.headerSub}>{CONTEXTS[activeContext].sub}</Text>
           </View>
         </View>

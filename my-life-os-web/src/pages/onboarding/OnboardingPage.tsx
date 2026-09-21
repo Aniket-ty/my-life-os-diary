@@ -119,10 +119,7 @@ export function OnboardingPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-void p-4">
-      <div className="bg-aurora" />
-      <div className="bg-stars" />
-      <div className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-violet-brand/20 blur-[120px]" />
-      <div className="pointer-events-none absolute -right-32 bottom-1/4 h-96 w-96 rounded-full bg-gold-500/10 blur-[120px]" />
+      <div aria-hidden className="bg-aurora" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -131,11 +128,11 @@ export function OnboardingPage() {
         className="w-full max-w-lg"
       >
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-brand to-indigo-500 shadow-xl shadow-violet-brand/40">
-            <Sparkles size={26} className="text-white" />
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-volt-500">
+            <Sparkles size={26} className="text-void" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-white glow-gold">
-            Let's set up your <span className="text-gold-300">Life OS</span>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-white">
+            Let's set up your <span className="text-volt-400">Life OS</span>
           </h1>
           <p className="mt-2 text-sm text-slate-400">
             Hi {user?.name?.split(' ')[0]} — a quick <span className="text-slate-200">body scan</span> unlocks your
@@ -150,15 +147,15 @@ export function OnboardingPage() {
               <div className={cn(
                 'flex h-8 items-center justify-center rounded-full px-3 text-xs font-semibold transition-all',
                 i <= step
-                  ? 'bg-gradient-to-r from-violet-brand to-indigo-500 text-white shadow-lg shadow-violet-brand/25'
-                  : 'bg-white/5 text-slate-500',
+                  ? 'bg-volt-500 text-void'
+                  : 'bg-surface text-slate-500 border border-edge',
               )}>
                 {i + 1}
               </div>
               <span className={cn('hidden text-[11px] font-medium md:block', i <= step ? 'text-slate-200' : 'text-slate-500')}>
                 {s}
               </span>
-              {i < STEPS.length - 1 && <div className={cn('h-px flex-1', i < step ? 'bg-violet-brand/60' : 'bg-white/10')} />}
+              {i < STEPS.length - 1 && <div className={cn('h-px flex-1', i < step ? 'bg-volt-400/50' : 'bg-white/10')} />}
             </div>
           ))}
         </div>
@@ -279,7 +276,7 @@ export function OnboardingPage() {
                   <p className="text-sm text-slate-300">You skipped the body scan.</p>
                   <p className="mt-1 text-xs leading-relaxed text-slate-500">
                     Head to the <span className="font-semibold text-slate-300">Body Scan</span> page anytime to enter your
-                    starting measurements — that unlocks your calorie targets, macros and AI workout plans.
+                    starting measurements — that unlocks your calorie targets, macros and workout plans.
                   </p>
                 </div>
               </div>

@@ -160,7 +160,7 @@ export function ExpenseForm({ initialGroupId, onSuccess, onCancel }: ExpenseForm
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-300">Group (Splitwise)</label>
+          <label className="mb-1.5 block text-xs font-medium text-slate-300">Group (Split)</label>
           <select
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}

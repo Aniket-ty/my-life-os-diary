@@ -1,5 +1,4 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
   BookHeart,
@@ -14,19 +13,53 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { initials } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { initials, cn } from '@/lib/utils'
 
 const items = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/diary', label: 'Diary', icon: BookHeart },
   { to: '/fitness', label: 'Fitness', icon: Dumbbell },
   { to: '/fitness/planner', label: 'Workout Plan', icon: CalendarRange },
-  { to: '/ai', label: 'AI Coach', icon: Sparkles },
+  { to: '/ai', label: 'Coach', icon: Sparkles },
   { to: '/todo', label: 'To-Do', icon: ListTodo },
   { to: '/expenses', label: 'Expenses', icon: Wallet },
   { to: '/body-scan', label: 'Body Scan', icon: ScanLine },
 ]
+
+function NavLinkInner({
+  to,
+  label,
+  icon: Icon,
+  exact,
+  onNavigate,
+}: {
+  to: string
+  label: string
+  icon: typeof LayoutDashboard
+  exact?: boolean
+  onNavigate?: () => void
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={!!exact}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors',
+          isActive ? 'bg-card text-volt-300' : 'text-slate-400 hover:bg-card-hover hover:text-slate-100',
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Icon size={19} className={cn(isActive ? 'text-volt-400' : 'text-slate-500')} />
+          <span>{label}</span>
+        </>
+      )}
+    </NavLink>
+  )
+}
 
 export function Sidebar() {
   const { user, logout } = useAuth()
@@ -40,82 +73,45 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="glass sticky top-0 z-40 hidden h-screen w-64 flex-col border-r border-white/5 bg-black/20 backdrop-blur-xl lg:flex">
-        <div className="flex items-center gap-3 px-6 py-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-brand to-indigo-500 shadow-lg shadow-violet-brand/30">
-            <Command size={20} className="text-white" />
+      <aside className="sticky top-0 z-40 hidden h-screen w-64 flex-col border-r border-edge bg-abyss lg:flex">
+        <div className="flex items-center gap-3 px-6 py-7">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-volt-500">
+            <Command size={20} className="text-void" />
           </div>
           <div>
-            <h1 className="font-display text-lg font-bold leading-tight text-white">
+            <h1 className="font-display text-lg font-bold leading-tight tracking-tight text-white">
               Life OS
             </h1>
-            <p className="text-[11px] font-medium text-slate-400">Personal operating system</p>
+            <p className="text-[11px] font-medium text-slate-500">Your daily system</p>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-2">
-          {items.map(({ to, label, icon: Icon, exact }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={exact}
-              className={({ isActive }) =>
-                cn(
-                  'group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200',
-                  isActive
-                    ? 'text-white'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-100',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-active"
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-brand/25 to-indigo-500/20"
-                      transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-                    />
-                  )}
-                  <Icon
-                    size={19}
-                    className={cn(
-                      'relative z-10 transition-colors',
-                      isActive
-                        ? 'text-violet-brand'
-                        : 'text-slate-500 group-hover:text-slate-300',
-                    )}
-                  />
-                  <span className="relative z-10">{label}</span>
-                  {isActive && (
-                    <span className="relative z-10 ml-auto h-1.5 w-1.5 rounded-full bg-violet-brand shadow-[0_0_12px_rgba(155,89,182,0.9)]" />
-                  )}
-                </>
-              )}
-            </NavLink>
+        <nav className="flex-1 space-y-0.5 px-3 py-2">
+          {items.map((item) => (
+            <NavLinkInner key={item.to} {...item} />
           ))}
         </nav>
 
-        <div className="border-t border-white/5 p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold-500 to-amber-600 text-xs font-bold text-black">
+        <div className="border-t border-edge p-3">
+          <NavLink
+            to="/settings"
+            className="mb-1 flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-card-hover hover:text-slate-100"
+          >
+            <Settings size={19} className="text-slate-500" />
+            Settings
+          </NavLink>
+          <div className="mt-2 flex items-center gap-3 rounded-xl bg-surface p-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-volt-500 text-xs font-bold text-void">
               {user?.name ? initials(user.name) : 'ME'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-white">{user?.name}</p>
-              <p className="truncate text-[11px] text-slate-400">{user?.email}</p>
+              <p className="truncate text-[11px] text-slate-500">{user?.email}</p>
             </div>
-            <NavLink
-              to="/settings"
-              title="Settings"
-              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <Settings size={17} />
-            </NavLink>
           </div>
           <button
             onClick={handleLogout}
-            className="mt-3 flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+            className="mt-2 flex w-full items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
           >
             <LogOut size={18} />
             Sign out
@@ -124,12 +120,12 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="glass-strong fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around border-t border-white/10 px-1 pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-stretch justify-around border-t border-edge bg-abyss/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         {[
           { to: '/', label: 'Home', icon: LayoutDashboard, exact: true },
           { to: '/diary', label: 'Diary', icon: BookHeart },
           { to: '/fitness', label: 'Fitness', icon: Dumbbell },
-          { to: '/ai', label: 'AI', icon: Sparkles },
+          { to: '/ai', label: 'Coach', icon: Sparkles },
           { to: '/todo', label: 'To-Do', icon: ListTodo },
           { to: '/expenses', label: 'Expenses', icon: Wallet },
           { to: '/body-scan', label: 'Scan', icon: ScanLine },
@@ -141,8 +137,8 @@ export function Sidebar() {
             end={!!exact}
             className={({ isActive }) =>
               cn(
-                'flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
-                isActive ? 'text-violet-brand' : 'text-slate-500',
+                'flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
+                isActive ? 'text-volt-400' : 'text-slate-500',
               )
             }
           >

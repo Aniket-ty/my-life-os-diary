@@ -244,7 +244,7 @@ export function VoiceCommandBar({ onActionCompleted, triggerListening, onResetTr
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2 text-violet-brand">
                 <Sparkles size={16} />
-                <span className="text-xs font-bold uppercase tracking-wider">Universal AI Voice Assistant</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Voice Assistant</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -282,7 +282,7 @@ export function VoiceCommandBar({ onActionCompleted, triggerListening, onResetTr
               {state === 'processing' && (
                 <div className="flex flex-col items-center justify-center py-2 space-y-2">
                   <Loader2 size={24} className="animate-spin text-violet-brand" />
-                  <p className="text-xs text-slate-400">Processing with Universal AI...</p>
+                  <p className="text-xs text-slate-400">Processing your request...</p>
                 </div>
               )}
 

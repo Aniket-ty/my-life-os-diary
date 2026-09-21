@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play,
   Pause,
-  RotateCcw,
   SkipForward,
   CheckCircle2,
   Volume2,
@@ -11,7 +10,6 @@ import {
   Trophy,
   Timer,
   Dumbbell,
-  Flame,
   X,
   Sparkles,
   Plus,
@@ -242,7 +240,7 @@ export function LiveWorkoutSession({
     setRestDurationTotal((prev) => Math.max(5, prev + delta))
   }
 
-  async function finishWorkout(finalSets = sets) {
+  async function finishWorkout(_finalSets = sets) {
     setPhase('completed')
     playChime(1318, 0.4, 'sine')
     announce('Workout crushed! Outstanding work!', soundEnabled)

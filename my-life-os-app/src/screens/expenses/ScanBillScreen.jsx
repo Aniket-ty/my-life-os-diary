@@ -229,7 +229,7 @@ export default function ScanBillScreen({ navigation }) {
               )}
             </GlassCard>
 
-            {/* Splitwise Group Option */}
+            {/* Group Option */}
             <GlassCard style={styles.groupChoiceCard}>
               <Text style={styles.label}>ASSIGN TO GROUP</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>

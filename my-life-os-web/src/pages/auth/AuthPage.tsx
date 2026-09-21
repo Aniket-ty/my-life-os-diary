@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Mail, Lock, User, ArrowRight, Command, Sparkles, Dumbbell, BookHeart } from 'lucide-react'
+import { Mail, Lock, User, ArrowRight, Command } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
@@ -9,13 +9,8 @@ import { Input } from '@/components/ui/Input'
 
 export function AuthPage() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-void p-4">
-      <div className="bg-aurora" />
-      <div className="bg-stars" />
-
-      {/* floating orbs */}
-      <div className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-violet-brand/20 blur-[120px]" />
-      <div className="pointer-events-none absolute -right-32 bottom-1/4 h-96 w-96 rounded-full bg-gold-500/10 blur-[120px]" />
+    <div className="relative flex min-h-screen items-center justify-center bg-void p-4">
+      <div aria-hidden className="bg-aurora" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -24,27 +19,19 @@ export function AuthPage() {
         className="w-full max-w-md"
       >
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-brand to-indigo-500 shadow-2xl shadow-violet-brand/40">
-            <Command size={30} className="text-white" />
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-volt-500">
+            <Command size={30} className="text-void" />
           </div>
-          <h1 className="font-display text-4xl font-bold text-white glow-gold">
-            My <span className="text-gold-300">Life</span> OS
+          <h1 className="font-display text-4xl font-bold tracking-tight text-white">
+            Life <span className="text-volt-400">OS</span>
           </h1>
           <p className="mt-2 max-w-xs text-sm text-slate-400">
-            Your personal operating system. Diary, fitness, AI — all in one beautiful place.
+            Diary, fitness, plans, money — organised in one clean space.
           </p>
         </div>
 
-        <div className="glass-strong rounded-3xl p-6 shadow-2xl sm:p-8">
+        <div className="glass-strong rounded-3xl p-6 sm:p-8">
           <AuthForm />
-        </div>
-
-        <div className="mt-8 flex items-center justify-center gap-3 text-[11px] font-medium text-slate-500">
-          <span className="flex items-center gap-1.5"><Sparkles size={13} className="text-violet-brand" /> AI Coach</span>
-          <span className="h-1 w-1 rounded-full bg-slate-600" />
-          <span className="flex items-center gap-1.5"><Dumbbell size={13} className="text-emerald-400" /> Fitness</span>
-          <span className="h-1 w-1 rounded-full bg-slate-600" />
-          <span className="flex items-center gap-1.5"><BookHeart size={13} className="text-gold-300" /> Diary</span>
         </div>
       </motion.div>
     </div>
@@ -82,13 +69,13 @@ function AuthForm() {
 
   return (
     <div>
-      <div className="mb-6 grid grid-cols-2 rounded-xl bg-white/5 p-1">
+      <div className="mb-6 grid grid-cols-2 rounded-xl bg-surface p-1">
         {(['login', 'register'] as const).map((m) => (
           <button
             key={m}
             onClick={() => setMode(m)}
             className={`rounded-lg py-2 text-sm font-semibold transition-all ${
-              mode === m ? 'bg-gradient-to-r from-violet-brand to-indigo-500 text-white shadow-lg shadow-violet-brand/25' : 'text-slate-400 hover:text-slate-200'
+              mode === m ? 'bg-volt-500 text-void' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             {m === 'login' ? 'Sign in' : 'Create account'}
@@ -139,7 +126,7 @@ function AuthForm() {
         {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
         <button
           onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-          className="font-semibold text-violet-brand hover:text-violet-brand/80"
+          className="font-semibold text-volt-400 hover:text-volt-300"
         >
           {mode === 'login' ? 'Sign up' : 'Sign in'}
         </button>

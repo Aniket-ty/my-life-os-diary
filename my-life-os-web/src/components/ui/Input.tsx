@@ -2,7 +2,7 @@ import type { InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'rea
 import { cn } from '@/lib/utils'
 
 const baseStyles =
-  'w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition-all duration-200 focus:border-violet-brand/60 focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-violet-brand/20'
+  'w-full rounded-xl border border-edge bg-surface px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition-all duration-200 focus:border-volt-500/60 focus:bg-card-hover focus:outline-none focus:ring-2 focus:ring-volt-500/15'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -14,7 +14,7 @@ export function Input({ label, icon, className, id, ...props }: InputProps) {
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-medium uppercase tracking-wider text-slate-400">
+        <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-widest text-slate-400">
           {label}
         </label>
       )}
@@ -39,7 +39,7 @@ export function TextArea({ label, className, id, ...props }: TextAreaProps) {
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-medium uppercase tracking-wider text-slate-400">
+        <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-widest text-slate-400">
           {label}
         </label>
       )}

@@ -151,7 +151,7 @@ export default function FitnessScreen({ navigation }) {
                   <View style={styles.emptyInner}>
                     <Ionicons name="barbell" size={34} color={tint(colors.emerald, 0.7)} />
                     <Text style={styles.emptyTitle}>No workouts today</Text>
-                    <Text style={styles.emptySubText}>Tap + or ask AI to plan your workout</Text>
+                    <Text style={styles.emptySubText}>Tap + to add an exercise</Text>
                     <Button
                       size="sm"
                       variant="secondary"
@@ -249,7 +249,7 @@ export default function FitnessScreen({ navigation }) {
                       <View style={styles.foodInfo}>
                         <View style={styles.foodNameRow}>
                           <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
-                          {item.aiSuggested && <Badge tone="violet" style={styles.aiBadge}>AI</Badge>}
+                          {item.aiSuggested && <Badge tone="violet" style={styles.aiBadge}>Suggested</Badge>}
                         </View>
                         <View style={styles.foodMacros}>
                           {item.quantity && <Text style={styles.foodQty} numberOfLines={1}>{item.quantity}</Text>}

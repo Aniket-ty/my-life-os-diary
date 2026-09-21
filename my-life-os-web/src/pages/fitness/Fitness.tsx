@@ -462,7 +462,7 @@ export function Fitness() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <p className="truncate font-medium text-slate-100">{item.foodName}</p>
-                              {item.aiSuggested && <Badge tone="violet" className="shrink-0 normal-case">AI</Badge>}
+                              {item.aiSuggested && <Badge tone="violet" className="shrink-0 normal-case">Suggested</Badge>}
                             </div>
                             <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-slate-500">
                               {item.quantity && <span className="truncate">{item.quantity}</span>}

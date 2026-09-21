@@ -54,7 +54,7 @@ export function BillScannerModal({ onSuccess, onCancel }: BillScannerModalProps)
   const [total, setTotal] = useState('')
   const [items, setItems] = useState<ReceiptLineItem[]>([])
 
-  // Splitwise assignment
+  // Group split assignment
   const [groups, setGroups] = useState<Group[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState('')
   const [groupDetail, setGroupDetail] = useState<GroupDetail | null>(null)
@@ -377,7 +377,7 @@ export function BillScannerModal({ onSuccess, onCancel }: BillScannerModalProps)
 
           <div className="flex justify-between items-center pt-2">
             <div className="text-[11px] text-slate-400">
-              AI automatically parses line items, totals, and sales tax.
+              This automatically parses line items, totals, and sales tax.
             </div>
 
             <div className="flex gap-3">
@@ -542,10 +542,10 @@ export function BillScannerModal({ onSuccess, onCancel }: BillScannerModalProps)
             </div>
           </div>
 
-          {/* Group Splitwise Destination */}
+          {/* Group Split Destination */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
             <label className="mb-1.5 block text-xs font-semibold text-white">
-              Add to Splitwise Group (Optional)
+              Add to Group Split (Optional)
             </label>
             <select
               value={selectedGroupId}

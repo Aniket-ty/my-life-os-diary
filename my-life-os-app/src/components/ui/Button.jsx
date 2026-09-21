@@ -26,10 +26,10 @@ export default function Button({
   const isDisabled = disabled || loading;
 
   const base = {
-    primary: { bg: colors.violet, border: colors.violet, text: colors.white, glow: colors.violet },
+    primary: { bg: colors.volt500, border: colors.volt500, text: colors.void, glow: colors.volt500 },
     danger: { bg: colors.rose, border: colors.rose, text: colors.white, glow: colors.rose },
-    secondary: { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.10)', text: colors.text },
-    outline: { bg: 'transparent', border: 'rgba(255,255,255,0.18)', text: colors.text },
+    secondary: { bg: colors.surface, border: colors.edge, text: colors.text },
+    outline: { bg: 'transparent', border: colors.edgeStrong, text: colors.text },
     ghost: { bg: 'transparent', border: 'transparent', text: colors.textMuted },
   }[variant] || {};
 

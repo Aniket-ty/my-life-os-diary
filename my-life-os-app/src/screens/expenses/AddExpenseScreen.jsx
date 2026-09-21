@@ -205,9 +205,9 @@ export default function AddExpenseScreen({ navigation, route }) {
           </View>
         </GlassCard>
 
-        {/* Group (Splitwise) Option */}
+        {/* Group Option */}
         <GlassCard style={styles.card}>
-          <Text style={styles.label}>SPLITWISE GROUP (OPTIONAL)</Text>
+          <Text style={styles.label}>GROUP SPLIT (OPTIONAL)</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
             <TouchableOpacity
               onPress={() => setGroupId('')}

@@ -5,21 +5,62 @@
   --font-display: "Space Grotesk", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --color-void: #07070d;
-  --color-abyss: #0b0b14;
-  --color-surface: #111122;
-  --color-card: #151529;
-  --color-card-hover: #1a1a33;
-  --color-edge: #26264a;
+  /* Minimal neutral surfaces */
+  --color-void: #090b0d;
+  --color-abyss: #0d1013;
+  --color-surface: #12161a;
+  --color-card: #171c21;
+  --color-card-hover: #1d242c;
+  --color-edge: #232b33;
+  --color-edge-strong: #2e3842;
 
-  --color-gold-500: #f5a623;
-  --color-gold-400: #f7b14b;
-  --color-gold-300: #f9c477;
+  /* Volt accent — single energetic green used across the OS */
+  --color-volt-300: #e9ffab;
+  --color-volt-400: #d6f977;
+  --color-volt-500: #c1eb5c;
 
-  --color-mint-400: #7ee8c3;
-  --color-mint-300: #9fe1cb;
+  /* Legacy accent aliases (kept so pages stay functional) */
+  --color-gold-500: #c1eb5c;
+  --color-gold-400: #d6f977;
+  --color-gold-300: #e9ffab;
+  --color-mint-400: #8fdfc0;
+  --color-mint-300: #bff1d8;
+  --color-violet-brand: #cdf654;
 
-  --color-violet-brand: #9b59b6;
+  /* Muted, cohesive status palette */
+  --color-emerald-300: #7dd3b4;
+  --color-emerald-400: #4db18b;
+  --color-emerald-500: #35936f;
+  --color-teal-300: #6fd6c6;
+  --color-teal-400: #31bfae;
+  --color-teal-500: #17a294;
+  --color-sky-300: #7cc4f0;
+  --color-sky-400: #4da7e8;
+  --color-sky-500: #2f8bd8;
+  --color-blue-300: #8bb1f2;
+  --color-blue-400: #5b8fe8;
+  --color-blue-500: #3d74d6;
+  --color-indigo-300: #98a4f0;
+  --color-indigo-400: #7180e6;
+  --color-indigo-500: #5766d8;
+  --color-violet-300: #a59ae6;
+  --color-violet-400: #8a7bd8;
+  --color-violet-500: #735fc9;
+  --color-purple-300: #c49ef0;
+  --color-purple-400: #ab7fe6;
+  --color-purple-500: #9166d6;
+  --color-amber-300: #f2d08b;
+  --color-amber-400: #e8b45b;
+  --color-amber-500: #d99a34;
+  --color-orange-300: #f2b284;
+  --color-orange-400: #e89358;
+  --color-orange-500: #dd7a3a;
+  --color-rose-300: #f2a0ad;
+  --color-rose-400: #ea7d8e;
+  --color-rose-500: #dc5f73;
+  --color-red-300: #ef9099;
+  --color-red-400: #e06870;
+  --color-red-500: #cf4d56;
 }
 
 :root {
@@ -34,91 +75,74 @@ body,
 
 body {
   margin: 0;
-  background: #07070d;
-  color: #e8e8f0;
+  background: #090b0d;
+  color: #e7eaf0;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
 
-/* Ambient background glows */
+/* Quiet page atmosphere — one soft neutral wash, no noise */
 .bg-aurora {
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(60% 50% at 15% 0%, rgba(245, 166, 35, 0.07) 0%, transparent 60%),
-    radial-gradient(50% 40% at 85% 10%, rgba(46, 204, 113, 0.06) 0%, transparent 60%),
-    radial-gradient(70% 60% at 75% 100%, rgba(155, 89, 182, 0.07) 0%, transparent 60%),
-    radial-gradient(60% 50% at 10% 90%, rgba(52, 152, 219, 0.05) 0%, transparent 60%);
+    radial-gradient(55% 45% at 20% 0%, rgba(193, 235, 92, 0.05) 0%, transparent 60%),
+    radial-gradient(50% 40% at 85% 90%, rgba(141, 223, 192, 0.04) 0%, transparent 60%);
 }
 
-/* Fine dotted starfield */
-.bg-stars {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(60% 50% at 50% 30%, #000 0%, transparent 100%);
-}
-
-.bg-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 42px 42px;
-}
-
-/* Glassmorphism */
+/* Neutral surface primitives — clean hairline look */
 .glass {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--color-card);
+  border: 1px solid var(--color-edge);
 }
 
 .glass-strong {
-  background: linear-gradient(160deg, rgba(21, 21, 41, 0.85), rgba(11, 11, 20, 0.9));
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(180deg, var(--color-surface), var(--color-abyss));
+  border: 1px solid var(--color-edge);
 }
 
-/* Text glow helpers */
+/* Layered subtle elevation for floating elements */
+.glass-raised {
+  background: var(--color-card);
+  border: 1px solid var(--color-edge-strong);
+  box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.8);
+}
+
+/* Whisper-soft glows */
 .glow-gold {
-  text-shadow: 0 0 24px rgba(245, 166, 35, 0.5);
+  text-shadow: 0 0 26px rgba(193, 235, 92, 0.35);
 }
 .glow-mint {
-  text-shadow: 0 0 24px rgba(126, 232, 195, 0.4);
+  text-shadow: 0 0 26px rgba(143, 223, 192, 0.3);
 }
 .glow-violet {
-  text-shadow: 0 0 24px rgba(155, 89, 182, 0.5);
+  text-shadow: 0 0 26px rgba(205, 246, 84, 0.35);
 }
 
 /* Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2a2a4a transparent;
+  scrollbar-color: #2e3842 transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #2a2a4a;
+  background: #2e3842;
   border-radius: 8px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Recharts overrides */
+/* Charts */
 .recharts-cartesian-axis-tick text {
-  fill: rgba(232, 232, 240, 0.45);
+  fill: rgba(231, 234, 240, 0.45);
   font-size: 11px;
   font-weight: 500;
 }
@@ -137,7 +161,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 ::selection {
-  background: rgba(155, 89, 182, 0.35);
+  background: rgba(205, 246, 84, 0.35);
   color: #fff;
 }
 
@@ -150,7 +174,7 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 .shimmer {
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 37%, rgba(255,255,255,0.03) 63%);
+  background: linear-gradient(90deg, var(--color-surface) 25%, var(--color-card-hover) 37%, var(--color-surface) 63%);
   background-size: 400px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }

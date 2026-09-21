@@ -87,7 +87,7 @@ export default function AIChatScreen({ navigation }) {
 
       <View style={styles.page}>
         <PageHeader
-          title="AI Assistant"
+          title="Coach"
           subtitle="Fitness & Nutrition Coach"
           icon={<Ionicons name="sparkles" size={22} color={colors.violet} />}
           accent={colors.violet}
@@ -113,7 +113,7 @@ export default function AIChatScreen({ navigation }) {
             <View style={styles.emptyAvatar}>
               <Ionicons name="sparkles" size={32} color={colors.white} />
             </View>
-            <Text style={styles.emptyTitle}>Your AI Fitness Coach</Text>
+            <Text style={styles.emptyTitle}>Your fitness coach</Text>
             <Text style={styles.emptySubText}>Ask me anything about food, exercises, or your health goals</Text>
             <View style={styles.suggestions}>
               {SUGGESTIONS.map((s) => (

@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from 'react'
-import { Camera, Sparkles, Upload, Search, Loader2, Scale, Hash } from 'lucide-react'
+import { useRef, useState, useEffect, useMemo } from 'react'
+import { Camera, Sparkles, Upload, Search, Loader2, Scale, Hash, Check } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { fitnessService } from '@/services/fitness'
 import { searchLocalFoods } from '@/services/foodDatabase'
@@ -25,8 +25,20 @@ interface QuickFood {
 
 const QUICK_FOODS: QuickFood[] = [
   {
+    name: '🥚 Whole Egg',
+    servingUnit: 'large egg (50g)',
+    servingWeightG: 50,
+    per100g: { calories: 143, proteinG: 12.6, carbsG: 0.7, fatG: 9.5 },
+  },
+  {
+    name: '🍳 Boiled Egg',
+    servingUnit: 'egg (50g)',
+    servingWeightG: 50,
+    per100g: { calories: 155, proteinG: 12.6, carbsG: 1.1, fatG: 10.6 },
+  },
+  {
     name: '🍌 Banana',
-    servingUnit: 'banana (118g)',
+    servingUnit: 'medium banana (118g)',
     servingWeightG: 118,
     per100g: { calories: 89, proteinG: 1.1, carbsG: 22.8, fatG: 0.3 },
   },
@@ -43,22 +55,10 @@ const QUICK_FOODS: QuickFood[] = [
     per100g: { calories: 130, proteinG: 2.7, carbsG: 28.2, fatG: 0.3 },
   },
   {
-    name: '🥚 Whole Egg',
-    servingUnit: 'large egg (50g)',
-    servingWeightG: 50,
-    per100g: { calories: 143, proteinG: 12.6, carbsG: 0.7, fatG: 9.5 },
-  },
-  {
-    name: '🥜 Almonds',
-    servingUnit: 'handful (30g)',
-    servingWeightG: 30,
-    per100g: { calories: 579, proteinG: 21.2, carbsG: 21.6, fatG: 49.9 },
-  },
-  {
-    name: '🥛 Protein Shake',
-    servingUnit: 'scoop (30g powder)',
-    servingWeightG: 30,
-    per100g: { calories: 400, proteinG: 80, carbsG: 10, fatG: 5 },
+    name: '🫓 Roti / Chapati',
+    servingUnit: 'medium roti (40g)',
+    servingWeightG: 40,
+    per100g: { calories: 297, proteinG: 9.3, carbsG: 55.8, fatG: 3.7 },
   },
   {
     name: '🍞 Whole Wheat Bread',
@@ -71,6 +71,18 @@ const QUICK_FOODS: QuickFood[] = [
     servingUnit: 'bowl (50g dry)',
     servingWeightG: 50,
     per100g: { calories: 389, proteinG: 16.9, carbsG: 66.3, fatG: 6.9 },
+  },
+  {
+    name: '🥛 Protein Shake',
+    servingUnit: 'scoop (30g powder)',
+    servingWeightG: 30,
+    per100g: { calories: 400, proteinG: 80, carbsG: 10, fatG: 5 },
+  },
+  {
+    name: '🥜 Almonds',
+    servingUnit: 'handful (30g)',
+    servingWeightG: 30,
+    per100g: { calories: 579, proteinG: 21.2, carbsG: 21.6, fatG: 49.9 },
   },
 ]
 
@@ -89,6 +101,59 @@ interface ApiFoodResult {
   isCurated?: boolean
 }
 
+/**
+ * Extracts a natural, human unit name (e.g. "eggs", "bananas", "slices", "rotis")
+ */
+function getUnitDisplay(servingUnit?: string, foodName?: string, count: number = 1): string {
+  const raw = (servingUnit || '').toLowerCase()
+  const nameLower = (foodName || '').toLowerCase()
+
+  if (raw.includes('egg') || nameLower.includes('egg')) {
+    if (raw.includes('white') || nameLower.includes('white')) {
+      return count === 1 ? 'egg white' : 'egg whites'
+    }
+    return count === 1 ? 'egg' : 'eggs'
+  }
+  if (raw.includes('banana') || nameLower.includes('banana')) {
+    return count === 1 ? 'banana' : 'bananas'
+  }
+  if (raw.includes('roti') || raw.includes('chapati') || nameLower.includes('roti') || nameLower.includes('chapati')) {
+    return count === 1 ? 'roti' : 'rotis'
+  }
+  if (raw.includes('slice') || raw.includes('bread') || nameLower.includes('bread')) {
+    return count === 1 ? 'slice' : 'slices'
+  }
+  if (raw.includes('fillet') || raw.includes('breast') || nameLower.includes('chicken')) {
+    return count === 1 ? 'fillet / piece' : 'fillets / pieces'
+  }
+  if (raw.includes('scoop')) {
+    return count === 1 ? 'scoop' : 'scoops'
+  }
+  if (raw.includes('bowl') || raw.includes('cup') || raw.includes('katori')) {
+    return count === 1 ? 'bowl' : 'bowls'
+  }
+  if (raw.includes('handful')) {
+    return count === 1 ? 'handful' : 'handfuls'
+  }
+  if (raw.includes('idli') || nameLower.includes('idli')) {
+    return count === 1 ? 'idli' : 'idlis'
+  }
+  if (raw.includes('dosa') || nameLower.includes('dosa')) {
+    return count === 1 ? 'dosa' : 'dosas'
+  }
+  if (raw.includes('paratha') || nameLower.includes('paratha')) {
+    return count === 1 ? 'paratha' : 'parathas'
+  }
+  if (raw.includes('apple') || nameLower.includes('apple')) {
+    return count === 1 ? 'apple' : 'apples'
+  }
+
+  const cleaned = raw.replace(/\s*\(.*?\)/g, '').trim()
+  if (cleaned && cleaned !== 'serving') return cleaned
+
+  return count === 1 ? 'piece' : 'pieces'
+}
+
 export function LogFoodModal({
   open,
   onClose,
@@ -100,10 +165,9 @@ export function LogFoodModal({
 }) {
   const [mealType, setMealType] = useState<MealType>('lunch')
   const [name, setName] = useState('')
-  const [measureMode, setMeasureMode] = useState<'weight' | 'quantity'>('weight')
-  const [weightG, setWeightG] = useState<string>('100')
+  const [measureMode, setMeasureMode] = useState<'quantity' | 'weight'>('quantity')
   const [quantityNum, setQuantityNum] = useState<string>('1')
-  const [servingUnit, setServingUnit] = useState<string>('serving')
+  const [weightG, setWeightG] = useState<string>('50')
 
   const [calories, setCalories] = useState('')
   const [protein, setProtein] = useState('')
@@ -111,17 +175,17 @@ export function LogFoodModal({
   const [fat, setFat] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // AI Scanning
+  // Photo scanning
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoName, setPhotoName] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
 
-  // API Search
+  // API & Local Search
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<ApiFoodResult[]>([])
 
-  // Active Food Metadata for dynamic weight/quantity calculations
+  // Active Food Metadata for dynamic calculations
   const [foodMeta, setFoodMeta] = useState<FoodItemMeta | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -130,10 +194,9 @@ export function LogFoodModal({
 
   function reset() {
     setName('')
-    setMeasureMode('weight')
-    setWeightG('100')
+    setMeasureMode('quantity')
     setQuantityNum('1')
-    setServingUnit('serving')
+    setWeightG('100')
     setCalories('')
     setProtein('')
     setCarbs('')
@@ -160,61 +223,103 @@ export function LogFoodModal({
 
   function computeFromQuantity(qty: number, meta: FoodItemMeta) {
     const q = Math.max(0, qty)
-    const totalG = Math.round(q * (meta.servingWeightG || 100))
+    const singleWeight = meta.servingWeightG || 100
+    const totalG = Math.round(q * singleWeight)
     setWeightG(String(totalG))
     computeFromWeight(totalG, meta.per100g)
   }
 
-  function handleWeightChange(val: string) {
-    setWeightG(val)
-    const numG = Number(val) || 0
-    if (foodMeta) {
-      computeFromWeight(numG, foodMeta.per100g)
-      // Sync quantity estimate
-      const estQty = (numG / (foodMeta.servingWeightG || 100)).toFixed(1)
-      setQuantityNum(estQty === '1.0' ? '1' : estQty)
+  function handleQuantityChange(val: string, metaOverride?: FoodItemMeta | null) {
+    setQuantityNum(val)
+    const activeMeta = metaOverride !== undefined ? metaOverride : foodMeta
+    const numQty = Number(val) || 0
+    if (activeMeta) {
+      computeFromQuantity(numQty, activeMeta)
+    } else if (calories && val) {
+      const w = Number(weightG) || 100
+      setWeightG(String(Math.round(numQty * w)))
     }
   }
 
-  function handleQuantityChange(val: string) {
-    setQuantityNum(val)
-    const numQty = Number(val) || 0
-    if (foodMeta) {
-      computeFromQuantity(numQty, foodMeta)
+  function handleWeightChange(val: string, metaOverride?: FoodItemMeta | null) {
+    setWeightG(val)
+    const activeMeta = metaOverride !== undefined ? metaOverride : foodMeta
+    const numG = Number(val) || 0
+    if (activeMeta) {
+      computeFromWeight(numG, activeMeta.per100g)
+      const singleWeight = activeMeta.servingWeightG || 100
+      const estQty = (numG / singleWeight).toFixed(1)
+      setQuantityNum(estQty.endsWith('.0') ? estQty.slice(0, -2) : estQty)
     }
   }
 
   function selectFoodItem(item: FoodItemMeta) {
     setName(item.foodName)
     setFoodMeta(item)
-    setServingUnit(item.servingUnit || 'serving')
 
-    if (measureMode === 'weight') {
-      const defaultG = String(item.servingWeightG || 100)
-      setWeightG(defaultG)
-      setQuantityNum('1')
-      computeFromWeight(Number(defaultG), item.per100g)
+    if (measureMode === 'quantity') {
+      const q = quantityNum && Number(quantityNum) > 0 ? Number(quantityNum) : 1
+      setQuantityNum(String(q))
+      computeFromQuantity(q, item)
     } else {
-      setQuantityNum('1')
-      setWeightG(String(item.servingWeightG || 100))
-      computeFromQuantity(1, item)
+      const g = weightG && Number(weightG) > 0 ? Number(weightG) : item.servingWeightG || 100
+      setWeightG(String(g))
+      computeFromWeight(g, item.per100g)
+      const singleWeight = item.servingWeightG || 100
+      const estQty = (g / singleWeight).toFixed(1)
+      setQuantityNum(estQty.endsWith('.0') ? estQty.slice(0, -2) : estQty)
     }
   }
 
-  function switchMode(newMode: 'weight' | 'quantity') {
+  function switchMode(newMode: 'quantity' | 'weight') {
     setMeasureMode(newMode)
     if (!foodMeta) return
 
-    if (newMode === 'weight') {
-      const g = Math.max(0, Number(weightG) || foodMeta.servingWeightG || 100)
-      computeFromWeight(g, foodMeta.per100g)
-    } else {
-      const q = Math.max(0, Number(quantityNum) || 1)
+    if (newMode === 'quantity') {
+      const q = Math.max(0.1, Number(quantityNum) || 1)
       computeFromQuantity(q, foodMeta)
+    } else {
+      const g = Math.max(1, Number(weightG) || foodMeta.servingWeightG || 100)
+      computeFromWeight(g, foodMeta.per100g)
     }
   }
 
-  // ── AI Food Photo Analysis ──────────────────────────────────────
+  // ── Auto-Match from Database when typing Food Name ───────────────
+
+  function handleNameChange(text: string) {
+    setName(text)
+    const trimmed = text.trim()
+    if (!trimmed) {
+      setFoodMeta(null)
+      return
+    }
+
+    const matches = searchLocalFoods(trimmed, 3)
+    if (matches.length > 0) {
+      const top = matches[0]
+      const isDirectMatch =
+        top.name.toLowerCase() === trimmed.toLowerCase() ||
+        top.name.toLowerCase().startsWith(trimmed.toLowerCase()) ||
+        top.keywords?.some((k) => k.toLowerCase() === trimmed.toLowerCase())
+
+      if (isDirectMatch && (!foodMeta || foodMeta.foodName !== top.name)) {
+        const newMeta: FoodItemMeta = {
+          foodName: top.name,
+          per100g: top.per100g,
+          servingUnit: top.servingUnit,
+          servingWeightG: top.servingWeightG,
+        }
+        setFoodMeta(newMeta)
+        if (measureMode === 'quantity') {
+          computeFromQuantity(Number(quantityNum) || 1, newMeta)
+        } else {
+          computeFromWeight(Number(weightG) || top.servingWeightG || 100, top.per100g)
+        }
+      }
+    }
+  }
+
+  // ── Food Photo Analysis ──────────────────────────────────────
 
   async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -225,7 +330,7 @@ export function LogFoodModal({
     try {
       const data = await fitnessService.analyzeFoodImage(file)
       if (!data.foodName || !data.per100g) {
-        throw new Error('AI could not identify this food. Try a clearer photo.')
+        throw new Error('Could not identify this food. Try a clearer photo.')
       }
 
       let servingWeight = 100
@@ -255,7 +360,7 @@ export function LogFoodModal({
     }
   }
 
-  // ── Smart Food Search (Instant Curated Database + OpenFoodFacts Fallback) ──
+  // ── Smart Food Search ───────────────────────────────────────────
 
   useEffect(() => {
     const trimmed = searchQuery.trim()
@@ -265,7 +370,6 @@ export function LogFoodModal({
       return
     }
 
-    // 1. Instant 0ms local search from curated database
     const localMatches: ApiFoodResult[] = searchLocalFoods(trimmed, 8).map((item) => ({
       name: item.name,
       servingUnit: item.servingUnit,
@@ -275,7 +379,6 @@ export function LogFoodModal({
     }))
     setSearchResults(localMatches)
 
-    // 2. If query has 3+ chars, search OpenFoodFacts in background for packaged products
     if (trimmed.length < 3) return
 
     const delayDebounceFn = setTimeout(async () => {
@@ -329,6 +432,17 @@ export function LogFoodModal({
     return () => clearTimeout(delayDebounceFn)
   }, [searchQuery])
 
+  // Live matching suggestions for the Food Name field
+  const inlineSuggestions = useMemo(() => {
+    if (!name.trim() || (foodMeta && foodMeta.foodName.toLowerCase() === name.trim().toLowerCase())) {
+      return []
+    }
+    return searchLocalFoods(name.trim(), 4)
+  }, [name, foodMeta])
+
+  const singlePieceWeight = foodMeta?.servingWeightG || 100
+  const currentUnitLabel = getUnitDisplay(foodMeta?.servingUnit, name || foodMeta?.foodName, Number(quantityNum) || 1)
+
   // ── Save Food Log ───────────────────────────────────────────────
 
   async function save() {
@@ -339,9 +453,9 @@ export function LogFoodModal({
     setSaving(true)
     try {
       const finalQuantity =
-        measureMode === 'weight'
-          ? `${weightG.trim() || '100'}g`
-          : `${quantityNum.trim() || '1'} ${servingUnit} (${weightG || 100}g)`
+        measureMode === 'quantity'
+          ? `${quantityNum || '1'} ${currentUnitLabel} (${weightG || singlePieceWeight}g)`
+          : `${weightG || '100'}g`
 
       await fitnessService.logFood({
         foodName: name.trim(),
@@ -390,7 +504,7 @@ export function LogFoodModal({
           </div>
         </div>
 
-        {/* AI Food Photo Scanner */}
+        {/* Food Photo Scanner */}
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <input
             ref={fileInputRef}
@@ -409,7 +523,7 @@ export function LogFoodModal({
           />
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-slate-400">
-              Snap or upload a photo — AI identifies the meal and calculates macros from your weight or quantity.
+              Snap or upload a photo — it identifies the meal and calculates macros from your quantity or weight.
             </p>
             <div className="flex shrink-0 gap-2">
               <Button
@@ -446,7 +560,7 @@ export function LogFoodModal({
                 {analyzing ? (
                   <div className="flex items-center gap-2 py-4 text-sm text-slate-300">
                     <Loader2 size={16} className="animate-spin text-emerald-400" />
-                    <span>AI is identifying your meal nutrition…</span>
+                    <span>Identifying your meal nutrition…</span>
                   </div>
                 ) : foodMeta ? (
                   <div className="space-y-1">
@@ -454,7 +568,7 @@ export function LogFoodModal({
                     <p className="text-xs text-emerald-300">
                       Nutrition per 100g: {foodMeta.per100g.calories} kcal · P {foodMeta.per100g.proteinG}g · C {foodMeta.per100g.carbsG}g · F {foodMeta.per100g.fatG}g
                     </p>
-                    <p className="text-xs text-slate-400">Standard serving: {foodMeta.servingUnit}</p>
+                    <p className="text-xs text-slate-400">1 {currentUnitLabel} ≈ {singlePieceWeight}g</p>
                   </div>
                 ) : null}
               </div>
@@ -462,8 +576,8 @@ export function LogFoodModal({
           )}
         </div>
 
-        {/* Search OpenFoodFacts Database */}
-        <div className="relative z-10 space-y-1.5">
+        {/* Search Food Database */}
+        <div className="relative z-20 space-y-1.5">
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Search className="h-4 w-4 text-slate-400" />
@@ -471,7 +585,7 @@ export function LogFoodModal({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search food database (e.g. Greek yogurt, oats, salmon)..."
+              placeholder="Search food database (e.g. egg, chicken, oats, rice, banana)..."
               className="pl-10"
             />
             {isSearching && (
@@ -482,7 +596,7 @@ export function LogFoodModal({
           </div>
 
           {searchResults.length > 0 && (
-            <div className="absolute left-0 top-full mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-2xl backdrop-blur-xl">
+            <div className="absolute left-0 top-full mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-black/95 shadow-2xl backdrop-blur-xl z-30">
               <div className="max-h-56 overflow-y-auto divide-y divide-white/5">
                 {searchResults.map((res, i) => (
                   <button
@@ -515,7 +629,7 @@ export function LogFoodModal({
                       </div>
                       <span className="text-[11px] text-slate-400">
                         Per 100g: {res.macros.calories} kcal · P {res.macros.proteinG}g · C {res.macros.carbsG}g · F {res.macros.fatG}g
-                        {res.servingUnit ? ` · Serving: ${res.servingUnit}` : ''}
+                        {res.servingUnit ? ` · 1 serving: ${res.servingUnit}` : ''}
                       </span>
                     </div>
                     <span className="shrink-0 text-xs font-bold text-emerald-400">
@@ -532,59 +646,73 @@ export function LogFoodModal({
         <div className="space-y-1">
           <span className="text-xs text-slate-400 font-medium">Quick Picks:</span>
           <div className="flex flex-wrap gap-1.5">
-            {QUICK_FOODS.map((f) => (
-              <button
-                key={f.name}
-                type="button"
-                onClick={() =>
-                  selectFoodItem({
-                    foodName: f.name,
-                    per100g: f.per100g,
-                    servingUnit: f.servingUnit,
-                    servingWeightG: f.servingWeightG,
-                  })
-                }
-                className={cn(
-                  'rounded-full border px-3 py-1 text-xs font-medium transition-all',
-                  foodMeta?.foodName === f.name
-                    ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200 font-semibold'
-                    : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-200',
-                )}
-              >
-                {f.name}
-              </button>
-            ))}
+            {QUICK_FOODS.map((f) => {
+              const isSelected = foodMeta?.foodName === f.name || name === f.name
+              return (
+                <button
+                  key={f.name}
+                  type="button"
+                  onClick={() =>
+                    selectFoodItem({
+                      foodName: f.name,
+                      per100g: f.per100g,
+                      servingUnit: f.servingUnit,
+                      servingWeightG: f.servingWeightG,
+                    })
+                  }
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium transition-all',
+                    isSelected
+                      ? 'border-emerald-500 bg-emerald-500/20 text-emerald-200 font-semibold'
+                      : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-200',
+                  )}
+                >
+                  {f.name}
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* Food Name Field */}
-        <Input
-          label="Food Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Grilled chicken breast"
-        />
+        {/* Food Name Field + Live Auto-Match Suggestions */}
+        <div className="space-y-1">
+          <Input
+            label="Food Name"
+            value={name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="e.g. Whole Egg, Chicken Breast, Banana, Oats..."
+          />
+          {inlineSuggestions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] text-slate-400">Suggestions:</span>
+              {inlineSuggestions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() =>
+                    selectFoodItem({
+                      foodName: item.name,
+                      per100g: item.per100g,
+                      servingUnit: item.servingUnit,
+                      servingWeightG: item.servingWeightG,
+                    })
+                  }
+                  className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                >
+                  + {item.name} ({item.servingWeightG}g {getUnitDisplay(item.servingUnit, item.name, 1)})
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-        {/* ── WEIGHT VS QUANTITY PORTION CALCULATOR ─────────────── */}
+        {/* ── PORTION CALCULATOR: QUANTITY (COUNT) VS WEIGHT (GRAMS) ── */}
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5 space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
               Calculate Portion By:
             </label>
             <div className="flex rounded-lg border border-white/10 bg-black/40 p-0.5">
-              <button
-                type="button"
-                onClick={() => switchMode('weight')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all',
-                  measureMode === 'weight'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200',
-                )}
-              >
-                <Scale size={13} />
-                <span>Weight (g)</span>
-              </button>
               <button
                 type="button"
                 onClick={() => switchMode('quantity')}
@@ -596,25 +724,80 @@ export function LogFoodModal({
                 )}
               >
                 <Hash size={13} />
-                <span>Quantity</span>
+                <span>Quantity (Count)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('weight')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold transition-all',
+                  measureMode === 'weight'
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200',
+                )}
+              >
+                <Scale size={13} />
+                <span>Weight (Grams)</span>
               </button>
             </div>
           </div>
 
-          {measureMode === 'weight' ? (
+          {measureMode === 'quantity' ? (
+            /* ── QUANTITY / COUNT MODE ── */
             <div className="space-y-2.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                 <Input
-                  label="Enter Weight (grams)"
+                  label={`Quantity (${currentUnitLabel})`}
+                  type="number"
+                  step="0.5"
+                  min="0.1"
+                  value={quantityNum}
+                  onChange={(e) => handleQuantityChange(e.target.value)}
+                  placeholder="e.g. 1, 2, 3"
+                />
+                <div>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+                    Quick Count
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['0.5', '1', '2', '3', '4', '5', '6'].map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => handleQuantityChange(q)}
+                        className={cn(
+                          'px-2.5 py-1 text-xs rounded-lg border transition-all font-medium',
+                          quantityNum === q
+                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold'
+                            : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10',
+                        )}
+                      >
+                        {q === '0.5' ? '½' : q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400">
+                1 {getUnitDisplay(foodMeta?.servingUnit, name || foodMeta?.foodName, 1)} = {singlePieceWeight}g
+                {weightG ? ` · Total Weight: ${weightG}g` : ''}
+              </p>
+            </div>
+          ) : (
+            /* ── WEIGHT (GRAMS) MODE ── */
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                <Input
+                  label="Weight in Grams (g)"
                   type="number"
                   min="1"
                   value={weightG}
                   onChange={(e) => handleWeightChange(e.target.value)}
-                  placeholder="e.g. 150"
+                  placeholder="e.g. 100"
                 />
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
-                    Quick Weight Presets
+                    Quick Weights
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {[50, 100, 150, 200, 250, 300].map((g) => (
@@ -623,7 +806,7 @@ export function LogFoodModal({
                         type="button"
                         onClick={() => handleWeightChange(String(g))}
                         className={cn(
-                          'px-2.5 py-1 text-xs rounded-lg border transition-all',
+                          'px-2.5 py-1 text-xs rounded-lg border transition-all font-medium',
                           weightG === String(g)
                             ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold'
                             : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10',
@@ -635,88 +818,50 @@ export function LogFoodModal({
                   </div>
                 </div>
               </div>
-              {foodMeta && (
-                <p className="text-xs text-slate-400">
-                  Calculated from base: {foodMeta.per100g.calories} kcal per 100g
-                  {foodMeta.servingWeightG ? ` (≈ ${(Number(weightG || 0) / foodMeta.servingWeightG).toFixed(1)} ${foodMeta.servingUnit})` : ''}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                <Input
-                  label={`Enter Quantity (${foodMeta?.servingUnit || 'servings / pieces'})`}
-                  type="number"
-                  step="0.5"
-                  min="0.1"
-                  value={quantityNum}
-                  onChange={(e) => handleQuantityChange(e.target.value)}
-                  placeholder="e.g. 1, 2, 1.5"
-                />
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
-                    Quick Quantity Presets
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['0.5', '1', '1.5', '2', '3', '4'].map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => handleQuantityChange(q)}
-                        className={cn(
-                          'px-2.5 py-1 text-xs rounded-lg border transition-all',
-                          quantityNum === q
-                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold'
-                            : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10',
-                        )}
-                      >
-                        {q}x
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
               <p className="text-xs text-slate-400">
-                1 {foodMeta?.servingUnit || 'serving'} = {foodMeta?.servingWeightG || 100}g
-                {weightG ? ` (Total weight: ${weightG}g)` : ''}
+                {weightG || 0}g ≈ {quantityNum || 1} {currentUnitLabel} (1 {getUnitDisplay(foodMeta?.servingUnit, name || foodMeta?.foodName, 1)} = {singlePieceWeight}g)
               </p>
             </div>
           )}
 
-          {/* Real-time Calculation Confirmation */}
+          {/* Real-time Dynamic Nutrition Summary Card */}
           {calories && (
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-              <Sparkles size={14} className="shrink-0" />
-              <span className="font-semibold">
-                {measureMode === 'weight'
-                  ? `${weightG || 0}g`
-                  : `${quantityNum || 1} ${foodMeta?.servingUnit || 'serving'} (${weightG}g)`}:
-              </span>
-              <span className="font-bold">
-                {calories} kcal · P {protein || 0}g · C {carbs || 0}g · F {fat || 0}g
-              </span>
+            <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-300">
+              <Sparkles size={16} className="shrink-0 text-emerald-400" />
+              <div className="flex-1">
+                <div className="font-semibold text-emerald-200">
+                  {measureMode === 'quantity'
+                    ? `${quantityNum || 1} ${currentUnitLabel} (${weightG || 0}g)`
+                    : `${weightG || 0}g ${name || foodMeta?.foodName || ''} (≈ ${quantityNum || 1} ${currentUnitLabel})`}
+                </div>
+                <div className="font-bold text-emerald-400 text-sm mt-0.5">
+                  {calories} kcal · P {protein || 0}g · C {carbs || 0}g · F {fat || 0}g
+                </div>
+              </div>
+              <div className="rounded-full bg-emerald-500/20 p-1 text-emerald-300">
+                <Check size={14} />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Nutritional Breakdown Inputs */}
-        <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+        {/* Nutritional Breakdown Inputs (Auto-filled, fully editable) */}
+        <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-3">
           <Input
-            label="Total Calories (kcal)"
+            label="Total Calories (kcal) *"
             type="number"
             value={calories}
             onChange={(e) => setCalories(e.target.value)}
-            placeholder="e.g. 248"
+            placeholder="e.g. 143"
           />
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Input
               label="Protein (g)"
               type="number"
               step="0.1"
               value={protein}
               onChange={(e) => setProtein(e.target.value)}
-              placeholder="46.5"
+              placeholder="12.6"
             />
             <Input
               label="Carbs (g)"
@@ -724,7 +869,7 @@ export function LogFoodModal({
               step="0.1"
               value={carbs}
               onChange={(e) => setCarbs(e.target.value)}
-              placeholder="0"
+              placeholder="0.7"
             />
             <Input
               label="Fat (g)"
@@ -732,7 +877,7 @@ export function LogFoodModal({
               step="0.1"
               value={fat}
               onChange={(e) => setFat(e.target.value)}
-              placeholder="5.4"
+              placeholder="9.5"
             />
           </div>
         </div>

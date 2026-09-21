@@ -159,7 +159,7 @@ export function GymEquipmentScanner({
     void analyzePhoto(file);
   };
 
-  // Send photo to Backend AI Vision API
+  // Send photo to Backend Vision API
   const analyzePhoto = async (imageFileOrBlob: Blob | File) => {
     setIsAnalyzing(true);
     setScanResult(null);
@@ -467,7 +467,7 @@ export function GymEquipmentScanner({
                   </div>
                 </div>
               ) : isAnalyzing ? (
-                /* VIEW 3: AI Analyzing animation */
+                /* VIEW 3: Analyzing animation */
                 <div className="flex min-h-[320px] flex-col items-center justify-center p-6 text-center">
                   <div className="relative mb-6">
                     <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-teal-500/20 text-teal-400 shadow-xl shadow-teal-500/10">
@@ -478,7 +478,7 @@ export function GymEquipmentScanner({
 
                   <h3 className="font-display text-lg font-bold text-white">Analyzing gym machine...</h3>
                   <p className="mt-1 text-xs text-slate-400 max-w-sm">
-                    Our AI vision engine is identifying the equipment frame, pulleys, and exercise biomechanics.
+                    Our vision engine is identifying the equipment frame, pulleys, and exercise biomechanics.
                   </p>
                 </div>
               ) : uncertainResult ? (

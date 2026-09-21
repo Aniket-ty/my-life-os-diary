@@ -69,10 +69,10 @@ export function AIChat() {
         { type: 'temp', role: 'assistant', content: res.message },
       ])
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'AI is unreachable', 'error')
+      toast(err instanceof Error ? err.message : 'Coach is unreachable', 'error')
       setMessages((prev) => [
         ...prev,
-        { type: 'temp', role: 'assistant', content: 'Sorry, I could not reach the AI service. Try again in a moment — or check if your plan has API quota left.' },
+        { type: 'temp', role: 'assistant', content: 'Sorry, I could not reach the coach. Try again in a moment — or check if your plan has API quota left.' },
       ])
     } finally {
       setTyping(false)
@@ -130,10 +130,9 @@ export function AIChat() {
   return (
     <div className="flex h-[calc(100dvh-210px)] min-h-[420px] flex-col sm:h-[calc(100vh-140px)] sm:min-h-[520px]">
       <PageHeader
-        title="AI Coach"
+        title="Coach"
         subtitle="Your personal nutrition & fitness assistant"
-        icon={<Sparkles size={22} className="text-violet-brand" />}
-        accent="from-violet-brand to-purple-500"
+        icon={<Sparkles size={22} className="text-volt-400" />}
         action={
           <Button variant="ghost" size="sm" onClick={clearChat}>
             <Trash2 size={14} />
@@ -151,10 +150,10 @@ export function AIChat() {
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-brand to-purple-500 shadow-2xl shadow-violet-brand/40">
-                <Sparkles size={28} className="text-white" />
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-volt-500">
+                <Sparkles size={28} className="text-void" />
               </div>
-              <h3 className="font-display text-xl font-bold text-white">Meet your AI Coach</h3>
+              <h3 className="font-display text-xl font-bold text-white">Meet your coach</h3>
               <p className="mt-1 max-w-xs text-sm text-slate-400">
                 Ask me anything about food, workouts and staying on track with your goals.
               </p>
@@ -210,7 +209,7 @@ export function AIChat() {
                     <Dumbbell size={16} className="text-orange-300" />
                   )}
                   <p className="text-sm font-semibold text-white">
-                    {pendingAction.type === 'log_food' ? 'AI wants to log some food' : 'AI suggests a workout'}
+                    {pendingAction.type === 'log_food' ? 'Log some food' : 'Suggested workout'}
                   </p>
                 </div>
                 {pendingAction.type === 'log_food' ? (
@@ -322,7 +321,7 @@ function ActionWorkout({ data }: { data: Record<string, unknown> }) {
     : []
   return (
     <div className="rounded-xl bg-white/[0.04] p-3 text-sm">
-      <p className="font-semibold text-white">{String(data.workoutName ?? 'AI Workout')}</p>
+      <p className="font-semibold text-white">{String(data.workoutName ?? 'Suggested workout')}</p>
       <div className="mt-1.5 space-y-1">
         {exercises.map((e, i) => (
           <p key={i} className="text-xs text-slate-400">

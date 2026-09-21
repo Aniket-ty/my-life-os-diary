@@ -273,7 +273,7 @@ export default function VoiceAssistantScreen({ navigation }) {
           </TouchableOpacity>
           <Text style={styles.micStatus}>
             {processing
-              ? 'Interpreting AI command...'
+              ? 'Processing voice command...'
               : isRecording
               ? 'Listening... Tap to finish'
               : 'Tap microphone to speak'}

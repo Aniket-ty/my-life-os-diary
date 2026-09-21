@@ -464,7 +464,7 @@ export function WorkoutPlanner() {
                   onChange={(e) => setPreferences(e.target.value)}
                   rows={3}
                   className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                  placeholder="Tell the AI how and which type of workout you want (e.g. Focus on hypertrophy with drop sets, avoid barbell squats due to knee pain, emphasize upper chest, include 5-min mobility warmup...)"
+                  placeholder="Describe your ideal workout (e.g. Focus on hypertrophy with drop sets, avoid barbell squats due to knee pain, emphasize upper chest, include 5-min mobility warmup...)"
                 />
               </div>
             </div>
@@ -599,7 +599,7 @@ export function WorkoutPlanner() {
                         <p className="text-sm font-semibold text-white">{p.name}</p>
                         <p className="text-[11px] text-slate-500">
                           {p.goal && <span className="capitalize">{p.goal}</span>} · {p.daysPerWeek} days/week
-                          {p.generatedByAI && ' · ✨ AI'}
+                          {p.generatedByAI && ' · ✨ Suggested'}
                         </p>
                       </div>
                     </div>

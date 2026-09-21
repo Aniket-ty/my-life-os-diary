@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -20,8 +20,20 @@ const MEAL_ICONS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: 
 
 const QUICK_FOODS = [
   {
+    name: 'Whole Egg',
+    servingUnit: 'large egg (50g)',
+    servingWeightG: 50,
+    per100g: { calories: 143, proteinG: 12.6, carbsG: 0.7, fatG: 9.5 },
+  },
+  {
+    name: 'Boiled Egg',
+    servingUnit: 'egg (50g)',
+    servingWeightG: 50,
+    per100g: { calories: 155, proteinG: 12.6, carbsG: 1.1, fatG: 10.6 },
+  },
+  {
     name: 'Banana',
-    servingUnit: 'banana (118g)',
+    servingUnit: 'medium banana (118g)',
     servingWeightG: 118,
     per100g: { calories: 89, proteinG: 1.1, carbsG: 22.8, fatG: 0.3 },
   },
@@ -38,22 +50,10 @@ const QUICK_FOODS = [
     per100g: { calories: 130, proteinG: 2.7, carbsG: 28.2, fatG: 0.3 },
   },
   {
-    name: 'Whole Egg',
-    servingUnit: 'large egg (50g)',
-    servingWeightG: 50,
-    per100g: { calories: 143, proteinG: 12.6, carbsG: 0.7, fatG: 9.5 },
-  },
-  {
-    name: 'Almonds',
-    servingUnit: 'handful (30g)',
-    servingWeightG: 30,
-    per100g: { calories: 579, proteinG: 21.2, carbsG: 21.6, fatG: 49.9 },
-  },
-  {
-    name: 'Protein Shake',
-    servingUnit: 'scoop (30g powder)',
-    servingWeightG: 30,
-    per100g: { calories: 400, proteinG: 80, carbsG: 10, fatG: 5 },
+    name: 'Roti / Chapati',
+    servingUnit: 'medium roti (40g)',
+    servingWeightG: 40,
+    per100g: { calories: 297, proteinG: 9.3, carbsG: 55.8, fatG: 3.7 },
   },
   {
     name: 'Bread',
@@ -67,6 +67,18 @@ const QUICK_FOODS = [
     servingWeightG: 50,
     per100g: { calories: 389, proteinG: 16.9, carbsG: 66.3, fatG: 6.9 },
   },
+  {
+    name: 'Protein Shake',
+    servingUnit: 'scoop (30g powder)',
+    servingWeightG: 30,
+    per100g: { calories: 400, proteinG: 80, carbsG: 10, fatG: 5 },
+  },
+  {
+    name: 'Almonds',
+    servingUnit: 'handful (30g)',
+    servingWeightG: 30,
+    per100g: { calories: 579, proteinG: 21.2, carbsG: 21.6, fatG: 49.9 },
+  },
 ];
 
 const PICKS = {
@@ -74,6 +86,56 @@ const PICKS = {
   quality: 0.7,
   allowsEditing: false,
 };
+
+function getUnitDisplay(servingUnit, foodName, count = 1) {
+  const raw = (servingUnit || '').toLowerCase();
+  const nameLower = (foodName || '').toLowerCase();
+
+  if (raw.includes('egg') || nameLower.includes('egg')) {
+    if (raw.includes('white') || nameLower.includes('white')) {
+      return count === 1 ? 'egg white' : 'egg whites';
+    }
+    return count === 1 ? 'egg' : 'eggs';
+  }
+  if (raw.includes('banana') || nameLower.includes('banana')) {
+    return count === 1 ? 'banana' : 'bananas';
+  }
+  if (raw.includes('roti') || raw.includes('chapati') || nameLower.includes('roti') || nameLower.includes('chapati')) {
+    return count === 1 ? 'roti' : 'rotis';
+  }
+  if (raw.includes('slice') || raw.includes('bread') || nameLower.includes('bread')) {
+    return count === 1 ? 'slice' : 'slices';
+  }
+  if (raw.includes('fillet') || raw.includes('breast') || nameLower.includes('chicken')) {
+    return count === 1 ? 'fillet / piece' : 'fillets / pieces';
+  }
+  if (raw.includes('scoop')) {
+    return count === 1 ? 'scoop' : 'scoops';
+  }
+  if (raw.includes('bowl') || raw.includes('cup') || raw.includes('katori')) {
+    return count === 1 ? 'bowl' : 'bowls';
+  }
+  if (raw.includes('handful')) {
+    return count === 1 ? 'handful' : 'handfuls';
+  }
+  if (raw.includes('idli') || nameLower.includes('idli')) {
+    return count === 1 ? 'idli' : 'idlis';
+  }
+  if (raw.includes('dosa') || nameLower.includes('dosa')) {
+    return count === 1 ? 'dosa' : 'dosas';
+  }
+  if (raw.includes('paratha') || nameLower.includes('paratha')) {
+    return count === 1 ? 'paratha' : 'parathas';
+  }
+  if (raw.includes('apple') || nameLower.includes('apple')) {
+    return count === 1 ? 'apple' : 'apples';
+  }
+
+  const cleaned = raw.replace(/\s*\(.*?\)/g, '').trim();
+  if (cleaned && cleaned !== 'serving') return cleaned;
+
+  return count === 1 ? 'piece' : 'pieces';
+}
 
 export default function LogFoodScreen({ navigation }) {
   const { logFood } = useFitnessStore();
@@ -85,11 +147,11 @@ export default function LogFoodScreen({ navigation }) {
   const [mealType, setMealType] = useState('lunch');
   const [saving, setSaving] = useState(false);
 
-  // Portion measurement: 'weight' (grams) or 'quantity' (servings/items)
-  const [measureMode, setMeasureMode] = useState('weight');
-  const [weightG, setWeightG] = useState('100');
+  // Portion measurement: 'quantity' (count/items) or 'weight' (grams)
+  const [measureMode, setMeasureMode] = useState('quantity');
   const [quantityNum, setQuantityNum] = useState('1');
-  const [servingUnit, setServingUnit] = useState('serving');
+  const [weightG, setWeightG] = useState('50');
+  const [servingUnit, setServingUnit] = useState('egg (50g)');
 
   // Metadata for the active food item (per100g base macros)
   const [foodMeta, setFoodMeta] = useState(null);
@@ -101,7 +163,7 @@ export default function LogFoodScreen({ navigation }) {
   // AI food photo state
   const [photoUri, setPhotoUri] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [aiResult, setAiResult] = useState(null);
+  const [_aiResult, setAiResult] = useState(null);
   const [cropUri, setCropUri] = useState(null);
   const [cropVisible, setCropVisible] = useState(false);
 
@@ -118,43 +180,53 @@ export default function LogFoodScreen({ navigation }) {
 
   const computeFromQuantity = (qty, meta) => {
     const q = Math.max(0, Number(qty) || 0);
-    const totalG = Math.round(q * (meta.servingWeightG || 100));
+    const singleWeight = meta.servingWeightG || 100;
+    const totalG = Math.round(q * singleWeight);
     setWeightG(String(totalG));
     computeFromWeight(totalG, meta.per100g);
   };
 
-  const onWeightChange = (text) => {
+  const onWeightChange = (text, metaOverride) => {
     setWeightG(text);
+    const activeMeta = metaOverride !== undefined ? metaOverride : foodMeta;
     const numG = Number(text) || 0;
-    if (foodMeta) {
-      computeFromWeight(numG, foodMeta.per100g);
-      const estQty = (numG / (foodMeta.servingWeightG || 100)).toFixed(1);
-      setQuantityNum(estQty === '1.0' ? '1' : estQty);
+    if (activeMeta) {
+      computeFromWeight(numG, activeMeta.per100g);
+      const singleWeight = activeMeta.servingWeightG || 100;
+      const estQty = (numG / singleWeight).toFixed(1);
+      setQuantityNum(estQty.endsWith('.0') ? estQty.slice(0, -2) : estQty);
     }
   };
 
-  const onQuantityChange = (text) => {
+  const onQuantityChange = (text, metaOverride) => {
     setQuantityNum(text);
+    const activeMeta = metaOverride !== undefined ? metaOverride : foodMeta;
     const numQty = Number(text) || 0;
-    if (foodMeta) {
-      computeFromQuantity(numQty, foodMeta);
+    if (activeMeta) {
+      computeFromQuantity(numQty, activeMeta);
+    } else if (calories && text) {
+      const w = Number(weightG) || 100;
+      setWeightG(String(Math.round(numQty * w)));
     }
   };
 
   const selectFood = (meta) => {
-    setFoodName(meta.name || meta.foodName);
+    const name = meta.name || meta.foodName;
+    setFoodName(name);
     setFoodMeta(meta);
-    setServingUnit(meta.servingUnit || 'serving');
+    setServingUnit(meta.servingUnit || 'serving (100g)');
 
-    if (measureMode === 'weight') {
-      const defaultG = String(meta.servingWeightG || 100);
-      setWeightG(defaultG);
-      setQuantityNum('1');
-      computeFromWeight(Number(defaultG), meta.per100g);
+    if (measureMode === 'quantity') {
+      const q = quantityNum && Number(quantityNum) > 0 ? Number(quantityNum) : 1;
+      setQuantityNum(String(q));
+      computeFromQuantity(q, meta);
     } else {
-      setQuantityNum('1');
-      setWeightG(String(meta.servingWeightG || 100));
-      computeFromQuantity(1, meta);
+      const g = weightG && Number(weightG) > 0 ? Number(weightG) : meta.servingWeightG || 100;
+      setWeightG(String(g));
+      computeFromWeight(g, meta.per100g);
+      const singleWeight = meta.servingWeightG || 100;
+      const estQty = (g / singleWeight).toFixed(1);
+      setQuantityNum(estQty.endsWith('.0') ? estQty.slice(0, -2) : estQty);
     }
   };
 
@@ -162,14 +234,54 @@ export default function LogFoodScreen({ navigation }) {
     setMeasureMode(newMode);
     if (!foodMeta) return;
 
-    if (newMode === 'weight') {
-      const g = Math.max(0, Number(weightG) || foodMeta.servingWeightG || 100);
-      computeFromWeight(g, foodMeta.per100g);
-    } else {
-      const q = Math.max(0, Number(quantityNum) || 1);
+    if (newMode === 'quantity') {
+      const q = Math.max(0.1, Number(quantityNum) || 1);
       computeFromQuantity(q, foodMeta);
+    } else {
+      const g = Math.max(1, Number(weightG) || foodMeta.servingWeightG || 100);
+      computeFromWeight(g, foodMeta.per100g);
     }
   };
+
+  // Auto-detect match when typing food name
+  const onFoodNameChange = (text) => {
+    setFoodName(text);
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setFoodMeta(null);
+      return;
+    }
+
+    const matches = searchLocalFoods(trimmed, 3);
+    if (matches.length > 0) {
+      const top = matches[0];
+      const isDirectMatch =
+        top.name.toLowerCase() === trimmed.toLowerCase() ||
+        top.name.toLowerCase().startsWith(trimmed.toLowerCase()) ||
+        top.keywords?.some((k) => k.toLowerCase() === trimmed.toLowerCase());
+
+      if (isDirectMatch && (!foodMeta || (foodMeta.name !== top.name && foodMeta.foodName !== top.name))) {
+        setFoodMeta(top);
+        setServingUnit(top.servingUnit);
+        if (measureMode === 'quantity') {
+          computeFromQuantity(Number(quantityNum) || 1, top);
+        } else {
+          computeFromWeight(Number(weightG) || top.servingWeightG || 100, top.per100g);
+        }
+      }
+    }
+  };
+
+  // Inline suggestions for food name input
+  const inlineSuggestions = useMemo(() => {
+    if (!foodName.trim() || (foodMeta && (foodMeta.name || foodMeta.foodName).toLowerCase() === foodName.trim().toLowerCase())) {
+      return [];
+    }
+    return searchLocalFoods(foodName.trim(), 4);
+  }, [foodName, foodMeta]);
+
+  const singlePieceWeight = foodMeta?.servingWeightG || 100;
+  const currentUnitLabel = getUnitDisplay(foodMeta?.servingUnit, foodName || foodMeta?.name, Number(quantityNum) || 1);
 
   // ── AI Image Capture & Analysis ─────────────────────────────────
 
@@ -222,7 +334,7 @@ export default function LogFoodScreen({ navigation }) {
         throw new Error(data.error);
       }
       if (!data?.foodName || !data?.per100g) {
-        throw new Error('AI could not identify this food. Try a clearer photo.');
+        throw new Error('Could not identify this food. Try a clearer photo.');
       }
 
       setAiResult(data);
@@ -235,6 +347,7 @@ export default function LogFoodScreen({ navigation }) {
       }
 
       selectFood({
+        name: data.foodName,
         foodName: data.foodName,
         per100g: {
           calories: Number(data.per100g.calories) || 0,
@@ -261,9 +374,9 @@ export default function LogFoodScreen({ navigation }) {
     }
     setSaving(true);
     try {
-      const finalQuantity = measureMode === 'weight'
-        ? `${weightG || '100'}g`
-        : `${quantityNum || '1'} ${servingUnit} (${weightG || 100}g)`;
+      const finalQuantity = measureMode === 'quantity'
+        ? `${quantityNum || '1'} ${currentUnitLabel} (${weightG || singlePieceWeight}g)`
+        : `${weightG || '100'}g`;
 
       await logFood({
         foodName: foodName.trim(),
@@ -303,7 +416,7 @@ export default function LogFoodScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* AI Food Photo */}
-        <Text style={styles.label}>AI Food Photo</Text>
+        <Text style={styles.label}>Food Photo</Text>
         <View style={styles.captureRow}>
           <TouchableOpacity style={styles.captureBtn} onPress={() => pickImage('camera')} disabled={analyzing}>
             <Ionicons name="camera" size={18} color={colors.emerald} />
@@ -314,7 +427,7 @@ export default function LogFoodScreen({ navigation }) {
             <Text style={styles.captureBtnText}>Choose photo</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.aiHint}>Snap your meal — AI identifies it and calculates macros from weight or quantity.</Text>
+        <Text style={styles.aiHint}>Snap your meal — it identifies the food and calculates macros from quantity or weight.</Text>
 
         {photoUri && (
           <GlassCard style={styles.photoCard} padded={false}>
@@ -323,15 +436,15 @@ export default function LogFoodScreen({ navigation }) {
               {analyzing ? (
                 <>
                   <ActivityIndicator size="small" color={colors.emerald} />
-                  <Text style={styles.analyzingText}>AI is identifying your food…</Text>
+                  <Text style={styles.analyzingText}>Identifying your food…</Text>
                 </>
               ) : foodMeta ? (
                 <>
-                  <Text style={styles.aiFoodName} numberOfLines={1}>{foodMeta.foodName}</Text>
+                  <Text style={styles.aiFoodName} numberOfLines={1}>{foodMeta.foodName || foodMeta.name}</Text>
                   <Text style={styles.aiPer100}>
                     per 100g: {foodMeta.per100g.calories} kcal · P {foodMeta.per100g.proteinG}g · C {foodMeta.per100g.carbsG}g · F {foodMeta.per100g.fatG}g
                   </Text>
-                  <Text style={styles.aiDetail}>Serving: {foodMeta.servingUnit}</Text>
+                  <Text style={styles.aiDetail}>1 {currentUnitLabel} ≈ {singlePieceWeight}g</Text>
                 </>
               ) : null}
             </View>
@@ -395,19 +508,22 @@ export default function LogFoodScreen({ navigation }) {
         {/* Quick Add Foods */}
         <Text style={styles.label}>Quick Picks</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickRow}>
-          {QUICK_FOODS.map((f) => (
-            <TouchableOpacity
-              key={f.name}
-              style={[
-                styles.quickChip,
-                foodMeta?.name === f.name && styles.quickChipActive,
-              ]}
-              onPress={() => selectFood(f)}
-            >
-              <Text style={styles.quickName} numberOfLines={1}>{f.name}</Text>
-              <Text style={styles.quickCal}>{f.per100g.calories} kcal/100g</Text>
-            </TouchableOpacity>
-          ))}
+          {QUICK_FOODS.map((f) => {
+            const isSelected = foodMeta?.name === f.name || foodName === f.name;
+            return (
+              <TouchableOpacity
+                key={f.name}
+                style={[
+                  styles.quickChip,
+                  isSelected && styles.quickChipActive,
+                ]}
+                onPress={() => selectFood(f)}
+              >
+                <Text style={styles.quickName} numberOfLines={1}>{f.name}</Text>
+                <Text style={styles.quickCal}>{f.per100g.calories} kcal/100g</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {/* Meal Type */}
@@ -431,30 +547,35 @@ export default function LogFoodScreen({ navigation }) {
         <Input
           label="Food Name *"
           value={foodName}
-          onChangeText={setFoodName}
-          placeholder="e.g. Chicken Breast"
+          onChangeText={onFoodNameChange}
+          placeholder="e.g. Whole Egg, Chicken Breast, Banana..."
           style={styles.fieldSpacing}
         />
 
-        {/* ── PORTION CALCULATOR: BY WEIGHT OR QUANTITY ─────────── */}
+        {inlineSuggestions.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            <Text style={styles.suggestionTitle}>Suggestions:</Text>
+            <View style={styles.suggestionChipsWrap}>
+              {inlineSuggestions.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.suggestionChip}
+                  onPress={() => selectFood(item)}
+                >
+                  <Text style={styles.suggestionChipText}>
+                    + {item.name} ({item.servingWeightG}g {getUnitDisplay(item.servingUnit, item.name, 1)})
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── PORTION CALCULATOR: QUANTITY (COUNT) VS WEIGHT (GRAMS) ── */}
         <Text style={styles.label}>Portion Calculation</Text>
         <View style={styles.calcCard}>
           {/* Mode Switcher */}
           <View style={styles.modeRow}>
-            <TouchableOpacity
-              style={[styles.modeBtn, measureMode === 'weight' && styles.modeBtnActive]}
-              onPress={() => switchMode('weight')}
-            >
-              <Ionicons
-                name="scale-outline"
-                size={16}
-                color={measureMode === 'weight' ? colors.emerald : colors.textMuted}
-              />
-              <Text style={[styles.modeBtnText, measureMode === 'weight' && styles.modeBtnTextActive]}>
-                By Weight (g)
-              </Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.modeBtn, measureMode === 'quantity' && styles.modeBtnActive]}
               onPress={() => switchMode('quantity')}
@@ -465,13 +586,60 @@ export default function LogFoodScreen({ navigation }) {
                 color={measureMode === 'quantity' ? colors.emerald : colors.textMuted}
               />
               <Text style={[styles.modeBtnText, measureMode === 'quantity' && styles.modeBtnTextActive]}>
-                By Quantity
+                Quantity (Count)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modeBtn, measureMode === 'weight' && styles.modeBtnActive]}
+              onPress={() => switchMode('weight')}
+            >
+              <Ionicons
+                name="scale-outline"
+                size={16}
+                color={measureMode === 'weight' ? colors.emerald : colors.textMuted}
+              />
+              <Text style={[styles.modeBtnText, measureMode === 'weight' && styles.modeBtnTextActive]}>
+                Weight (Grams)
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Mode Input & Presets */}
-          {measureMode === 'weight' ? (
+          {measureMode === 'quantity' ? (
+            /* ── QUANTITY / COUNT MODE ── */
+            <View style={styles.portionInputWrap}>
+              <Text style={styles.subLabel}>
+                Quantity ({currentUnitLabel})
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="1"
+                placeholderTextColor={colors.textFaint}
+                value={quantityNum}
+                onChangeText={onQuantityChange}
+                keyboardType="numeric"
+              />
+              <View style={styles.presetsRow}>
+                {['0.5', '1', '2', '3', '4', '5', '6'].map((q) => (
+                  <TouchableOpacity
+                    key={q}
+                    style={[styles.presetChip, quantityNum === q && styles.presetChipActive]}
+                    onPress={() => onQuantityChange(q)}
+                  >
+                    <Text style={[styles.presetText, quantityNum === q && styles.presetTextActive]}>
+                      {q === '0.5' ? '½' : q}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.metaSubText}>
+                1 {getUnitDisplay(foodMeta?.servingUnit, foodName || foodMeta?.name, 1)} = {singlePieceWeight}g
+                {weightG ? ` · Total Weight: ${weightG}g` : ''}
+              </Text>
+            </View>
+          ) : (
+            /* ── WEIGHT (GRAMS) MODE ── */
             <View style={styles.portionInputWrap}>
               <Text style={styles.subLabel}>Weight in Grams (g)</Text>
               <TextInput
@@ -495,40 +663,8 @@ export default function LogFoodScreen({ navigation }) {
                   </TouchableOpacity>
                 ))}
               </View>
-              {foodMeta && (
-                <Text style={styles.metaSubText}>
-                  Based on {foodMeta.foodName || foodMeta.name} ({foodMeta.per100g.calories} kcal / 100g)
-                </Text>
-              )}
-            </View>
-          ) : (
-            <View style={styles.portionInputWrap}>
-              <Text style={styles.subLabel}>
-                Quantity ({foodMeta?.servingUnit || 'servings / pieces'})
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="1"
-                placeholderTextColor={colors.textFaint}
-                value={quantityNum}
-                onChangeText={onQuantityChange}
-                keyboardType="numeric"
-              />
-              <View style={styles.presetsRow}>
-                {['0.5', '1', '1.5', '2', '3'].map((q) => (
-                  <TouchableOpacity
-                    key={q}
-                    style={[styles.presetChip, quantityNum === q && styles.presetChipActive]}
-                    onPress={() => onQuantityChange(q)}
-                  >
-                    <Text style={[styles.presetText, quantityNum === q && styles.presetTextActive]}>
-                      {q}x
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
               <Text style={styles.metaSubText}>
-                1 {foodMeta?.servingUnit || 'serving'} = {foodMeta?.servingWeightG || 100}g (Total: {weightG}g)
+                {weightG || 0}g ≈ {quantityNum || 1} {currentUnitLabel} (1 {getUnitDisplay(foodMeta?.servingUnit, foodName || foodMeta?.name, 1)} = {singlePieceWeight}g)
               </Text>
             </View>
           )}
@@ -536,10 +672,18 @@ export default function LogFoodScreen({ navigation }) {
           {/* Real-time Result Badge */}
           {calories ? (
             <View style={styles.calcWrap}>
-              <Ionicons name="sparkles" size={14} color={colors.emerald} />
-              <Text style={styles.calcResult}>
-                {measureMode === 'weight' ? `${weightG}g` : `${quantityNum} ${servingUnit} (${weightG}g)`}: {calories} kcal · P {proteinG || 0}g · C {carbsG || 0}g · F {fatG || 0}g
-              </Text>
+              <Ionicons name="sparkles" size={15} color={colors.emerald} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.calcSub}>
+                  {measureMode === 'quantity'
+                    ? `${quantityNum || 1} ${currentUnitLabel} (${weightG || 0}g)`
+                    : `${weightG || 0}g ${foodName || foodMeta?.name || ''} (≈ ${quantityNum || 1} ${currentUnitLabel})`}
+                </Text>
+                <Text style={styles.calcResult}>
+                  {calories} kcal · P {proteinG || 0}g · C {carbsG || 0}g · F {fatG || 0}g
+                </Text>
+              </View>
+              <Ionicons name="checkmark-circle" size={16} color={colors.emerald} />
             </View>
           ) : null}
         </View>
@@ -549,7 +693,7 @@ export default function LogFoodScreen({ navigation }) {
           label="Calories (kcal) *"
           value={calories}
           onChangeText={setCalories}
-          placeholder="e.g. 165"
+          placeholder="e.g. 143"
           keyboardType="numeric"
           style={styles.fieldSpacing}
         />
@@ -644,20 +788,21 @@ const styles = StyleSheet.create({
   portionInputWrap: { marginBottom: spacing.xs },
   presetsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 6 },
   presetChip: {
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radii.sm,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: radii.sm,
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.edge,
   },
   presetChipActive: {
     backgroundColor: tint(colors.emerald, 0.2), borderColor: colors.emerald,
   },
-  presetText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+  presetText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
   presetTextActive: { color: colors.emerald, fontWeight: '700' },
   calcWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.sm,
     backgroundColor: tint(colors.emerald, 0.12), borderRadius: radii.sm,
-    paddingHorizontal: spacing.md, paddingVertical: 8, borderWidth: 1, borderColor: tint(colors.emerald, 0.25),
+    paddingHorizontal: spacing.md, paddingVertical: 10, borderWidth: 1, borderColor: tint(colors.emerald, 0.25),
   },
-  calcResult: { fontSize: 11, color: colors.emerald, fontWeight: '700', flex: 1 },
+  calcSub: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+  calcResult: { fontSize: 13, color: colors.emerald, fontWeight: '700', marginTop: 1 },
   quickRow: { marginBottom: 4 },
   quickChip: {
     backgroundColor: colors.surface, borderRadius: radii.md, padding: 10,
@@ -703,4 +848,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 1,
   },
   verifiedText: { fontSize: 9, fontWeight: '700', color: colors.emerald },
+  suggestionsContainer: { marginTop: 4, marginBottom: 8 },
+  suggestionTitle: { fontSize: 11, color: colors.textFaint, marginBottom: 4 },
+  suggestionChipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  suggestionChip: {
+    backgroundColor: tint(colors.emerald, 0.12), borderRadius: radii.xs,
+    paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: tint(colors.emerald, 0.3),
+  },
+  suggestionChipText: { fontSize: 11, color: colors.emerald, fontWeight: '600' },
 });

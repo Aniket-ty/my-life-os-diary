@@ -204,7 +204,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
             <View style={styles.emptyInner}>
               <ActivityIndicator size="large" color={colors.emerald} />
               <Text style={styles.emptyTitle}>Designing your week…</Text>
-              <Text style={styles.emptySub}>The AI is building your plan around your goals.</Text>
+              <Text style={styles.emptySub}>Building your plan around your goals.</Text>
             </View>
           </GlassCard>
         )}
@@ -264,7 +264,7 @@ export default function WorkoutPlannerScreen({ navigation }) {
                       <Ionicons name="barbell-outline" size={18} color={p.id === activePlan.id ? colors.emerald : colors.textFaint} />
                       <View style={styles.planRowInfo}>
                         <Text style={styles.planRowName} numberOfLines={1}>{p.name}</Text>
-                        <Text style={styles.planRowMeta}>{capitalize(p.goal)} · {p.daysPerWeek} days{p.generatedByAI ? ' · ✨ AI' : ''}</Text>
+                        <Text style={styles.planRowMeta}>{capitalize(p.goal)} · {p.daysPerWeek} days{p.generatedByAI ? ' · ✨ Suggested' : ''}</Text>
                       </View>
                     </View>
                     <View style={styles.planRowBtns}>

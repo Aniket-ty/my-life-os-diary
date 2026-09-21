@@ -9,13 +9,13 @@ import { expenseService } from '../services/expenseService';
 import { offlineSyncService } from '../services/offlineSyncService';
 
 const MODULES = [
-  { name: 'My Diary', description: 'Write, reflect, attach memories', icon: 'book-outline', color: colors.gold, screen: 'DiaryList' },
-  { name: 'Fitness Journal', description: 'Workouts, calories, progress', icon: 'barbell-outline', color: colors.emerald, screen: 'FitnessList' },
-  { name: 'Workout Planner', description: 'Weekly AI-designed schedule', icon: 'calendar-outline', color: colors.teal, screen: 'WorkoutPlanner' },
-  { name: 'AI Assistant', description: 'Chat about food, exercise & more', icon: 'sparkles-outline', color: colors.violet, screen: 'AIChat' },
-  { name: 'To-Do & Reminders', description: 'Tasks, goals, daily habits', icon: 'checkbox-outline', color: colors.sky, screen: 'TodoList' },
-  { name: 'Body Scan', description: 'Track weight, fat & muscle', icon: 'scan-outline', color: colors.rose, screen: 'BodyScan' },
-  { name: 'Expense & Splitwise', description: 'Spending, bills & group splits', icon: 'wallet-outline', color: colors.violet, screen: 'ExpenseList' },
+  { name: 'Diary', description: 'Thoughts, moods & moments', icon: 'book-outline', screen: 'DiaryList' },
+  { name: 'Fitness', description: 'Workouts, food & progress', icon: 'barbell-outline', screen: 'FitnessList' },
+  { name: 'Workout Plan', description: 'Your weekly schedule', icon: 'calendar-outline', screen: 'WorkoutPlanner' },
+  { name: 'Coach', description: 'Ask anything, act faster', icon: 'sparkles-outline', screen: 'AIChat' },
+  { name: 'To-Do', description: 'Tasks, priorities & habits', icon: 'checkbox-outline', screen: 'TodoList' },
+  { name: 'Body Scan', description: 'Track your progress', icon: 'scan-outline', screen: 'BodyScan' },
+  { name: 'Expenses', description: 'Spending, splits & receipts', icon: 'wallet-outline', screen: 'ExpenseList' },
 ];
 
 export default function HomeScreen({ navigation }) {
@@ -100,36 +100,36 @@ export default function HomeScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.greeting}>{greeting.toUpperCase()}</Text>
               <Text style={styles.name}>
-                {user?.name?.split(' ')[0] || 'Friend'}, welcome back 👋
+                {user?.name?.split(' ')[0] || 'Friend'}, welcome back
               </Text>
               <Text style={styles.subtitle}>
-                Here's your Life OS at a glance — every module is synced to your cloud.
+                Everything in one place — pick up right where you left off.
               </Text>
 
               {/* Real-time Cloud Sync / Offline Status */}
               <View style={styles.syncStatusRow}>
                 {!isOnline ? (
-                  <View style={styles.offlineBadge}>
+                  <View style={styles.statusBadge}>
                     <Ionicons name="cloud-offline-outline" size={13} color={colors.amber} />
-                    <Text style={styles.offlineBadgeText}>
+                    <Text style={[styles.statusBadgeText, { color: colors.amber }]}>
                       Offline Mode {pendingSyncCount > 0 ? `(${pendingSyncCount} saved)` : ''}
                     </Text>
                   </View>
                 ) : pendingSyncCount > 0 ? (
                   <TouchableOpacity
                     onPress={checkSyncStatus}
-                    style={styles.syncingBadge}
+                    style={styles.statusBadge}
                     activeOpacity={0.8}
                   >
                     <Ionicons name="sync-outline" size={13} color={colors.sky} />
-                    <Text style={styles.syncingBadgeText}>
+                    <Text style={[styles.statusBadgeText, { color: colors.sky }]}>
                       Syncing {pendingSyncCount} items...
                     </Text>
                   </TouchableOpacity>
                 ) : (
-                  <View style={styles.syncedBadge}>
-                    <View style={styles.syncedDot} />
-                    <Text style={styles.syncedBadgeText}>Cloud Synced</Text>
+                  <View style={styles.statusBadge}>
+                    <View style={[styles.syncedDot, { backgroundColor: colors.volt }]} />
+                    <Text style={[styles.statusBadgeText, { color: colors.textMuted }]}>Cloud Synced</Text>
                   </View>
                 )}
               </View>
@@ -140,9 +140,9 @@ export default function HomeScreen({ navigation }) {
                 style={[styles.actionHeaderBtn, styles.voiceBtn]}
                 onPress={() => navigation.navigate('VoiceAssistant')}
                 activeOpacity={0.8}
-                accessibilityLabel="Voice AI Assistant"
+                accessibilityLabel="Voice Assistant"
               >
-                <Ionicons name="mic" size={19} color={colors.violet} />
+                <Ionicons name="mic" size={19} color={colors.volt400} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -173,27 +173,22 @@ export default function HomeScreen({ navigation }) {
           </View>
         </GlassCard>
 
-        {/* Global Voice AI Quick-Access Pill */}
+        {/* Voice Assistant Quick-Access */}
         <TouchableOpacity
           style={styles.voiceAiBanner}
           onPress={() => navigation.navigate('VoiceAssistant')}
           activeOpacity={0.85}
         >
           <View style={styles.voiceAiIconBox}>
-            <Ionicons name="sparkles" size={18} color={colors.white} />
+            <Ionicons name="mic" size={18} color={colors.void} />
           </View>
           <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.voiceAiTitle}>Universal Voice Assistant</Text>
-              <View style={styles.voiceLivePill}>
-                <Text style={styles.voiceLiveText}>AI ACTIVE</Text>
-              </View>
-            </View>
+            <Text style={styles.voiceAiTitle}>Voice Assistant</Text>
             <Text style={styles.voiceAiSubtitle}>
-              Tap to navigate, create tasks, contact friends, or log bills anywhere
+              Navigate, create tasks, or log bills by speaking
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.violet} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Your modules</Text>
@@ -201,12 +196,12 @@ export default function HomeScreen({ navigation }) {
           {MODULES.map((mod) => (
             <TouchableOpacity
               key={mod.name}
-              style={[styles.card, { borderColor: tint(mod.color, 0.25), backgroundColor: tint(mod.color, 0.08) }]}
+              style={styles.card}
               onPress={() => navigation.navigate(mod.screen)}
               activeOpacity={0.85}
             >
-              <View style={[styles.iconCircle, { backgroundColor: tint(mod.color, 0.18) }]}>
-                <Ionicons name={mod.icon} size={24} color={mod.color} />
+              <View style={styles.iconCircle}>
+                <Ionicons name={mod.icon} size={22} color={colors.volt400} />
               </View>
               <View style={styles.cardText}>
                 <Text style={styles.cardName}>{mod.name}</Text>
@@ -217,7 +212,7 @@ export default function HomeScreen({ navigation }) {
           ))}
         </View>
 
-        <GlassCard style={[styles.quoteCard, { borderLeftColor: colors.mint }]}>
+        <GlassCard style={styles.quoteCard}>
           <Text style={styles.quoteText}>"The secret of getting ahead is getting started."</Text>
           <Text style={styles.quoteAuthor}>— Mark Twain</Text>
         </GlassCard>
@@ -226,10 +221,10 @@ export default function HomeScreen({ navigation }) {
       {/* Notification Center Modal */}
       <Modal visible={notifModalVisible} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
-          <GlassCard style={styles.notifModalCard}>
+          <GlassCard style={styles.notifModalCard} strong={false}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="notifications" size={20} color={colors.violet} />
+                <Ionicons name="notifications" size={20} color={colors.volt400} />
                 <Text style={styles.modalTitle}>Notifications</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -280,7 +275,7 @@ export default function HomeScreen({ navigation }) {
                           ? { backgroundColor: tint(colors.emerald, 0.15) }
                           : n.type === 'invite'
                           ? { backgroundColor: tint(colors.amber, 0.15) }
-                          : { backgroundColor: tint(colors.violet, 0.15) },
+                          : { backgroundColor: tint(colors.volt, 0.15) },
                       ]}
                     >
                       <Ionicons
@@ -299,7 +294,7 @@ export default function HomeScreen({ navigation }) {
                             ? colors.emerald
                             : n.type === 'invite'
                             ? colors.amber
-                            : colors.violet
+                            : colors.volt400
                         }
                       />
                     </View>
@@ -310,7 +305,7 @@ export default function HomeScreen({ navigation }) {
                         {new Date(n.createdAt).toLocaleDateString()} • {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     </View>
-                    {!n.isRead && <View style={styles.unreadDot} />}
+                    {!n.isRead && <View style={[styles.unreadDot, { backgroundColor: colors.volt }]} />}
                   </TouchableOpacity>
                 ))
               )}
@@ -326,7 +321,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 60 },
   hero: { marginBottom: 14 },
   heroRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  greeting: { fontSize: 12, fontWeight: '700', letterSpacing: 2, color: colors.violet },
+  greeting: { fontSize: 12, fontWeight: '700', letterSpacing: 2, color: colors.volt400 },
   name: { ...typ.h1, marginTop: 4, fontSize: 26 },
   subtitle: { ...typ.bodyMuted, marginTop: 6, lineHeight: 20 },
   syncStatusRow: {
@@ -334,59 +329,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  offlineBadge: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: tint(colors.amber, 0.15),
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: tint(colors.amber, 0.3),
+    borderColor: colors.edge,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: radii.full,
+    borderRadius: radii.pill,
   },
-  offlineBadgeText: {
+  statusBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.amber,
-  },
-  syncingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: tint(colors.sky, 0.15),
-    borderWidth: 1,
-    borderColor: tint(colors.sky, 0.3),
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radii.full,
-  },
-  syncingBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.sky,
-  },
-  syncedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: tint(colors.emerald, 0.12),
-    borderWidth: 1,
-    borderColor: tint(colors.emerald, 0.25),
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radii.full,
   },
   syncedDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.emerald,
-  },
-  syncedBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.emerald,
   },
   headerActions: {
     flexDirection: 'row',
@@ -399,14 +360,14 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.edge,
     position: 'relative',
   },
   voiceBtn: {
-    backgroundColor: tint(colors.violet, 0.15),
-    borderColor: tint(colors.violet, 0.35),
+    backgroundColor: tint(colors.volt, 0.12),
+    borderColor: tint(colors.volt, 0.3),
   },
   badge: {
     position: 'absolute',
@@ -429,18 +390,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: tint(colors.violet, 0.12),
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: tint(colors.violet, 0.3),
+    borderColor: colors.edge,
     borderRadius: radii.xl,
     padding: 14,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   voiceAiIconBox: {
     width: 38,
     height: 38,
     borderRadius: radii.lg,
-    backgroundColor: colors.violet,
+    backgroundColor: colors.volt500,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -448,18 +409,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.white,
-  },
-  voiceLivePill: {
-    backgroundColor: tint(colors.emerald, 0.2),
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.full,
-  },
-  voiceLiveText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.emerald,
-    letterSpacing: 0.5,
   },
   voiceAiSubtitle: {
     fontSize: 11,
@@ -474,13 +423,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radii.xl,
     borderWidth: 1,
+    borderColor: colors.edge,
+    backgroundColor: colors.card,
     padding: 16,
     gap: 14,
   },
   iconCircle: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
     borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.edge,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -489,8 +443,6 @@ const styles = StyleSheet.create({
   cardDesc: { fontSize: 13, color: colors.textMuted },
   quoteCard: {
     marginTop: 24,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.mint,
   },
   quoteText: { fontSize: 14, color: colors.textSoft, fontStyle: 'italic', lineHeight: 22, marginBottom: 8 },
   quoteAuthor: { fontSize: 12, color: colors.textFaint, fontWeight: '600' },
@@ -508,7 +460,7 @@ const styles = StyleSheet.create({
     maxHeight: '75%',
     backgroundColor: colors.card,
     borderTopWidth: 1,
-    borderColor: overlays.border,
+    borderColor: colors.edge,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -523,9 +475,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radii.md,
-    backgroundColor: tint(colors.violet, 0.15),
+    backgroundColor: tint(colors.volt, 0.15),
   },
-  markAllText: { fontSize: 11, fontWeight: '700', color: colors.violet },
+  markAllText: { fontSize: 11, fontWeight: '700', color: colors.volt400 },
   closeBtn: {
     width: 32,
     height: 32,
@@ -547,7 +499,7 @@ const styles = StyleSheet.create({
     borderBottomColor: overlays.faint,
   },
   notifItemUnread: {
-    backgroundColor: tint(colors.violet, 0.08),
+    backgroundColor: tint(colors.volt, 0.07),
     borderRadius: radii.md,
     paddingHorizontal: 8,
   },
@@ -567,8 +519,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.violet,
     marginTop: 6,
   },
 });
-

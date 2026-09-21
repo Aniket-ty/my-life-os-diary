@@ -5,7 +5,6 @@ export function PageHeader({
   title,
   subtitle,
   icon,
-  accent = 'from-violet-brand to-indigo-500',
   action,
 }: {
   title: string
@@ -23,14 +22,12 @@ export function PageHeader({
     >
       <div className="flex items-center gap-4">
         {icon && (
-          <div
-            className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${accent} shadow-lg`}
-          >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-edge bg-surface text-volt-400">
             {icon}
           </div>
         )}
         <div>
-          <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">{title}</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">{title}</h1>
           {subtitle && <p className="mt-0.5 text-sm text-slate-400">{subtitle}</p>}
         </div>
       </div>
@@ -58,7 +55,7 @@ export function ProgressBar({
         className={`${height} ${color} rounded-full transition-all duration-700 ease-out`}
         style={{
           width: `${pct}%`,
-          boxShadow: over ? '0 0 12px rgba(244,63,94,0.7)' : '0 0 12px rgba(126,232,195,0.35)',
+          boxShadow: over ? '0 0 12px rgba(220,95,115,0.5)' : '0 0 10px rgba(193,235,92,0.3)',
         }}
       />
     </div>

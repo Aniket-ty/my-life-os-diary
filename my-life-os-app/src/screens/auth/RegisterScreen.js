@@ -39,7 +39,7 @@ export default function RegisterScreen({ navigation }) {
       >
         <View style={styles.hero}>
           <View style={styles.logo}>
-            <Ionicons name="command-outline" size={30} color={colors.white} />
+            <Ionicons name="command-outline" size={30} color={colors.void} />
           </View>
           <Text style={[typ.display, styles.title]}>Create account</Text>
           <Text style={styles.tagline}>Get started with My Life OS</Text>
@@ -100,7 +100,7 @@ export default function RegisterScreen({ navigation }) {
         <View style={styles.footer}>
           <View style={styles.chip}>
             <Ionicons name="sparkles-outline" size={13} color={colors.violet} />
-            <Text style={styles.chipText}>AI Coach</Text>
+            <Text style={styles.chipText}>Coach</Text>
           </View>
           <View style={styles.dot} />
           <View style={styles.chip}>
@@ -132,10 +132,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: tint(colors.violet, 0.28),
+    backgroundColor: colors.volt500,
     borderWidth: 1,
-    borderColor: tint(colors.indigo, 0.45),
-    ...shadow.glow(colors.violet),
+    borderColor: tint(colors.volt, 0.5),
+    ...shadow.glow(colors.volt),
   },
   title: { textAlign: 'center', marginTop: spacing.lg },
   tagline: { ...typ.bodyMuted, textAlign: 'center', marginTop: spacing.sm },

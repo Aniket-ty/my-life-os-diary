@@ -192,8 +192,8 @@ export function ExpenseDashboard() {
   return (
     <div className="min-h-screen pb-24 lg:pb-12">
       <PageHeader
-        title="Expense OS"
-        subtitle="Personal spending, Splitwise groups, and OCR bill scanner"
+        title="Expenses"
+        subtitle="Spending, group splits, and bill scanner"
         icon={<Wallet />}
         action={
           <div className="flex gap-2">
@@ -257,7 +257,7 @@ export function ExpenseDashboard() {
         <div className="mb-6 flex border-b border-white/10 gap-8 text-sm font-semibold">
           {[
             { id: 'expenses', label: 'Personal & All Expenses', icon: Wallet },
-            { id: 'groups', label: 'Splitwise Groups', icon: Users },
+            { id: 'groups', label: 'Group Splits', icon: Users },
             { id: 'scanner', label: 'Scanned Bills', icon: Receipt },
             { id: 'reports', label: 'Analytics & Reports', icon: BarChart3 },
           ].map((tab) => (
@@ -424,7 +424,7 @@ export function ExpenseDashboard() {
           </div>
         )}
 
-        {/* TAB 2: SPLITWISE GROUPS */}
+        {/* TAB 2: GROUP SPLITS */}
         {activeTab === 'groups' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -504,7 +504,7 @@ export function ExpenseDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-bold text-white">Scanned Receipts</h3>
-                <p className="text-xs text-slate-400">AI-extracted bills with item-level splitting</p>
+                <p className="text-xs text-slate-400">Auto-extracted bills with item-level splitting</p>
               </div>
               <Button onClick={() => setIsScanModalOpen(true)}>
                 <Camera size={16} className="mr-1.5" /> Scan New Bill

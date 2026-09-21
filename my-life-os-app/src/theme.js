@@ -2,50 +2,57 @@
 // Keep this in sync with the web app so mobile and web feel identical.
 
 export const colors = {
-  // Surfaces
-  void: '#07070d',
-  abyss: '#0b0b14',
-  surface: '#111122',
-  card: '#151529',
-  cardHover: '#1a1a33',
-  edge: '#26264a',
+  // Minimal neutral surfaces
+  void: '#090b0d',
+  abyss: '#0d1013',
+  surface: '#12161a',
+  card: '#171c21',
+  cardHover: '#1d242c',
+  edge: '#232b33',
+  edgeStrong: '#2e3842',
 
-  // Brand accents
-  gold: '#f5a623',
-  gold400: '#f7b14b',
-  gold300: '#f9c477',
-  mint: '#7ee8c3',
-  mint300: '#9fe1cb',
-  violet: '#9b59b6',
-  indigo: '#6366f1',
+  // Volt accent — single energetic green used across the OS
+  volt: '#cdf654',
+  volt300: '#e9ffab',
+  volt400: '#d6f977',
+  volt500: '#c1eb5c',
 
-  // Module accents (match web Dashboard gradients)
-  emerald: '#34d399',
-  teal: '#2dd4bf',
-  amber: '#f59e0b',
-  orange: '#fb923c',
-  rose: '#f43f5e',
-  red: '#ef4444',
-  sky: '#38bdf8',
-  blue: '#3b82f6',
-  purple: '#a855f7',
+  // Legacy accent aliases (kept so screens stay functional)
+  gold: '#c1eb5c',
+  gold400: '#d6f977',
+  gold300: '#e9ffab',
+  mint: '#8fdfc0',
+  mint300: '#bff1d8',
+  violet: '#cdf654',
+  indigo: '#8a7bd8',
+
+  // Muted status palette (match web @theme)
+  emerald: '#4db18b',
+  teal: '#31bfae',
+  amber: '#e8b45b',
+  orange: '#e89358',
+  rose: '#ea7d8e',
+  red: '#cf4d56',
+  sky: '#4da7e8',
+  blue: '#5b8fe8',
+  purple: '#ab7fe6',
 
   // Text
-  text: '#e8e8f0',
-  textSoft: '#cbd5e1', // slate-300
-  textMuted: '#94a3b8', // slate-400
-  textFaint: '#64748b', // slate-500
+  text: '#e7eaf0',
+  textSoft: '#c5cbd4',
+  textMuted: '#8f99a3',
+  textFaint: '#5f6a74',
   white: '#ffffff',
 };
 
-// Translucent overlays (web uses white/[0.04], white/10, etc.)
+// Translucent overlays (web uses surface/card tonal equivalents)
 export const overlays = {
   faint: 'rgba(255,255,255,0.04)',
   soft: 'rgba(255,255,255,0.06)',
   mid: 'rgba(255,255,255,0.08)',
   strong: 'rgba(255,255,255,0.10)',
-  border: 'rgba(255,255,255,0.10)',
-  borderSoft: 'rgba(255,255,255,0.08)',
+  border: '#232b33',
+  borderSoft: '#1e252c',
 };
 
 export const spacing = {
@@ -71,7 +78,7 @@ export const radii = {
 export const type = {
   display: { fontSize: 26, fontWeight: '800', color: colors.white, letterSpacing: -0.4 },
   h1: { fontSize: 22, fontWeight: '800', color: colors.white, letterSpacing: -0.3 },
-  h2: { fontSize: 18, fontWeight: '700', color: colors.white },
+  h2: { fontSize: 18, fontWeight: '700', color: colors.white, letterSpacing: -0.2 },
   h3: { fontSize: 16, fontWeight: '600', color: colors.white },
   body: { fontSize: 14, color: colors.text },
   bodyMuted: { fontSize: 13, color: colors.textMuted },
@@ -86,18 +93,18 @@ export const type = {
   },
 };
 
-// Glassmorphism backgrounds (no blur on native; tuned to read the same)
+// Clean hairline card surfaces (no glass blur on native; matches web)
 export const glass = {
-  backgroundColor: 'rgba(255,255,255,0.045)',
+  backgroundColor: colors.card,
   borderWidth: 1,
-  borderColor: overlays.borderSoft,
+  borderColor: colors.edge,
   borderRadius: radii.xl,
 };
 
 export const glassStrong = {
-  backgroundColor: 'rgba(21,21,41,0.92)',
+  backgroundColor: colors.surface,
   borderWidth: 1,
-  borderColor: 'rgba(255,255,255,0.09)',
+  borderColor: colors.edge,
   borderRadius: radii.xxl,
 };
 
@@ -114,16 +121,16 @@ export const tint = (hex, alpha = 0.15) => {
 export const shadow = {
   card: {
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
   glow: (hex) => ({
     shadowColor: hex,
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   }),
 };
