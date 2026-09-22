@@ -2,40 +2,40 @@
 // Keep this in sync with the web app so mobile and web feel identical.
 
 export const colors = {
-  // Minimal neutral surfaces
-  void: '#090b0d',
-  abyss: '#0d1013',
-  surface: '#12161a',
-  card: '#171c21',
-  cardHover: '#1d242c',
-  edge: '#232b33',
-  edgeStrong: '#2e3842',
+  // Minimal neutral surfaces — deep obsidian slate
+  void: '#090a10',
+  abyss: '#0e1017',
+  surface: '#131722',
+  card: '#181d2b',
+  cardHover: '#202738',
+  edge: '#262e42',
+  edgeStrong: '#333d57',
 
-  // Volt accent — single energetic green used across the OS
-  volt: '#cdf654',
-  volt300: '#e9ffab',
-  volt400: '#d6f977',
-  volt500: '#c1eb5c',
+  // Primary Accent — Electric Indigo / Royal Iris
+  volt: '#6366f1',
+  volt300: '#c7d2fe',
+  volt400: '#818cf8',
+  volt500: '#4f46e5',
 
-  // Legacy accent aliases (kept so screens stay functional)
-  gold: '#c1eb5c',
-  gold400: '#d6f977',
-  gold300: '#e9ffab',
-  mint: '#8fdfc0',
-  mint300: '#bff1d8',
-  violet: '#cdf654',
-  indigo: '#8a7bd8',
+  // Legacy accent aliases (harmonized with theme)
+  gold: '#f59e0b',
+  gold400: '#fbbf24',
+  gold300: '#fde68a',
+  mint: '#38bdf8',
+  mint300: '#7dd3fc',
+  violet: '#8b5cf6',
+  indigo: '#6366f1',
 
   // Muted status palette (match web @theme)
-  emerald: '#4db18b',
-  teal: '#31bfae',
-  amber: '#e8b45b',
-  orange: '#e89358',
-  rose: '#ea7d8e',
-  red: '#cf4d56',
-  sky: '#4da7e8',
-  blue: '#5b8fe8',
-  purple: '#ab7fe6',
+  emerald: '#10b981',
+  teal: '#14b8a6',
+  amber: '#f59e0b',
+  orange: '#f97316',
+  rose: '#f43f5e',
+  red: '#ef4444',
+  sky: '#38bdf8',
+  blue: '#3b82f6',
+  purple: '#a855f7',
 
   // Text
   text: '#e7eaf0',
@@ -51,8 +51,8 @@ export const overlays = {
   soft: 'rgba(255,255,255,0.06)',
   mid: 'rgba(255,255,255,0.08)',
   strong: 'rgba(255,255,255,0.10)',
-  border: '#232b33',
-  borderSoft: '#1e252c',
+  border: '#262e42',
+  borderSoft: '#202738',
 };
 
 export const spacing = {

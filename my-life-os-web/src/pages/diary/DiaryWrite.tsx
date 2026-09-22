@@ -34,6 +34,10 @@ interface PendingFile {
 
 type InputMode = 'type' | 'stylus' | 'mixed'
 
+function isDrawingAttachment(a: { fileName?: string | null }): boolean {
+  return !!a.fileName && a.fileName.toLowerCase().startsWith('handwriting_')
+}
+
 export function DiaryWrite() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -46,6 +50,7 @@ export function DiaryWrite() {
   const [picked, setPicked] = useState<PendingFile[]>([])
   const [date, setDate] = useState(toISODate(new Date()))
   const [saving, setSaving] = useState(false)
+  const [existingDrawing, setExistingDrawing] = useState<{ id: string; url: string } | null>(null)
   const canvasRef = useRef<HandwritingCanvasHandle>(null)
 
   const isEdit = Boolean(id)
@@ -62,6 +67,12 @@ export function DiaryWrite() {
         setMood((entry.mood as Mood | null) || null)
         setPinned(entry.isPinned)
         setDate(toISODate(entry.entryDate))
+        // Load existing pen drawing as the editable image base layer
+        const drawing = (entry.attachments || []).find((a) => isDrawingAttachment(a))
+        setExistingDrawing(drawing ? { id: drawing.id, url: drawing.cloudinaryUrl } : null)
+        if (drawing) {
+          setInputMode(entry.content?.trim() ? 'mixed' : 'stylus')
+        }
       })
       .catch((err) => {
         if (!cancelled) toast(err instanceof Error ? err.message : 'Could not load entry', 'error')
@@ -77,33 +88,10 @@ export function DiaryWrite() {
     }
 
     setSaving(true)
-    let finalContent = content.trim()
     try {
-      // Convert handwritten ink to editable text instead of saving an image
-      let handwritingText = ''
-      if (drawingBlob) {
-        try {
-          const recognized = await diaryService.recognizeHandwriting(drawingBlob)
-          handwritingText = recognized?.text?.trim() || ''
-        } catch {
-          handwritingText = ''
-        }
-      }
-
-      finalContent = content.trim()
-        ? handwritingText
-          ? `${content.trim()}\n\n${handwritingText}`
-          : content.trim()
-        : handwritingText
-
-      if (!finalContent) {
-        toast('Could not read your handwriting. Please type your entry or try again.', 'error')
-        return
-      }
-
       const entryData = {
         title: title.trim() || undefined,
-        content: finalContent,
+        content: content.trim(),
         mood: mood ?? undefined,
         entryDate: date,
         isPinned: pinned,
@@ -115,6 +103,31 @@ export function DiaryWrite() {
         entry = await diaryService.create(entryData)
       }
 
+      // Save the pen drawing as an image attachment (no text conversion).
+      // On edit, the previous drawing image is replaced with the new one.
+      if (drawingBlob) {
+        if (existingDrawing) {
+          try {
+            await diaryService.deleteMedia(entry.id, existingDrawing.id)
+          } catch {
+            // ignore — best effort cleanup
+          }
+        }
+        try {
+          const file = new File([drawingBlob], `handwriting_${Date.now()}.png`, { type: 'image/png' })
+          await diaryService.uploadMedia(entry.id, file, 'photo')
+        } catch {
+          toast('Entry saved, but your drawing could not be uploaded', 'error')
+        }
+      } else if (existingDrawing) {
+        // Canvas was cleared — remove the old drawing
+        try {
+          await diaryService.deleteMedia(entry.id, existingDrawing.id)
+        } catch {
+          // ignore
+        }
+      }
+
       for (const p of picked) {
         try {
           await diaryService.uploadMedia(entry.id, p.file, p.type)
@@ -123,15 +136,12 @@ export function DiaryWrite() {
         }
       }
       toast(isEdit ? 'Entry updated' : 'Entry saved to your journal')
-      if (drawingBlob && !handwritingText) {
-        toast('Entry saved, but your handwriting could not be transcribed', 'error')
-      }
       navigate(`/diary/${entry.id}`)
     } catch (err) {
       if (!isEdit) {
         offlineSync.queueDiaryEntry({
           title: title.trim() || undefined,
-          content: finalContent,
+          content: content.trim(),
           mood: mood ?? undefined,
           entryDate: date,
           isPinned: pinned,
@@ -330,6 +340,7 @@ export function DiaryWrite() {
                 <HandwritingCanvas
                   ref={canvasRef}
                   height={inputMode === 'stylus' ? 520 : 360}
+                  initialImageUrl={existingDrawing?.url}
                 />
               </motion.div>
             )}

@@ -1,7 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CalendarDays, Mic, WifiOff, RefreshCw, Zap } from 'lucide-react'
+import { CalendarDays, Sparkles, WifiOff, RefreshCw, Zap } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { VoiceCommandBar } from '@/components/expenses/VoiceCommandBar'
@@ -78,13 +78,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </motion.p>
               </AnimatePresence>
               <div className="flex items-center gap-3">
-                {/* Voice Assistant Header Trigger — Available across all modules */}
+                {/* AI Assistant Header Trigger — Available across all modules */}
                 <button
                   onClick={() => setTriggerVoice(true)}
-                  className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-edge bg-surface text-volt-400 transition-colors hover:border-edge-strong hover:bg-card-hover"
-                  title="Voice Assistant (All Modules)"
+                  className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-edge bg-surface text-volt-300 transition-all hover:border-volt-500/40 hover:bg-card-hover hover:text-volt-200"
+                  title="AI Assistant (Search, Coach & Voice)"
                 >
-                  <Mic size={18} />
+                  <Sparkles size={18} className="text-volt-400" />
                 </button>
 
                 <NotificationBell />
@@ -133,9 +133,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* Global Multi-Module Voice Assistant */}
+      {/* Global Multi-Module Voice & AI Assistant */}
       <VoiceCommandBar
-        triggerListening={triggerVoice}
+        triggerOpen={triggerVoice}
         onResetTrigger={() => setTriggerVoice(false)}
       />
     </div>

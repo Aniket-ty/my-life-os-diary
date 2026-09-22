@@ -4,9 +4,9 @@ import {
   StyleSheet, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { useDiaryStore } from '../../stores/diaryStore';
-import { diaryAPI } from '../../services/diaryService';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { File, Paths } from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import AttachmentStrip from '../../components/diary/AttachmentStrip';
@@ -29,7 +29,7 @@ const MOODS = [
 export default function DiaryWriteScreen({ navigation, route }) {
   const { mode, id } = route.params || {};
   const isEdit = mode === 'edit' && !!id;
-  const { createEntry, updateEntry, fetchEntry, uploadMedia } = useDiaryStore();
+  const { createEntry, updateEntry, fetchEntry, uploadMedia, deleteMedia } = useDiaryStore();
 
   const [inputMode, setInputMode] = useState('type');
   const [title, setTitle] = useState('');
@@ -38,8 +38,20 @@ export default function DiaryWriteScreen({ navigation, route }) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [existingDrawing, setExistingDrawing] = useState(null);
   const canvasRef = useRef(null);
   const scrollRef = useRef(null);
+
+  const isDrawingAttachment = (a) =>
+    !!a && !!a.fileName && a.fileName.toLowerCase().startsWith('handwriting_');
+
+  const writeDrawingToCache = async (base64) => {
+    const file = new File(Paths.cache, `handwriting_${Date.now()}.png`);
+    file.create();
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    file.write(bytes);
+    return file.uri;
+  };
 
   useEffect(() => {
     if (!isEdit) return;
@@ -52,10 +64,17 @@ export default function DiaryWriteScreen({ navigation, route }) {
         setTitle(entry.title || '');
         setContent(entry.content || '');
         setMood(entry.mood || null);
-        setPendingAttachments((entry.attachments || []).map((a) => ({
-          id: a.id, uri: a.cloudinaryUrl, cloudinaryUrl: a.cloudinaryUrl,
-          type: a.mediaType, name: a.fileName || '',
-        })));
+        const drawing = (entry.attachments || []).find((a) => isDrawingAttachment(a));
+        setExistingDrawing(drawing ? { id: drawing.id, uri: drawing.cloudinaryUrl } : null);
+        if (drawing) {
+          setInputMode((entry.content || '').trim() ? 'mixed' : 'stylus');
+        }
+        setPendingAttachments((entry.attachments || [])
+          .filter((a) => !isDrawingAttachment(a))
+          .map((a) => ({
+            id: a.id, uri: a.cloudinaryUrl, cloudinaryUrl: a.cloudinaryUrl,
+            type: a.mediaType, name: a.fileName || '',
+          })));
       } catch {
         if (!cancelled) Alert.alert('Error', 'Could not load entry.');
       } finally {
@@ -148,31 +167,9 @@ export default function DiaryWriteScreen({ navigation, route }) {
 
     setSaving(true);
     try {
-      // Convert handwritten ink to editable text instead of saving an image
-      let recognizedText = '';
-      if (drawingPng) {
-        try {
-          const recognized = await diaryAPI.recognizeHandwriting(drawingPng.base64, drawingPng.mimeType);
-          recognizedText = (recognized?.text || '').trim();
-        } catch {
-          recognizedText = '';
-        }
-      }
-
-      const finalContent = content.trim()
-        ? recognizedText
-          ? `${content.trim()}\n\n${recognizedText}`
-          : content.trim()
-        : recognizedText;
-
-      if (!finalContent) {
-        Alert.alert('Could not read handwriting', 'Please type your entry or try again.');
-        return;
-      }
-
       const entryData = {
         title: title.trim() || null,
-        content: finalContent,
+        content: content.trim(),
         mood,
         entryDate: moment().format('YYYY-MM-DD'),
       };
@@ -181,16 +178,36 @@ export default function DiaryWriteScreen({ navigation, route }) {
         ? await updateEntry(id, entryData)
         : await createEntry(entryData);
 
+      // Save the pen drawing as an image attachment (no text conversion).
+      // On edit, the previous drawing image is replaced with the new one.
       if (entry?.id) {
+        if (drawingPng) {
+          if (existingDrawing) {
+            await deleteMedia(entry.id, existingDrawing.id);
+          }
+          try {
+            const drawingUri = await writeDrawingToCache(drawingPng.base64);
+            await uploadMedia(
+              entry.id,
+              drawingUri,
+              'photo',
+              `handwriting_${Date.now()}.png`,
+              'image/png',
+            );
+          } catch {
+            if (!isEdit) Alert.alert('Almost there', 'Entry saved, but your drawing could not be uploaded.');
+          }
+        } else if (existingDrawing) {
+          // Canvas was cleared — remove the old drawing
+          await deleteMedia(entry.id, existingDrawing.id);
+        }
+
         const newAttachments = pendingAttachments.filter((a) => !a.id);
         for (const att of newAttachments) {
           await uploadMedia(entry.id, att.uri, att.type, att.name, att.mimeType);
         }
       }
 
-      if (drawingPng && !recognizedText) {
-        Alert.alert('Almost there', 'Entry saved, but your handwriting could not be converted to text.');
-      }
       navigation.goBack();
     } catch (e) {
       Alert.alert('Error', 'Could not save entry. Please try again.');
@@ -293,6 +310,7 @@ export default function DiaryWriteScreen({ navigation, route }) {
                 <MobileHandwritingCanvas
                   ref={canvasRef}
                   height={inputMode === 'stylus' ? 420 : 280}
+                  imageUri={existingDrawing?.uri}
                 />
               </View>
             )}

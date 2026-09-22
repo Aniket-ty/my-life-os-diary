@@ -96,9 +96,9 @@ export const useDiaryStore = create((set, get) => ({
     }
   },
 
-  uploadMedia: async (entryId, fileUri, mediaType, fileName) => {
+  uploadMedia: async (entryId, fileUri, mediaType, fileName, mimeType = null) => {
     try {
-      const attachment = await diaryAPI.uploadMedia(entryId, fileUri, mediaType, fileName);
+      const attachment = await diaryAPI.uploadMedia(entryId, fileUri, mediaType, fileName, mimeType);
       set((state) => ({
         entries: state.entries.map((e) =>
           e.id === entryId
@@ -110,6 +110,24 @@ export const useDiaryStore = create((set, get) => ({
           : state.currentEntry,
       }));
       return attachment;
+    } catch (e) {
+      set({ error: e.message });
+    }
+  },
+
+  deleteMedia: async (entryId, mediaId) => {
+    try {
+      await diaryAPI.deleteMedia(entryId, mediaId);
+      set((state) => ({
+        entries: state.entries.map((e) =>
+          e.id === entryId
+            ? { ...e, attachments: (e.attachments || []).filter((a) => a.id !== mediaId) }
+            : e
+        ),
+        currentEntry: state.currentEntry?.id === entryId
+          ? { ...state.currentEntry, attachments: (state.currentEntry.attachments || []).filter((a) => a.id !== mediaId) }
+          : state.currentEntry,
+      }));
     } catch (e) {
       set({ error: e.message });
     }

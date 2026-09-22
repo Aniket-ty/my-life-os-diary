@@ -8,10 +8,7 @@ import { DiaryList } from '@/pages/diary/DiaryList'
 import { DiaryWrite } from '@/pages/diary/DiaryWrite'
 import { DiaryView } from '@/pages/diary/DiaryView'
 import { Fitness } from '@/pages/fitness/Fitness'
-import { WorkoutPlanner } from '@/pages/fitness/WorkoutPlanner'
-import { AIChat } from '@/pages/ai/AIChat'
 import { TodoPage } from '@/pages/todo/TodoPage'
-import { BodyScanPage } from '@/pages/bodyscan/BodyScanPage'
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { ExpenseDashboard } from '@/pages/expenses/ExpenseDashboard'
@@ -46,10 +43,10 @@ function ProtectedRoutes() {
         <Route path="/diary/write/:id" element={<DiaryWrite />} />
         <Route path="/diary/:id" element={<DiaryView />} />
         <Route path="/fitness" element={<Fitness />} />
-        <Route path="/fitness/planner" element={<WorkoutPlanner />} />
-        <Route path="/ai" element={<AIChat />} />
+        <Route path="/fitness/planner" element={<Navigate to="/fitness?tab=planner" replace />} />
+        <Route path="/ai" element={<Navigate to="/fitness" replace />} />
         <Route path="/todo" element={<TodoPage />} />
-        <Route path="/body-scan" element={<BodyScanPage />} />
+        <Route path="/body-scan" element={<Navigate to="/fitness?tab=scan" replace />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/expenses" element={<ExpenseDashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />

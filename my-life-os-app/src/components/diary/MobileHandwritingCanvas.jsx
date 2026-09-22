@@ -4,6 +4,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
   useCallback,
+  useEffect,
 } from 'react';
 import {
   View,
@@ -13,7 +14,7 @@ import {
   PanResponder,
   ScrollView,
 } from 'react-native';
-import Svg, { Path, Line, Circle, Rect } from 'react-native-svg';
+import Svg, { Path, Line, Circle, Rect, Image as SvgImage } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, tint } from '../../theme';
 
@@ -36,7 +37,7 @@ const STROKE_SIZES = {
 };
 
 export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanvas(
-  { height = 360, onStrokeChange },
+  { height = 360, onStrokeChange, imageUri },
   ref,
 ) {
   const [paths, setPaths] = useState([]);
@@ -47,6 +48,15 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
   const [sizeIdx, setSizeIdx] = useState(1);
   const [paper, setPaper] = useState('lined');
   const [canvasLayout, setCanvasLayout] = useState({ width: 340, height });
+  const [baseImageUri, setBaseImageUri] = useState(null);
+
+  // Use the provided image (existing pen drawing) as the editable base layer
+  useEffect(() => {
+    setBaseImageUri(imageUri || null);
+  }, [imageUri]);
+
+  const baseImageUriRef = useRef(null);
+  baseImageUriRef.current = baseImageUri;
 
   const activeWidth = STROKE_SIZES[tool][sizeIdx] || STROKE_SIZES[tool][1];
 
@@ -146,14 +156,15 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
     setPaths([]);
     setRedoStack([]);
     setCurrentPoints([]);
+    setBaseImageUri(null);
     onStrokeChange?.(false);
   }, [onStrokeChange]);
 
-  // Rasterize the drawing to a PNG base64 so it can be transcribed to text
+  // Rasterize the drawing (including any loaded base image) to a PNG base64
   const exportPng = useCallback(
     () =>
       new Promise((resolve) => {
-        if (paths.length === 0) {
+        if (paths.length === 0 && !baseImageUriRef.current) {
           resolve(null);
           return;
         }
@@ -180,8 +191,8 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
   );
 
   useImperativeHandle(ref, () => ({
-    hasStrokes: paths.length > 0,
-    isEmpty: () => paths.length === 0,
+    hasStrokes: paths.length > 0 || !!baseImageUriRef.current,
+    isEmpty: () => paths.length === 0 && !baseImageUriRef.current,
     clear: handleClear,
     exportPng,
   }));
@@ -317,6 +328,18 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
         <Svg ref={svgRef} width={canvasLayout.width} height={canvasLayout.height} style={StyleSheet.absoluteFill}>
           {/* Background */}
           <Rect width={canvasLayout.width} height={canvasLayout.height} fill="#12121c" />
+
+          {/* Existing pen drawing loaded as editable base layer */}
+          {baseImageUri ? (
+            <SvgImage
+              href={baseImageUri}
+              x={0}
+              y={0}
+              width={canvasLayout.width}
+              height={canvasLayout.height}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          ) : null}
 
           {/* Paper template lines */}
           {paper === 'lined' && (

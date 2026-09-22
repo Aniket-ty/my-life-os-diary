@@ -43,6 +43,8 @@ interface HandwritingCanvasProps {
   className?: string
   height?: number
   onStrokeChange?: (hasStrokes: boolean) => void
+  /** Existing pen drawing image to load as the editable base layer */
+  initialImageUrl?: string
 }
 
 const PALETTE = [
@@ -63,13 +65,14 @@ const STROKE_SIZES: Record<ToolType, number[]> = {
 }
 
 export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, HandwritingCanvasProps>(
-  function HandwritingCanvas({ className, height = 480, onStrokeChange }, ref) {
+  function HandwritingCanvas({ className, height = 480, onStrokeChange, initialImageUrl }, ref) {
     const containerRef = useRef<HTMLDivElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const isDrawingRef = useRef(false)
     const pointsRef = useRef<Point[]>([])
     const historyRef = useRef<ImageData[]>([])
     const historyStepRef = useRef<number>(-1)
+    const baseImageRef = useRef<HTMLImageElement | null>(null)
 
     const [tool, setTool] = useState<ToolType>('pen')
     const [color, setColor] = useState('#2c221e')
@@ -166,7 +169,28 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
         // If we have history, restore current step; else draw fresh background
         if (historyRef.current.length > 0 && historyStepRef.current >= 0) {
           ctx.putImageData(historyRef.current[historyStepRef.current], 0, 0)
+        } else if (initialImageUrl) {
+          // Load existing pen drawing as the editable base layer
+          baseImageRef.current = null
+          drawBackground(ctx, w, h, paper)
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const scale = Math.min(w / img.width, h / img.height)
+            const dw = img.width * scale
+            const dh = img.height * scale
+            ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh)
+            baseImageRef.current = img
+            const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+            historyRef.current = [initialData]
+            historyStepRef.current = 0
+            setHasStrokes(true)
+            onStrokeChange?.(true)
+          }
+          img.onerror = () => { baseImageRef.current = null }
+          img.src = initialImageUrl
         } else {
+          baseImageRef.current = null
           drawBackground(ctx, w, h, paper)
           // initial state in history
           const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height)
@@ -174,7 +198,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
           historyStepRef.current = 0
         }
       }
-    }, [isFullscreen, height, paper, drawBackground])
+    }, [isFullscreen, height, paper, drawBackground, initialImageUrl, onStrokeChange])
 
     // Undo action
     const handleUndo = useCallback(() => {
@@ -221,9 +245,16 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
       if (!ctx) return
 
       const rect = canvas.getBoundingClientRect()
+      baseImageRef.current = null
       drawBackground(ctx, rect.width, rect.height, paper)
-      pushHistory()
-    }, [drawBackground, paper, pushHistory])
+      const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      historyRef.current = [initialData]
+      historyStepRef.current = 0
+      setHasStrokes(false)
+      onStrokeChange?.(false)
+      setCanUndo(false)
+      setCanRedo(false)
+    }, [drawBackground, paper, onStrokeChange])
 
     // Keyboard shortcuts for Undo/Redo
     useEffect(() => {
@@ -377,13 +408,13 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
 
     // Imperative handle for parent component
     useImperativeHandle(ref, () => ({
-      isEmpty: () => historyStepRef.current <= 0,
+      isEmpty: () => !baseImageRef.current && historyStepRef.current <= 0,
       hasStrokes,
       clear: handleClear,
       getCanvasBlob: () =>
         new Promise<Blob | null>((resolve) => {
           const canvas = canvasRef.current
-          if (!canvas || historyStepRef.current <= 0) {
+          if (!canvas || (!baseImageRef.current && historyStepRef.current <= 0)) {
             resolve(null)
             return
           }

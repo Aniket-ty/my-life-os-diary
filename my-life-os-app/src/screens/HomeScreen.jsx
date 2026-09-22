@@ -10,11 +10,8 @@ import { offlineSyncService } from '../services/offlineSyncService';
 
 const MODULES = [
   { name: 'Diary', description: 'Thoughts, moods & moments', icon: 'book-outline', screen: 'DiaryList' },
-  { name: 'Fitness', description: 'Workouts, food & progress', icon: 'barbell-outline', screen: 'FitnessList' },
-  { name: 'Workout Plan', description: 'Your weekly schedule', icon: 'calendar-outline', screen: 'WorkoutPlanner' },
-  { name: 'Coach', description: 'Ask anything, act faster', icon: 'sparkles-outline', screen: 'AIChat' },
+  { name: 'Fitness', description: 'Workouts, planner, coach & body scan', icon: 'barbell-outline', screen: 'FitnessList' },
   { name: 'To-Do', description: 'Tasks, priorities & habits', icon: 'checkbox-outline', screen: 'TodoList' },
-  { name: 'Body Scan', description: 'Track your progress', icon: 'scan-outline', screen: 'BodyScan' },
   { name: 'Expenses', description: 'Spending, splits & receipts', icon: 'wallet-outline', screen: 'ExpenseList' },
 ];
 

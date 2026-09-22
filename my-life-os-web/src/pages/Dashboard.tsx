@@ -4,10 +4,7 @@ import { motion } from 'framer-motion'
 import {
   BookHeart,
   Dumbbell,
-  Sparkles,
   ListTodo,
-  ScanLine,
-  CalendarRange,
   Flame,
   CheckCircle2,
   TrendingUp,
@@ -23,11 +20,8 @@ import { Badge } from '@/components/ui/Badge'
 
 const modules = [
   { to: '/diary', title: 'Diary', desc: 'Thoughts, moods & moments', icon: BookHeart },
-  { to: '/fitness', title: 'Fitness', desc: 'Workouts, food & goals', icon: Dumbbell },
-  { to: '/fitness/planner', title: 'Workout Plan', desc: 'Your weekly schedule', icon: CalendarRange },
-  { to: '/ai', title: 'Coach', desc: 'Ask anything, act faster', icon: Sparkles },
+  { to: '/fitness', title: 'Fitness', desc: 'Workouts, planner, coach & body scan', icon: Dumbbell },
   { to: '/todo', title: 'To-Do', desc: 'Tasks, priorities & habits', icon: ListTodo },
-  { to: '/body-scan', title: 'Body Scan', desc: 'Track your progress', icon: ScanLine },
   { to: '/expenses', title: 'Expenses', desc: 'Spending, splits & receipts', icon: Wallet },
 ]
 

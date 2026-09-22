@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Dumbbell,
@@ -38,6 +38,8 @@ import { GymEquipmentScanner } from '@/components/fitness/GymEquipmentScanner'
 import { ExerciseDemo } from '@/components/fitness/ExerciseDemo'
 import { EquipmentExplorer } from '@/components/fitness/EquipmentExplorer'
 import { AdminEquipmentModal } from '@/components/fitness/AdminEquipmentModal'
+import { WorkoutPlanner } from './WorkoutPlanner'
+import { BodyScanPage } from '../bodyscan/BodyScanPage'
 import { offlineSync } from '@/services/offlineSync'
 
 const DEFAULT_GOALS: FitnessGoals = {
@@ -48,6 +50,28 @@ const DEFAULT_GOALS: FitnessGoals = {
 }
 
 export function Fitness() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState<'activity' | 'planner' | 'scan'>(
+    tabParam === 'planner' || tabParam === 'scan' ? tabParam : 'activity'
+  )
+
+  useEffect(() => {
+    if (tabParam && ['activity', 'planner', 'scan'].includes(tabParam)) {
+      setActiveTab(tabParam as any)
+    }
+  }, [tabParam])
+
+  const handleTabChange = (t: 'activity' | 'planner' | 'scan') => {
+    setActiveTab(t)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (t === 'activity') next.delete('tab')
+      else next.set('tab', t)
+      return next
+    })
+  }
+
   const [date, setDate] = useState(toISODate(new Date()))
   const [summary, setSummary] = useState<DailySummary | null>(null)
   const [workouts, setWorkouts] = useState<Workout[]>([])
@@ -166,32 +190,61 @@ export function Fitness() {
 
   return (
     <div>
-      <PageHeader
-        title="Fitness"
-        subtitle="Workouts, nutrition & daily goals"
-        icon={<Dumbbell size={22} className="text-emerald-300" />}
-        accent="from-emerald-500 to-teal-500"
-        action={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setDate((d) => toISODate(new Date(new Date(d).getTime() - 86400000)))}
-              className="glass rounded-xl p-2 text-slate-300 hover:bg-white/10"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="min-w-[140px] text-center text-sm font-semibold text-slate-200">
-              {formatDay(date).split(',')[0]},{' '}
-              {formatDay(date).split(',').slice(1, 3).join(' ')}
-            </span>
-            <button
-              onClick={() => setDate((d) => toISODate(new Date(new Date(d).getTime() + 86400000)))}
-              className="glass rounded-xl p-2 text-slate-300 hover:bg-white/10"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        }
-      />
+      {/* Sub-Navigation Tabs */}
+      <div className="mb-6 flex items-center gap-2 border-b border-edge pb-4 overflow-x-auto">
+        {[
+          { id: 'activity', label: 'Activity & Logs', icon: Dumbbell },
+          { id: 'planner', label: 'Workout Plan', icon: CalendarRange },
+          { id: 'scan', label: 'Body Scan', icon: ScanLine },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => handleTabChange(tab.id as any)}
+            className={cn(
+              'flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all whitespace-nowrap',
+              activeTab === tab.id
+                ? 'bg-volt-500 text-white shadow-md shadow-volt-500/20'
+                : 'border border-edge bg-card text-slate-400 hover:bg-card-hover hover:text-slate-200'
+            )}
+          >
+            <tab.icon size={16} />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'planner' ? (
+        <WorkoutPlanner />
+      ) : activeTab === 'scan' ? (
+        <BodyScanPage />
+      ) : (
+        <>
+          <PageHeader
+            title="Fitness"
+            subtitle="Workouts, nutrition & daily goals"
+            icon={<Dumbbell size={22} className="text-emerald-300" />}
+            accent="from-emerald-500 to-teal-500"
+            action={
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setDate((d) => toISODate(new Date(new Date(d).getTime() - 86400000)))}
+                  className="glass rounded-xl p-2 text-slate-300 hover:bg-white/10"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="min-w-[140px] text-center text-sm font-semibold text-slate-200">
+                  {formatDay(date).split(',')[0]},{' '}
+                  {formatDay(date).split(',').slice(1, 3).join(' ')}
+                </span>
+                <button
+                  onClick={() => setDate((d) => toISODate(new Date(new Date(d).getTime() + 86400000)))}
+                  className="glass rounded-xl p-2 text-slate-300 hover:bg-white/10"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            }
+          />
 
       {!scanChecked ? (
         <Loading />
@@ -497,59 +550,61 @@ export function Fitness() {
         </div>
       )}
 
-      <AddWorkoutModal open={showWorkout} onClose={() => setShowWorkout(false)} onSaved={(w) => { setWorkouts((prev) => [w, ...prev]); load() }} />
-      <LogFoodModal open={showFood} onClose={() => setShowFood(false)} onSaved={() => load()} />
+          <AddWorkoutModal open={showWorkout} onClose={() => setShowWorkout(false)} onSaved={(w) => { setWorkouts((prev) => [w, ...prev]); load() }} />
+          <LogFoodModal open={showFood} onClose={() => setShowFood(false)} onSaved={() => load()} />
 
-      {/* Gym Equipment Photo Scanner */}
-      <GymEquipmentScanner
-        open={showScanner}
-        onClose={() => setShowScanner(false)}
-        onExerciseAdded={() => void load()}
-      />
+          {/* Gym Equipment Photo Scanner */}
+          <GymEquipmentScanner
+            open={showScanner}
+            onClose={() => setShowScanner(false)}
+            onExerciseAdded={() => void load()}
+          />
 
-      {/* Exercise & Workout Demonstration Modal */}
-      <ExerciseDemo
-        open={Boolean(demoExerciseName || demoExerciseId || demoWorkout)}
-        onClose={() => {
-          setDemoExerciseName(null);
-          setDemoExerciseId(null);
-          setDemoWorkout(null);
-          setDemoCustomSets(null);
-          setDemoCustomReps(null);
-          setDemoCustomWeightKg(null);
-        }}
-        exerciseName={demoExerciseName}
-        exerciseId={demoExerciseId}
-        workoutName={demoWorkout?.name}
-        customSets={demoCustomSets}
-        customReps={demoCustomReps}
-        customWeightKg={demoCustomWeightKg}
-        workoutExercises={demoWorkout?.exercises.map((e) => ({
-          name: e.exerciseName,
-          sets: e.sets,
-          reps: e.reps,
-          weightKg: e.weightKg,
-        }))}
-        onSelectExercise={(exName) => {
-          setDemoExerciseName(exName);
-          const matched = demoWorkout?.exercises.find(
-            (e) => e.exerciseName.toLowerCase() === exName.toLowerCase()
-          );
-          if (matched) {
-            setDemoCustomSets(matched.sets || null);
-            setDemoCustomReps(matched.reps != null ? String(matched.reps) : null);
-            setDemoCustomWeightKg(matched.weightKg || null);
-          }
-        }}
-        onAddedToWorkout={() => void load()}
-      />
+          {/* Exercise & Workout Demonstration Modal */}
+          <ExerciseDemo
+            open={Boolean(demoExerciseName || demoExerciseId || demoWorkout)}
+            onClose={() => {
+              setDemoExerciseName(null);
+              setDemoExerciseId(null);
+              setDemoWorkout(null);
+              setDemoCustomSets(null);
+              setDemoCustomReps(null);
+              setDemoCustomWeightKg(null);
+            }}
+            exerciseName={demoExerciseName}
+            exerciseId={demoExerciseId}
+            workoutName={demoWorkout?.name}
+            customSets={demoCustomSets}
+            customReps={demoCustomReps}
+            customWeightKg={demoCustomWeightKg}
+            workoutExercises={demoWorkout?.exercises.map((e) => ({
+              name: e.exerciseName,
+              sets: e.sets,
+              reps: e.reps,
+              weightKg: e.weightKg,
+            }))}
+            onSelectExercise={(exName) => {
+              setDemoExerciseName(exName);
+              const matched = demoWorkout?.exercises.find(
+                (e) => e.exerciseName.toLowerCase() === exName.toLowerCase()
+              );
+              if (matched) {
+                setDemoCustomSets(matched.sets || null);
+                setDemoCustomReps(matched.reps != null ? String(matched.reps) : null);
+                setDemoCustomWeightKg(matched.weightKg || null);
+              }
+            }}
+            onAddedToWorkout={() => void load()}
+          />
 
-      {/* Admin Catalog Manager */}
-      <AdminEquipmentModal
-        open={showAdmin}
-        onClose={() => setShowAdmin(false)}
-        onSaved={() => void load()}
-      />
+          {/* Admin Catalog Manager */}
+          <AdminEquipmentModal
+            open={showAdmin}
+            onClose={() => setShowAdmin(false)}
+            onSaved={() => void load()}
+          />
+        </>
+      )}
     </div>
   )
 }

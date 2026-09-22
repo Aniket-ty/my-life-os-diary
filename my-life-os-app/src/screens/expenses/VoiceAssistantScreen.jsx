@@ -19,15 +19,16 @@ import { expenseService } from '../../services/expenseService';
 import { offlineSyncService } from '../../services/offlineSyncService';
 
 const SUGGESTIONS = [
+  'Suggest a high-protein meal under 600 kcal',
+  'How much rest between heavy sets?',
   'Log workout Chest Day 45m',
   'Log exercise Bench Press 3 sets 10 reps',
-  'Diary: Productive day',
   'Log food 2 eggs and toast 350 calories',
+  'How to hit 150g protein today?',
+  'Diary: Productive day',
   'Add task Buy groceries',
   'Open my diary',
   'Open fitness workouts',
-  'Contact Rahul',
-  'Contact +91 98765 43210',
   'I spent 500 rupees on lunch',
   'How much does Rahul owe me?',
   'Convert 100 EUR to INR',
@@ -62,10 +63,23 @@ export default function VoiceAssistantScreen({ navigation }) {
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [inputMode, setInputMode] = useState(null); // 'voice' | 'typed'
   const [manualText, setManualText] = useState('');
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState(null);
   const [talkBackEnabled, setTalkBackEnabled] = useState(true);
+  const [continuousVoice, setContinuousVoice] = useState(true);
+
+  const isRecordingRef = useRef(isRecording);
+  const continuousVoiceRef = useRef(continuousVoice);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  useEffect(() => {
+    continuousVoiceRef.current = continuousVoice;
+  }, [continuousVoice]);
 
   useEffect(() => {
     return () => {
@@ -75,22 +89,42 @@ export default function VoiceAssistantScreen({ navigation }) {
     };
   }, []);
 
-  const speak = (textToSpeak) => {
-    if (!talkBackEnabled || !textToSpeak) return;
+  const speak = (textToSpeak, onDone) => {
+    if (!talkBackEnabled || !textToSpeak) {
+      onDone?.();
+      return;
+    }
     try {
       Speech.stop();
       Speech.speak(textToSpeak, {
         language: 'en',
         pitch: 1.0,
         rate: 0.95,
+        onDone: () => {
+          onDone?.();
+        },
+        onError: () => {
+          onDone?.();
+        },
       });
     } catch (e) {
       console.warn('Speech synthesis error:', e);
+      onDone?.();
     }
   };
 
+  const isConclusionPhrase = (text) =>
+    /^(?:done|thank you|thanks|bye|goodbye|stop|close|exit|that's all|that is all|cancel|no thanks|all good|end)\b/i.test(
+      String(text || '').trim()
+    );
+
   const startRecording = async () => {
     try {
+      setInputMode('voice');
+      try {
+        Speech.stop();
+      } catch {}
+
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== 'granted') {
         Alert.alert('Permission Denied', 'Microphone access is needed for voice assistant.');
@@ -140,11 +174,34 @@ export default function VoiceAssistantScreen({ navigation }) {
 
       // Send audio to speech-to-text pipeline
       const data = await expenseService.transcribeAndExecute(uri);
-      setTranscript(data.transcript || 'Audio command');
+      const textSaid = data.transcript || 'Audio command';
+      setTranscript(textSaid);
       setResponse(data);
 
+      // Check if user said a conclusion phrase
+      if (isConclusionPhrase(textSaid)) {
+        const farewell = "You're all set! Let me know if you need anything else.";
+        setResponse({
+          intent: 'CONCLUDE',
+          kind: 'result',
+          resultText: farewell,
+          speechText: farewell,
+        });
+        speak(farewell);
+        return;
+      }
+
       const feedback = data.speechText || data.executionMessage || data.resultText || data.previewText;
-      if (feedback) speak(feedback);
+      if (feedback) {
+        speak(feedback, () => {
+          // Continuous Voice Loop: auto-listen for follow-up reply if not a navigation action
+          if (data.kind !== 'navigate' && continuousVoiceRef.current) {
+            setTimeout(() => {
+              startRecording();
+            }, 400);
+          }
+        });
+      }
     } catch (err) {
       Alert.alert('Processing Error', err.message || 'Failed to process voice command');
     } finally {
@@ -156,6 +213,10 @@ export default function VoiceAssistantScreen({ navigation }) {
     const query = (textToRun || manualText).trim();
     if (!query) return;
     try {
+      setInputMode('typed');
+      try {
+        Speech.stop();
+      } catch {}
       setProcessing(true);
       setTranscript(query);
       setManualText('');
@@ -167,23 +228,19 @@ export default function VoiceAssistantScreen({ navigation }) {
           const content = query.replace(/^(?:diary:?|write diary|log diary)\s*/i, '') || 'Offline voice journal note';
           await offlineSyncService.queueDiaryEntry({ title: 'Offline Reflection', content, mood: 'productive' });
           const speech = 'Diary entry saved offline. It will automatically sync as soon as you reconnect.';
-          speak(speech);
           setResponse({ kind: 'result', executionMessage: speech, resultText: speech, speechText: speech });
         } else if (/^(?:add task|create todo|todo)\b/i.test(query)) {
           const title = query.replace(/^(?:add task|create todo|todo:?)\s*/i, '') || 'Offline task';
           await offlineSyncService.queueTodo({ title, priority: 'medium' });
           const speech = `Added task ${title} offline. Will sync when back online.`;
-          speak(speech);
           setResponse({ kind: 'result', executionMessage: speech, resultText: speech, speechText: speech });
         } else if (/^(?:log workout|workout)\b/i.test(query)) {
           const name = query.replace(/^(?:log workout|workout:?)\s*/i, '') || 'Workout';
           await offlineSyncService.queueWorkout({ name, durationMin: 35, totalCaloriesBurned: 220 });
           const speech = `Logged workout ${name} offline. Will sync when back online.`;
-          speak(speech);
           setResponse({ kind: 'result', executionMessage: speech, resultText: speech, speechText: speech });
         } else {
-          const speech = 'You are currently offline. Connect to internet for advanced voice queries.';
-          speak(speech);
+          const speech = 'You are currently offline. Connect to internet for advanced queries.';
           setResponse({ kind: 'result', executionMessage: speech, resultText: speech, speechText: speech });
         }
         return;
@@ -191,9 +248,7 @@ export default function VoiceAssistantScreen({ navigation }) {
 
       const data = await expenseService.processVoiceCommand(query);
       setResponse(data);
-
-      const feedback = data.speechText || data.executionMessage || data.resultText || data.previewText;
-      if (feedback) speak(feedback);
+      // Typed mode: Purely silent in UI, NO speech synthesis
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to execute command');
     } finally {
@@ -207,7 +262,7 @@ export default function VoiceAssistantScreen({ navigation }) {
       setProcessing(true);
       const res = await expenseService.confirmVoiceAction(response.serverCommandId, confirmed);
       const msg = res.message || (confirmed ? 'Action confirmed.' : 'Action cancelled.');
-      speak(msg);
+      if (inputMode === 'voice') speak(msg);
       Alert.alert('Result', msg);
       setResponse(null);
     } catch (err) {
@@ -230,7 +285,10 @@ export default function VoiceAssistantScreen({ navigation }) {
         >
           <Ionicons name="chevron-back" size={22} color={colors.textSoft} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Life OS Voice Assistant</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name="sparkles" size={18} color={colors.volt400} />
+          <Text style={styles.headerTitle}>Life OS AI Assistant</Text>
+        </View>
         <TouchableOpacity
           onPress={() => {
             const next = !talkBackEnabled;
@@ -367,7 +425,7 @@ export default function VoiceAssistantScreen({ navigation }) {
             <TextInput
               value={manualText}
               onChangeText={setManualText}
-              placeholder="e.g. I spent 400 on groceries"
+              placeholder="Ask AI Coach, search, or type command..."
               placeholderTextColor={colors.textFaint}
               style={styles.textInput}
               onSubmitEditing={() => handleManualCommand()}

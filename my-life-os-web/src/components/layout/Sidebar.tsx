@@ -3,10 +3,7 @@ import {
   LayoutDashboard,
   BookHeart,
   Dumbbell,
-  Sparkles,
   ListTodo,
-  ScanLine,
-  CalendarRange,
   Settings,
   LogOut,
   Command,
@@ -19,11 +16,8 @@ const items = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/diary', label: 'Diary', icon: BookHeart },
   { to: '/fitness', label: 'Fitness', icon: Dumbbell },
-  { to: '/fitness/planner', label: 'Workout Plan', icon: CalendarRange },
-  { to: '/ai', label: 'Coach', icon: Sparkles },
   { to: '/todo', label: 'To-Do', icon: ListTodo },
   { to: '/expenses', label: 'Expenses', icon: Wallet },
-  { to: '/body-scan', label: 'Body Scan', icon: ScanLine },
 ]
 
 function NavLinkInner({
@@ -76,7 +70,7 @@ export function Sidebar() {
       <aside className="sticky top-0 z-40 hidden h-screen w-64 flex-col border-r border-edge bg-abyss lg:flex">
         <div className="flex items-center gap-3 px-6 py-7">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-volt-500">
-            <Command size={20} className="text-void" />
+            <Command size={20} className="text-white" />
           </div>
           <div>
             <h1 className="font-display text-lg font-bold leading-tight tracking-tight text-white">
@@ -93,15 +87,8 @@ export function Sidebar() {
         </nav>
 
         <div className="border-t border-edge p-3">
-          <NavLink
-            to="/settings"
-            className="mb-1 flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-card-hover hover:text-slate-100"
-          >
-            <Settings size={19} className="text-slate-500" />
-            Settings
-          </NavLink>
-          <div className="mt-2 flex items-center gap-3 rounded-xl bg-surface p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-volt-500 text-xs font-bold text-void">
+          <div className="mb-2 flex items-center gap-3 rounded-xl bg-surface p-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-volt-500 text-xs font-bold text-white">
               {user?.name ? initials(user.name) : 'ME'}
             </div>
             <div className="min-w-0 flex-1">
@@ -109,9 +96,16 @@ export function Sidebar() {
               <p className="truncate text-[11px] text-slate-500">{user?.email}</p>
             </div>
           </div>
+          <NavLink
+            to="/settings"
+            className="flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-card-hover hover:text-slate-100"
+          >
+            <Settings size={19} className="text-slate-500" />
+            Settings
+          </NavLink>
           <button
             onClick={handleLogout}
-            className="mt-2 flex w-full items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+            className="mt-1 flex w-full items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
           >
             <LogOut size={18} />
             Sign out
@@ -125,10 +119,8 @@ export function Sidebar() {
           { to: '/', label: 'Home', icon: LayoutDashboard, exact: true },
           { to: '/diary', label: 'Diary', icon: BookHeart },
           { to: '/fitness', label: 'Fitness', icon: Dumbbell },
-          { to: '/ai', label: 'Coach', icon: Sparkles },
           { to: '/todo', label: 'To-Do', icon: ListTodo },
           { to: '/expenses', label: 'Expenses', icon: Wallet },
-          { to: '/body-scan', label: 'Scan', icon: ScanLine },
           { to: '/settings', label: 'Settings', icon: Settings },
         ].map(({ to, label, icon: Icon, exact }) => (
           <NavLink
@@ -138,7 +130,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 'flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
-                isActive ? 'text-volt-400' : 'text-slate-500',
+                isActive ? 'text-volt-400 font-semibold' : 'text-slate-500',
               )
             }
           >

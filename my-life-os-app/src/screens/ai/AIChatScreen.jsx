@@ -54,7 +54,7 @@ export default function AIChatScreen({ navigation }) {
       <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
         {!isUser && (
           <View style={styles.aiAvatar}>
-            <Ionicons name="sparkles" size={14} color={colors.violet} />
+            <Ionicons name="mic" size={14} color={colors.volt400} />
           </View>
         )}
         <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
@@ -89,8 +89,13 @@ export default function AIChatScreen({ navigation }) {
         <PageHeader
           title="Coach"
           subtitle="Fitness & Nutrition Coach"
-          icon={<Ionicons name="sparkles" size={22} color={colors.violet} />}
-          accent={colors.violet}
+          icon={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="sparkles" size={18} color={colors.volt300} />
+              <Ionicons name="mic" size={19} color={colors.volt400} />
+            </View>
+          }
+          accent={colors.volt500}
           action={
             <Button
               variant="ghost"
@@ -110,8 +115,9 @@ export default function AIChatScreen({ navigation }) {
       <GlassCard strong style={styles.chatCard} padded={false}>
         {messages.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyAvatar}>
-              <Ionicons name="sparkles" size={32} color={colors.white} />
+            <View style={[styles.emptyAvatar, { flexDirection: 'row', gap: 6, width: 80, borderRadius: 24 }]}>
+              <Ionicons name="sparkles" size={24} color={colors.white} />
+              <Ionicons name="mic" size={24} color={colors.white} />
             </View>
             <Text style={styles.emptyTitle}>Your fitness coach</Text>
             <Text style={styles.emptySubText}>Ask me anything about food, exercises, or your health goals</Text>

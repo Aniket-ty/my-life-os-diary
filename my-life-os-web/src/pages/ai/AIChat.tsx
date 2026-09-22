@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
+  Mic,
   Sparkles,
   Send,
   Trash2,
@@ -132,7 +133,12 @@ export function AIChat() {
       <PageHeader
         title="Coach"
         subtitle="Your personal nutrition & fitness assistant"
-        icon={<Sparkles size={22} className="text-volt-400" />}
+        icon={
+          <div className="flex items-center gap-1.5">
+            <Sparkles size={20} className="text-volt-400" />
+            <Mic size={20} className="text-volt-300" />
+          </div>
+        }
         action={
           <Button variant="ghost" size="sm" onClick={clearChat}>
             <Trash2 size={14} />
@@ -150,8 +156,9 @@ export function AIChat() {
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-volt-500">
-                <Sparkles size={28} className="text-void" />
+              <div className="mb-4 flex h-16 w-20 items-center justify-center gap-2 rounded-2xl bg-volt-500 shadow-lg shadow-volt-500/25">
+                <Sparkles size={24} className="text-white" />
+                <Mic size={24} className="text-white" />
               </div>
               <h3 className="font-display text-xl font-bold text-white">Meet your coach</h3>
               <p className="mt-1 max-w-xs text-sm text-slate-400">

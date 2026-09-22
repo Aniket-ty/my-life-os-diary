@@ -361,19 +361,48 @@ const getProfile = async (req, res) => {
 
 // PUT /auth/profile
 const updateProfile = async (req, res) => {
-  const { name, age, gender, heightCm, activityLevel, goal } = req.body;
+  const { name, email, phoneNumber, age, gender, heightCm, activityLevel, goal } = req.body;
+
+  const data = {};
+  if (name !== undefined) data.name = name.trim();
+  if (email !== undefined && email.trim()) {
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = await prisma.user.findFirst({
+      where: { email: cleanEmail, id: { not: req.user.id } },
+    });
+    if (existing) {
+      return res.status(400).json({ error: 'This email is already in use by another account.' });
+    }
+    data.email = cleanEmail;
+  }
+  if (phoneNumber !== undefined) {
+    const cleanPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
+    if (cleanPhone) {
+      const existingPhone = await prisma.user.findFirst({
+        where: { phoneNumber: cleanPhone, id: { not: req.user.id } },
+      });
+      if (existingPhone) {
+        return res.status(400).json({ error: 'This phone number is already registered to another account.' });
+      }
+      data.phoneNumber = cleanPhone;
+    } else {
+      data.phoneNumber = null;
+    }
+  }
+  if (age !== undefined) data.age = age ? Number(age) : null;
+  if (gender !== undefined) data.gender = gender;
+  if (heightCm !== undefined) data.heightCm = heightCm ? Number(heightCm) : null;
+  if (activityLevel !== undefined) data.activityLevel = activityLevel;
+  if (goal !== undefined) data.fitnessGoal = goal;
 
   const user = await prisma.user.update({
     where: { id: req.user.id },
-    data: {
-      name,
-      age,
-      gender,
-      heightCm,
-      activityLevel,
-      fitnessGoal: goal,
-    },
+    data,
   });
+
+  if (data.phoneNumber) {
+    await claimPendingInvites(user.id, user.email, data.phoneNumber);
+  }
 
   // If activity level or goal changed, recalculate goals from latest scan
   if ((activityLevel || goal) && user) {

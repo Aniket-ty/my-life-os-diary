@@ -46,6 +46,10 @@ export const diaryAPI = {
     return data;
   },
 
+  deleteMedia: async (entryId, mediaId) => {
+    await api.delete(`/diary/${entryId}/media/${mediaId}`);
+  },
+
   recognizeHandwriting: async (image, mimeType = 'image/png') => {
     const { data } = await api.post('/ai/recognize-handwriting', { image, mimeType });
     return data;

@@ -883,6 +883,29 @@ async function prepareAction(userId, transcript, parsed, { user, groups }) {
   if (intent === 'CREATE_SETTLEMENT') return prepareSettlement(userId, transcript, parsed, groups);
   if (intent === 'DELETE_EXPENSE') return prepareDeleteExpense(userId, transcript, parsed, user);
 
+  // ── AI Search & Fitness Coach Query Resolution ──
+  try {
+    const { chatWithAI } = require('./ai.service');
+    const aiRes = await chatWithAI(transcript, [], `User Name: ${user?.name || 'User'}`);
+    if (aiRes && aiRes.text) {
+      const cleanText = aiRes.text.replace(/ACTION:\{.*?\}$/s, '').trim();
+      if (cleanText) {
+        const speech = cleanText.length > 250 ? cleanText.slice(0, 245) + '...' : cleanText;
+        return {
+          intent: 'AI_SEARCH',
+          confidence: 0.95,
+          provider: aiRes.source || 'ai-coach',
+          kind: 'result',
+          resultText: cleanText,
+          speechText: speech,
+          data: { aiResponse: aiRes },
+        };
+      }
+    }
+  } catch (err) {
+    // fall through to clarification
+  }
+
   return clarificationResponse(parsed, 'transcript', 'I didn\'t understand that. Could you rephrase, or type it instead?', []);
 }
 

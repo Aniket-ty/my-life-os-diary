@@ -31,6 +31,10 @@ export const useWorkoutPlanStore = create((set, get) => ({
         fitnessLevel: input.fitnessLevel,
         equipment: input.equipment || [],
         daysPerWeek: input.daysPerWeek,
+        splitType: input.splitType,
+        workoutDuration: input.workoutDuration,
+        focus: input.focus,
+        preferences: input.preferences,
       });
       // Deactivate other plans
       await Promise.all(
