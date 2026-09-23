@@ -169,7 +169,8 @@ export default function DiaryWriteScreen({ navigation, route }) {
     try {
       const entryData = {
         title: title.trim() || null,
-        content: content.trim(),
+        // Provide fallback text so backend doesn't reject a purely handwritten entry
+        content: content.trim() || (drawingPng ? '[Handwritten Entry]' : ''),
         mood,
         entryDate: moment().format('YYYY-MM-DD'),
       };

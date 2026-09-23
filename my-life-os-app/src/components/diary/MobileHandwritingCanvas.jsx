@@ -10,9 +10,10 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   PanResponder,
   ScrollView,
+  Modal,
+  SafeAreaView,
 } from 'react-native';
 import Svg, { Path, Line, Circle, Rect, Image as SvgImage } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +50,7 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
   const [paper, setPaper] = useState('lined');
   const [canvasLayout, setCanvasLayout] = useState({ width: 340, height });
   const [baseImageUri, setBaseImageUri] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Use the provided image (existing pen drawing) as the editable base layer
   useEffect(() => {
@@ -201,8 +203,8 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
   const currentOpacity = tool === 'highlighter' ? 0.35 : tool === 'pencil' ? 0.7 : 1;
   const currentColor = tool === 'eraser' ? '#12121c' : color;
 
-  return (
-    <View style={styles.container}>
+  const renderContent = () => (
+    <View style={[styles.container, isFullscreen && styles.fullscreenContainer]}>
       {/* Stylus Toolbar */}
       <View style={styles.toolbar}>
         {/* Tool selector */}
@@ -258,6 +260,9 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleClear}>
             <Ionicons name="trash-outline" size={16} color={colors.rose} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => setIsFullscreen(!isFullscreen)}>
+            <Ionicons name={isFullscreen ? "contract-outline" : "expand-outline"} size={16} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -400,6 +405,17 @@ export const MobileHandwritingCanvas = forwardRef(function MobileHandwritingCanv
       </View>
     </View>
   );
+
+  return (
+    <>
+      {!isFullscreen && renderContent()}
+      <Modal visible={isFullscreen} animationType="slide" onRequestClose={() => setIsFullscreen(false)}>
+        <SafeAreaView style={styles.modalBg}>
+          {isFullscreen && renderContent()}
+        </SafeAreaView>
+      </Modal>
+    </>
+  );
 });
 
 const styles = StyleSheet.create({
@@ -536,5 +552,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(255,255,255,0.2)',
     fontWeight: '600',
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: '#0c0c14',
+  },
+  fullscreenContainer: {
+    flex: 1,
+    marginTop: 0,
+    borderWidth: 0,
+    borderRadius: 0,
   },
 });

@@ -437,7 +437,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
         ref={containerRef}
         className={cn(
           'relative flex flex-col overflow-hidden rounded-3xl border border-[#d8cbb0] bg-[#fdf6e3] shadow-lg transition-all',
-          isFullscreen && 'rounded-none border-none', // native fullscreen handles the rest
+          isFullscreen && 'rounded-none border-none !w-screen !h-screen !max-w-none !max-h-none !m-0', 
           className,
         )}
       >
