@@ -145,34 +145,39 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
       ctx.restore()
     }, [])
 
-    // Initialize canvas dimensions and history
+    // Initialize canvas dimensions and history dynamically on resize
     useEffect(() => {
       const canvas = canvasRef.current
       const wrapper = wrapperRef.current
       if (!canvas || !wrapper) return
 
-      const rect = wrapper.getBoundingClientRect()
-      const dpr = window.devicePixelRatio || 1
-      const w = rect.width || 700
-      const h = rect.height || height
+      let resizeTimer: any
 
-      canvas.width = w * dpr
-      canvas.height = h * dpr
-      canvas.style.width = `${w}px`
-      canvas.style.height = `${h}px`
+      const handleResize = () => {
+        const rect = wrapper.getBoundingClientRect()
+        const dpr = window.devicePixelRatio || 1
+        const w = rect.width || 700
+        const h = rect.height || height
 
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
+        if (canvas.style.width === `${w}px` && canvas.style.height === `${h}px`) return
+
+        canvas.width = w * dpr
+        canvas.height = h * dpr
+        canvas.style.width = `${w}px`
+        canvas.style.height = `${h}px`
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
         ctx.scale(dpr, dpr)
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
 
-        // If we have history, restore current step; else draw fresh background
+        // Restore current step on top of a fresh full-size background
         if (historyRef.current.length > 0 && historyStepRef.current >= 0) {
+          drawBackground(ctx, w, h, paper)
           ctx.putImageData(historyRef.current[historyStepRef.current], 0, 0)
-        } else if (initialImageUrl) {
-          // Load existing pen drawing as the editable base layer
-          baseImageRef.current = null
+        } else if (initialImageUrl && !baseImageRef.current) {
           drawBackground(ctx, w, h, paper)
           const img = new Image()
           img.crossOrigin = 'anonymous'
@@ -190,16 +195,27 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
           }
           img.onerror = () => { baseImageRef.current = null }
           img.src = initialImageUrl
-        } else {
-          baseImageRef.current = null
+        } else if (!baseImageRef.current) {
           drawBackground(ctx, w, h, paper)
-          // initial state in history
           const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height)
           historyRef.current = [initialData]
           historyStepRef.current = 0
         }
       }
-    }, [isFullscreen, height, paper, drawBackground, initialImageUrl, onStrokeChange])
+
+      const observer = new ResizeObserver(() => {
+        clearTimeout(resizeTimer)
+        resizeTimer = setTimeout(handleResize, 50)
+      })
+
+      observer.observe(wrapper)
+      handleResize()
+
+      return () => {
+        observer.disconnect()
+        clearTimeout(resizeTimer)
+      }
+    }, [height, paper, drawBackground, initialImageUrl, onStrokeChange])
 
     // Undo action
     const handleUndo = useCallback(() => {
