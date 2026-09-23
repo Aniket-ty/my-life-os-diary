@@ -91,8 +91,8 @@ export function DiaryWrite() {
     try {
       const entryData = {
         title: title.trim() || undefined,
-        // If the user only drew something, send empty string — drawing is uploaded separately
-        content: content.trim(),
+        // If the user only drew something, provide a fallback string so the backend doesn't reject it
+        content: content.trim() || (drawingBlob ? '[Handwritten Entry]' : ''),
         mood: mood ?? undefined,
         entryDate: date,
         isPinned: pinned,
@@ -143,7 +143,7 @@ export function DiaryWrite() {
         offlineSync.queueDiaryEntry({
           title: title.trim() || undefined,
           // Drawings can't be stored offline — save a note about it
-          content: content.trim() || (drawingBlob ? '[Handwritten entry — drawing pending upload]' : ''),
+          content: content.trim() || (drawingBlob ? '[Handwritten Entry]' : ''),
           mood: mood ?? undefined,
           entryDate: date,
           isPinned: pinned,

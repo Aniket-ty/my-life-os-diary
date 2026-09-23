@@ -73,6 +73,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
     const historyRef = useRef<ImageData[]>([])
     const historyStepRef = useRef<number>(-1)
     const baseImageRef = useRef<HTMLImageElement | null>(null)
+    const wrapperRef = useRef<HTMLDivElement>(null)
 
     const [tool, setTool] = useState<ToolType>('pen')
     const [color, setColor] = useState('#2c221e')
@@ -147,13 +148,13 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
     // Initialize canvas dimensions and history
     useEffect(() => {
       const canvas = canvasRef.current
-      const container = containerRef.current
-      if (!canvas || !container) return
+      const wrapper = wrapperRef.current
+      if (!canvas || !wrapper) return
 
-      const rect = container.getBoundingClientRect()
+      const rect = wrapper.getBoundingClientRect()
       const dpr = window.devicePixelRatio || 1
       const w = rect.width || 700
-      const h = isFullscreen ? window.innerHeight - 130 : height
+      const h = rect.height || height
 
       canvas.width = w * dpr
       canvas.height = h * dpr
@@ -275,6 +276,15 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
       window.addEventListener('keydown', handleKeyDown)
       return () => window.removeEventListener('keydown', handleKeyDown)
     }, [handleUndo, handleRedo])
+
+    // Listen to native fullscreen changes
+    useEffect(() => {
+      const handleFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement)
+      }
+      document.addEventListener('fullscreenchange', handleFullscreenChange)
+      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }, [])
 
     // Pointer Event handlers
     const getCanvasPoint = (e: React.PointerEvent<HTMLCanvasElement>): Point => {
@@ -427,7 +437,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
         ref={containerRef}
         className={cn(
           'relative flex flex-col overflow-hidden rounded-3xl border border-[#d8cbb0] bg-[#fdf6e3] shadow-lg transition-all',
-          isFullscreen && 'fixed inset-4 z-50 rounded-2xl shadow-2xl',
+          isFullscreen && 'rounded-none border-none', // native fullscreen handles the rest
           className,
         )}
       >
@@ -605,7 +615,13 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
             </button>
             <button
               type="button"
-              onClick={() => setIsFullscreen((prev) => !prev)}
+              onClick={() => {
+                if (!document.fullscreenElement) {
+                  containerRef.current?.requestFullscreen().catch(() => setIsFullscreen(true))
+                } else {
+                  document.exitFullscreen().catch(() => setIsFullscreen(false))
+                }
+              }}
               title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Drawing'}
               className="rounded-xl border border-[#e2d5bd] bg-white/70 p-2 text-[#5a4435] hover:bg-white"
             >
@@ -615,7 +631,7 @@ export const HandwritingCanvas = forwardRef<HandwritingCanvasHandle, Handwriting
         </div>
 
         {/* Canvas writing surface */}
-        <div className="relative flex-1 cursor-crosshair overflow-hidden touch-none select-none">
+        <div ref={wrapperRef} className="relative flex-1 cursor-crosshair overflow-hidden touch-none select-none">
           <canvas
             ref={canvasRef}
             onPointerDown={startDrawing}
