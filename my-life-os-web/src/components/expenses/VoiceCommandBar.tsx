@@ -47,6 +47,7 @@ export function VoiceCommandBar({
 
   const recognitionRef = useRef<any>(null)
   const stateRef = useRef(state)
+  const transcriptRef = useRef('')           // always holds the latest transcript
   const continuousVoiceRef = useRef(continuousVoice)
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -124,12 +125,14 @@ export function VoiceCommandBar({
       recognition.onstart = () => {
         setState('listening')
         setTranscript('')
+        transcriptRef.current = ''  // reset for new session
         setResponse(null)
         setErrorMsg('')
       }
 
       recognition.onresult = (event: any) => {
         const current = event.results[0][0].transcript
+        transcriptRef.current = current   // keep ref in sync
         setTranscript(current)
       }
 
@@ -144,11 +147,13 @@ export function VoiceCommandBar({
       }
 
       recognition.onend = () => {
-        if (transcript.trim()) {
-          processTranscript(transcript, 'voice')
+        const finalText = transcriptRef.current  // read from ref — never stale
+        if (finalText.trim()) {
+          processTranscript(finalText, 'voice')
         } else {
           setState('idle')
         }
+        transcriptRef.current = ''  // reset for next session
       }
 
       recognition.start()

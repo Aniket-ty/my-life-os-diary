@@ -163,45 +163,60 @@ exports.batchSync = async (req, res) => {
 
 /**
  * Get snapshot of all user modules for offline caching
+ * Each module is fetched independently so a single failing query
+ * doesn't crash the entire snapshot response.
  */
 exports.getSnapshot = async (req, res) => {
   const userId = req.user.id;
 
+  const safeQuery = async (fn) => {
+    try { return await fn(); } catch { return null; }
+  };
+
   try {
     const [diaryEntries, todos, workouts, expenses, fitnessGoals] = await Promise.all([
-      prisma.diaryEntry.findMany({
-        where: { userId },
-        orderBy: { entryDate: 'desc' },
-        take: 50,
-      }),
-      prisma.todo.findMany({
-        where: { userId },
-        orderBy: [{ isCompleted: 'asc' }, { createdAt: 'desc' }],
-        take: 100,
-      }),
-      prisma.workout.findMany({
-        where: { userId },
-        include: { exercises: true },
-        orderBy: { workoutDate: 'desc' },
-        take: 30,
-      }),
-      prisma.expense.findMany({
-        where: { userId },
-        orderBy: { date: 'desc' },
-        take: 50,
-      }),
-      prisma.fitnessGoal.findUnique({
-        where: { userId },
-      }),
+      safeQuery(() =>
+        prisma.diaryEntry.findMany({
+          where: { userId },
+          include: { attachments: true },
+          orderBy: { entryDate: 'desc' },
+          take: 50,
+        })
+      ),
+      safeQuery(() =>
+        prisma.todo.findMany({
+          where: { userId },
+          orderBy: [{ isCompleted: 'asc' }, { createdAt: 'desc' }],
+          take: 100,
+        })
+      ),
+      safeQuery(() =>
+        prisma.workout.findMany({
+          where: { userId },
+          include: { exercises: true },
+          orderBy: { workoutDate: 'desc' },
+          take: 30,
+        })
+      ),
+      safeQuery(() =>
+        prisma.expense.findMany({
+          where: { userId },
+          orderBy: { date: 'desc' },
+          take: 50,
+        })
+      ),
+      safeQuery(() =>
+        prisma.fitnessGoal.findUnique({ where: { userId } })
+      ),
     ]);
 
     return res.json({
       timestamp: new Date().toISOString(),
-      diaryEntries,
-      todos,
-      workouts,
-      expenses,
-      fitnessGoals,
+      diaryEntries: diaryEntries || [],
+      todos: todos || [],
+      workouts: workouts || [],
+      expenses: expenses || [],
+      fitnessGoals: fitnessGoals || null,
     });
   } catch (err) {
     console.error('Snapshot fetch error:', err);

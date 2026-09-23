@@ -254,7 +254,7 @@ export function ExpenseDashboard() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="mb-6 flex border-b border-white/10 gap-8 text-sm font-semibold">
+        <div className="mb-6 flex overflow-x-auto scrollbar-thin border-b border-white/10 gap-6 sm:gap-8 text-sm font-semibold whitespace-nowrap pb-1">
           {[
             { id: 'expenses', label: 'Personal & All Expenses', icon: Wallet },
             { id: 'groups', label: 'Group Splits', icon: Users },

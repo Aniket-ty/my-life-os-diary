@@ -82,9 +82,17 @@ export function DiaryView() {
             {entry.title || 'Untitled'}
           </h1>
           <div className="my-5 h-px w-full bg-[#e0d4ba]" />
-          <p className="whitespace-pre-wrap text-[15px] leading-[2.4] text-[#4e3b2d]">
-            {entry.content}
-          </p>
+          {entry.content ? (
+            <p className="whitespace-pre-wrap text-[15px] leading-[2.4] text-[#4e3b2d]">
+              {entry.content}
+            </p>
+          ) : (
+            entry.attachments.some((a) => a.fileName?.toLowerCase().startsWith('handwriting_')) ? (
+              <p className="text-sm italic text-[#b8a680]">✍️ Handwritten entry — see drawing below</p>
+            ) : (
+              <p className="text-sm italic text-[#b8a680]">No text content</p>
+            )
+          )}
 
           {entry.attachments.length > 0 && (
             <div className="mt-8 space-y-6 border-t border-[#e8ddc6] pt-6">

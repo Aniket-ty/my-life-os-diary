@@ -103,7 +103,7 @@ async function parseCommand(text, context = {}) {
 
   if (groq) {
     const response = await groq.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
+      model: process.env.GROQ_CHAT_MODEL || 'llama-3.3-70b-versatile',
       messages,
       temperature: 0,
       max_tokens: 500,
@@ -170,7 +170,7 @@ async function extractReceipt(imageBase64, mimeType = 'image/jpeg') {
 
   if (groq) {
     const response = await groq.chat.completions.create({
-      model: 'qwen/qwen3.8-27b',
+      model: process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct',
       messages,
       temperature: 0.1,
       max_tokens: 1024,

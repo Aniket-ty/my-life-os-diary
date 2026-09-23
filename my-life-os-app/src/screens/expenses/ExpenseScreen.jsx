@@ -10,12 +10,14 @@ import {
   Modal,
   Share,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Screen from '../../components/ui/Screen';
 import GlassCard from '../../components/ui/GlassCard';
 import { colors, radii, tint, type as typ, overlays } from '../../theme';
 import { expenseService } from '../../services/expenseService';
+import ExpenseReports from './ExpenseReports';
 
 export default function ExpenseScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('expenses'); // 'expenses' | 'groups'
@@ -27,6 +29,13 @@ export default function ExpenseScreen({ navigation }) {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Create group modal state
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [newGroupCurrency, setNewGroupCurrency] = useState('INR');
+  const [creatingGroup, setCreatingGroup] = useState(false);
 
   const loadData = async () => {
     try {
@@ -78,6 +87,32 @@ export default function ExpenseScreen({ navigation }) {
       Alert.alert('Error', 'Failed to mark all as read');
     } finally {
       setMarkingAllRead(false);
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      Alert.alert('Validation Error', 'Please enter a group name.');
+      return;
+    }
+    try {
+      setCreatingGroup(true);
+      await expenseService.createGroup({
+        name: newGroupName.trim(),
+        description: newGroupDescription.trim() || undefined,
+        defaultCurrency: newGroupCurrency,
+      });
+      Alert.alert('Success', 'Group created successfully!');
+      setCreateModalVisible(false);
+      setNewGroupName('');
+      setNewGroupDescription('');
+      const updated = await expenseService.getGroups();
+      setGroups(updated);
+      setActiveTab('groups');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to create group');
+    } finally {
+      setCreatingGroup(false);
     }
   };
 
@@ -272,6 +307,14 @@ export default function ExpenseScreen({ navigation }) {
               Group Splits ({groups.length})
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'reports' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('reports')}
+          >
+            <Text style={[styles.tabText, activeTab === 'reports' && styles.tabTextActive]}>
+              Reports
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* TAB 1: Expenses List */}
@@ -335,6 +378,15 @@ export default function ExpenseScreen({ navigation }) {
         {/* TAB 2: Groups */}
         {activeTab === 'groups' && (
           <View style={styles.listContainer}>
+            <TouchableOpacity
+              style={styles.createGroupBtn}
+              onPress={() => setCreateModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={colors.violet} />
+              <Text style={styles.createGroupBtnText}>Create New Group</Text>
+            </TouchableOpacity>
+
             {groups.length === 0 ? (
               <GlassCard style={styles.emptyCard}>
                 <Ionicons name="people-outline" size={36} color={colors.textFaint} />
@@ -386,6 +438,11 @@ export default function ExpenseScreen({ navigation }) {
               })
             )}
           </View>
+        )}
+
+        {/* TAB 3: Reports */}
+        {activeTab === 'reports' && (
+          <ExpenseReports summary={summary} />
         )}
       </ScrollView>
 
@@ -481,6 +538,99 @@ export default function ExpenseScreen({ navigation }) {
                 ))
               )}
             </ScrollView>
+          </GlassCard>
+        </View>
+      </Modal>
+
+      {/* Create Group Modal */}
+      <Modal
+        visible={createModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <GlassCard style={styles.notifModalCard}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="people" size={20} color={colors.violet} />
+                <Text style={styles.modalTitle}>Create New Group</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setCreateModalVisible(false)}
+                style={styles.closeBtn}
+              >
+                <Ionicons name="close" size={20} color={colors.textSoft} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.createGroupForm}>
+              <Text style={styles.label}>GROUP NAME</Text>
+              <TextInput
+                value={newGroupName}
+                onChangeText={setNewGroupName}
+                placeholder="e.g. Goa Trip 2026"
+                placeholderTextColor={colors.textFaint}
+                style={styles.input}
+                autoFocus
+              />
+
+              <Text style={styles.label}>DESCRIPTION (OPTIONAL)</Text>
+              <TextInput
+                value={newGroupDescription}
+                onChangeText={setNewGroupDescription}
+                placeholder="e.g. Roommates' shared expenses"
+                placeholderTextColor={colors.textFaint}
+                style={styles.input}
+              />
+
+              <Text style={styles.label}>DEFAULT CURRENCY</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginTop: 6 }}
+              >
+                {['INR', 'USD', 'EUR', 'GBP', 'AED', 'JPY', 'CAD', 'AUD', 'SGD'].map((c) => (
+                  <TouchableOpacity
+                    key={c}
+                    onPress={() => setNewGroupCurrency(c)}
+                    style={[
+                      styles.currencyPill,
+                      newGroupCurrency === c && { backgroundColor: colors.violet },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.currencyPillText,
+                        newGroupCurrency === c && { color: colors.white },
+                      ]}
+                    >
+                      {c}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelGroupBtn}
+                onPress={() => setCreateModalVisible(false)}
+              >
+                <Text style={styles.cancelGroupBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmGroupBtn}
+                onPress={handleCreateGroup}
+                disabled={creatingGroup}
+              >
+                {creatingGroup ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={styles.confirmGroupBtnText}>Create Group</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </GlassCard>
         </View>
       </Modal>
@@ -669,4 +819,66 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.violet,
   },
+  createGroupBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: radii.lg,
+    backgroundColor: tint(colors.violet, 0.15),
+    borderWidth: 1,
+    borderColor: tint(colors.violet, 0.3),
+  },
+  createGroupBtnText: { fontSize: 13, fontWeight: '700', color: colors.violet },
+
+  // Create Group Modal Styles
+  createGroupForm: { gap: 4 },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1,
+    marginTop: 10,
+  },
+  input: {
+    color: colors.white,
+    fontSize: 15,
+    backgroundColor: overlays.mid,
+    borderRadius: radii.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 6,
+  },
+  currencyPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.full,
+    backgroundColor: overlays.mid,
+    marginRight: 8,
+  },
+  currencyPillText: { fontSize: 11, fontWeight: '600', color: colors.textMuted },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 20,
+  },
+  cancelGroupBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.md,
+    backgroundColor: overlays.soft,
+  },
+  cancelGroupBtnText: { color: colors.textSoft, fontWeight: '600' },
+  confirmGroupBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: radii.md,
+    backgroundColor: colors.violet,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmGroupBtnText: { color: colors.white, fontWeight: '700' },
 });

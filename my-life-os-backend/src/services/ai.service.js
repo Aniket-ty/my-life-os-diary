@@ -89,7 +89,7 @@ const chatWithAI = async (userMessage, history, userContext) => {
 
   if (!fullText && groq) {
     const response = await groq.chat.completions.create({
-      model: 'openai/gpt-oss-120b',
+      model: process.env.GROQ_CHAT_MODEL || 'llama-3.3-70b-versatile',
       messages,
       temperature: 0.7,
       max_tokens: 1024,
@@ -117,7 +117,7 @@ const chatWithAI = async (userMessage, history, userContext) => {
 // ── Food photo analysis ────────────────────────────────
 
 const VISION_MODELS = [
-  'qwen/qwen3.8-27b',
+  process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct',
 ];
 
 const FOOD_IMAGE_PROMPT = `You are a food nutrition expert. Look at the food photo and identify what food it is.

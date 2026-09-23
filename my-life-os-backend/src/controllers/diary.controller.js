@@ -43,19 +43,19 @@ const getEntry = async (req, res) => {
 };
 
 // Create new diary entry
+// content is optional when the entry uses stylus/handwriting mode — the drawing
+// is uploaded as a separate media attachment right after entry creation.
 const createEntry = async (req, res) => {
   try {
     const { title, content, mood, weather, entryDate, isPinned } = req.body;
 
-    if (!content) return res.status(400).json({ error: 'Content is required' });
-
     const entry = await prisma.diaryEntry.create({
       data: {
         userId: req.user.id,
-        title,
-        content,
-        mood,
-        weather,
+        title: title || null,
+        content: content || '',
+        mood: mood || null,
+        weather: weather || null,
         entryDate: entryDate ? new Date(entryDate) : new Date(),
         isPinned: isPinned || false,
       },

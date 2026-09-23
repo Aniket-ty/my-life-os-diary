@@ -4,7 +4,7 @@ import {
   StyleSheet, ActivityIndicator, Alert,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
-import BottomSheet, {
+import BottomSheetModal, {
   BottomSheetFlatList,
 } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
@@ -225,7 +225,7 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
           </View>
         </View>
         <TouchableOpacity
-          onPress={() => sheetRef.current?.close()}
+          onPress={() => sheetRef.current?.dismiss()}
           style={styles.closeBtn}
           activeOpacity={0.7}
         >
@@ -270,9 +270,8 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
   );
 
   return (
-    <BottomSheet
+    <BottomSheetModal
       ref={sheetRef}
-      index={-1}
       snapPoints={snapPoints}
       enablePanDownToClose
       backgroundStyle={styles.sheetBg}
@@ -300,7 +299,7 @@ export default function GlobalAISheet({ sheetRef, context = 'general', contextDa
       />
 
       {Footer}
-    </BottomSheet>
+    </BottomSheetModal>
   );
 }
 

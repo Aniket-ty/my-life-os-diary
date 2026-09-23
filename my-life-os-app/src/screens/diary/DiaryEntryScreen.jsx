@@ -103,7 +103,15 @@ export default function DiaryEntryScreen({ navigation, route }) {
 
           <View style={styles.divider} />
 
-          <Text style={styles.content}>{entry.content}</Text>
+          <Text style={styles.content}>
+            {entry.content
+              ? entry.content
+              : (entry.attachments || []).some((a) =>
+                  a.fileName?.toLowerCase().startsWith('handwriting_')
+                )
+              ? '✍️ Handwritten entry — see drawing below'
+              : ''}
+          </Text>
 
           {entry.attachments?.length > 0 && (
             <AttachmentStrip attachments={entry.attachments} />

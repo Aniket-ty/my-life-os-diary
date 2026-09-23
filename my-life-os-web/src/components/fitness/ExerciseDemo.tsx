@@ -27,8 +27,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
-const DEFAULT_FALLBACK_VIDEO: string = 'https://lorem.video/720p.mp4';
-const SECONDARY_FALLBACK_VIDEO: string = 'https://vjs.zencdn.net/v/oceans.mp4';
+// No generic video fallback — we use YouTube embed when no specific video is stored
 
 export interface WorkoutExerciseItem {
   id?: string;
@@ -77,13 +76,14 @@ export function ExerciseDemo({
 
   // Video states
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [activeVideoSrc, setActiveVideoSrc] = useState<string>(DEFAULT_FALLBACK_VIDEO);
+  const [activeVideoSrc, setActiveVideoSrc] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // MUST not autoplay with sound
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [showYouTube, setShowYouTube] = useState(false);  // show YouTube embed when no video URL
 
   // Add to workout modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -261,11 +261,15 @@ export function ExerciseDemo({
 
   // Synchronize video source when exercise changes
   useEffect(() => {
-    let src = exercise?.videoUrl || DEFAULT_FALLBACK_VIDEO;
-    if (src.includes('gtv-videos-bucket')) {
-      src = DEFAULT_FALLBACK_VIDEO;
+    const hasRealVideo = exercise?.videoUrl && !exercise.videoUrl.includes('gtv-videos-bucket');
+    if (hasRealVideo) {
+      setActiveVideoSrc(exercise!.videoUrl!);
+      setShowYouTube(false);
+    } else {
+      // No real video: default to YouTube embed
+      setActiveVideoSrc('');
+      setShowYouTube(true);
     }
-    setActiveVideoSrc(src);
     setIsPlaying(false);
     setVideoProgress(0);
     setVideoDuration(0);
@@ -292,16 +296,10 @@ export function ExerciseDemo({
             equipmentService.trackEvent('video_played', { exerciseName: exercise?.name });
           })
           .catch((err) => {
-            console.warn('Playback failed, switching to backup stream:', err);
+            console.warn('Playback failed:', err);
             setIsPlaying(false);
             setVideoLoading(false);
-            if (activeVideoSrc !== DEFAULT_FALLBACK_VIDEO) {
-              setActiveVideoSrc(DEFAULT_FALLBACK_VIDEO);
-            } else if (activeVideoSrc !== SECONDARY_FALLBACK_VIDEO) {
-              setActiveVideoSrc(SECONDARY_FALLBACK_VIDEO);
-            } else {
-              setVideoError(true);
-            }
+            setVideoError(true);  // show YouTube embed instead
           });
       }
     }
@@ -520,7 +518,7 @@ export function ExerciseDemo({
               <>
                 {/* Video Player Card */}
                 <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black aspect-video max-h-[360px] w-full shadow-lg">
-                  {activeVideoSrc && !videoError ? (
+                  {activeVideoSrc && !videoError && !showYouTube ? (
                     <>
                       <video
                         ref={videoRef}
@@ -543,17 +541,10 @@ export function ExerciseDemo({
                         onCanPlay={() => setVideoLoading(false)}
                         onLoadedData={() => setVideoLoading(false)}
                         onError={() => {
-                          console.warn('Video failed to load from:', activeVideoSrc);
-                          if (activeVideoSrc !== DEFAULT_FALLBACK_VIDEO) {
-                            setActiveVideoSrc(DEFAULT_FALLBACK_VIDEO);
-                            setVideoLoading(false);
-                          } else if (activeVideoSrc !== SECONDARY_FALLBACK_VIDEO) {
-                            setActiveVideoSrc(SECONDARY_FALLBACK_VIDEO);
-                            setVideoLoading(false);
-                          } else {
-                            setVideoError(true);
-                            setVideoLoading(false);
-                          }
+                          console.warn('Video failed, showing YouTube embed');
+                          setVideoError(true);
+                          setShowYouTube(true);
+                          setVideoLoading(false);
                         }}
                         className="h-full w-full object-cover cursor-pointer"
                         onClick={togglePlay}
@@ -579,7 +570,6 @@ export function ExerciseDemo({
 
                       {/* Custom Controls Bar */}
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 pt-6 transition-opacity group-hover:opacity-100 opacity-90 z-20">
-                        {/* Progress Scrubber Bar */}
                         <div
                           onClick={handleSeek}
                           className="mb-2 h-1.5 w-full cursor-pointer rounded-full bg-white/20 transition-all hover:h-2.5"
@@ -589,73 +579,38 @@ export function ExerciseDemo({
                             style={{ width: `${videoProgress}%` }}
                           />
                         </div>
-
-                        {/* Control Buttons */}
                         <div className="flex items-center justify-between text-white">
                           <div className="flex items-center gap-3">
-                            <button
-                              onClick={togglePlay}
-                              className="rounded-lg p-1.5 transition-colors hover:bg-white/20"
-                              title={isPlaying ? 'Pause' : 'Play'}
-                            >
+                            <button onClick={togglePlay} className="rounded-lg p-1.5 transition-colors hover:bg-white/20" title={isPlaying ? 'Pause' : 'Play'}>
                               {isPlaying ? <Pause size={18} /> : <Play size={18} className="fill-white" />}
                             </button>
-
-                            <button
-                              onClick={handleReplay}
-                              className="rounded-lg p-1.5 transition-colors hover:bg-white/20"
-                              title="Replay from start"
-                            >
+                            <button onClick={handleReplay} className="rounded-lg p-1.5 transition-colors hover:bg-white/20" title="Replay from start">
                               <RotateCcw size={17} />
                             </button>
-
-                            <button
-                              onClick={toggleMute}
-                              className="rounded-lg p-1.5 transition-colors hover:bg-white/20"
-                              title={isMuted ? 'Unmute' : 'Mute'}
-                            >
+                            <button onClick={toggleMute} className="rounded-lg p-1.5 transition-colors hover:bg-white/20" title={isMuted ? 'Unmute' : 'Mute'}>
                               {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                             </button>
                           </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-medium tracking-wide text-slate-300">
-                              HD Video Demonstration
-                            </span>
-                          </div>
+                          <span className="text-[11px] font-medium tracking-wide text-slate-300">HD Video Demonstration</span>
                         </div>
                       </div>
                     </>
                   ) : (
-                    /* Fallback when video is absent or failed to load */
-                    <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center">
-                      {exercise.thumbnailUrl ? (
-                        <img
-                          src={exercise.thumbnailUrl}
-                          alt={exercise.name}
-                          className="absolute inset-0 h-full w-full object-cover opacity-60"
-                        />
-                      ) : null}
-                      <div className="relative z-10 rounded-2xl bg-black/80 p-5 backdrop-blur-md max-w-sm border border-white/10">
-                        <Dumbbell size={36} className="mx-auto mb-2 text-violet-400" />
-                        <p className="font-semibold text-white">{exercise.name}</p>
-                        <p className="text-xs text-slate-300 mt-1">
-                          Demonstration preview · Follow execution details below
-                        </p>
-                        <button
-                          onClick={() => {
-                            setVideoError(false);
-                            setActiveVideoSrc(DEFAULT_FALLBACK_VIDEO);
-                            if (videoRef.current) {
-                              videoRef.current.load();
-                              videoRef.current.play().catch(() => {});
-                            }
-                          }}
-                          className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 shadow-md transition-all active:scale-95"
-                        >
-                          <RotateCcw size={14} />
-                          Load Demonstration Video
-                        </button>
+                    /* YouTube search embed when no video URL or video failed to load */
+                    <div className="relative h-full w-full flex flex-col">
+                      <iframe
+                        key={`yt-${exercise.name}`}
+                        src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(exercise.name + ' exercise tutorial form')}&autoplay=0&rel=0&modestbranding=1&fs=1`}
+                        title={`${exercise.name} exercise tutorial`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 h-full w-full border-0"
+                        loading="lazy"
+                      />
+                      {/* YouTube badge overlay */}
+                      <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 rounded-lg bg-black/70 px-2 py-1 backdrop-blur-sm pointer-events-none">
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-red-500"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+                        <span className="text-[10px] font-semibold text-white">YouTube · Live Search</span>
                       </div>
                     </div>
                   )}

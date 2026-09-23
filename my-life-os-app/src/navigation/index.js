@@ -14,6 +14,7 @@ import AddWorkoutScreen from '../screens/fitness/AddWorkoutScreen';
 import LogFoodScreen from '../screens/fitness/LogFoodScreen';
 import WorkoutPlannerScreen from '../screens/fitness/WorkoutPlannerScreen';
 import AIChatScreen from '../screens/ai/AIChatScreen';
+import ExerciseCatalogScreen from '../screens/fitness/ExerciseCatalogScreen';
 import TodoScreen from '../screens/todo/TodoScreen';
 import BodyScanScreen from '../screens/bodyscan/BodyScanScreen';
 import ExpenseScreen from '../screens/expenses/ExpenseScreen';
@@ -46,6 +47,7 @@ export default function Navigation() {
             <Stack.Screen name="LogFood" component={LogFoodScreen} />
             <Stack.Screen name="WorkoutPlanner" component={WorkoutPlannerScreen} />
             <Stack.Screen name="AIChat" component={AIChatScreen} />
+            <Stack.Screen name="ExerciseCatalog" component={ExerciseCatalogScreen} />
             <Stack.Screen name="TodoList" component={TodoScreen} />
             <Stack.Screen name="BodyScan" component={BodyScanScreen} />
             <Stack.Screen name="ExpenseList" component={ExpenseScreen} />

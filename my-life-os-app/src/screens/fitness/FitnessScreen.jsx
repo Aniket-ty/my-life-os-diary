@@ -199,6 +199,32 @@ export default function FitnessScreen({ navigation, route }) {
               >
                 {activitySubTab === 'workouts' ? (
                   <>
+                    {/* Gym Quick Actions */}
+                    <View style={styles.gymActions}>
+                      <TouchableOpacity
+                        style={[styles.gymActionCard, { borderColor: tint(colors.volt400, 0.4) }]}
+                        activeOpacity={0.8}
+                        onPress={() => navigation.navigate('ExerciseCatalog')}
+                      >
+                        <View style={[styles.gymActionIcon, { backgroundColor: tint(colors.volt500, 0.18) }]}>
+                          <Ionicons name="library-outline" size={22} color={colors.volt400} />
+                        </View>
+                        <Text style={styles.gymActionTitle}>Exercise Library</Text>
+                        <Text style={styles.gymActionSub}>Browse 200+ exercises</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.gymActionCard, { borderColor: tint(colors.violet, 0.4) }]}
+                        activeOpacity={0.8}
+                        onPress={() => navigation.navigate('VoiceAssistant')}
+                      >
+                        <View style={[styles.gymActionIcon, { backgroundColor: tint(colors.violet, 0.18) }]}>
+                          <Ionicons name="scan-outline" size={22} color={colors.violet} />
+                        </View>
+                        <Text style={styles.gymActionTitle}>Scan Machine</Text>
+                        <Text style={styles.gymActionSub}>Identify gym equipment</Text>
+                      </TouchableOpacity>
+                    </View>
+
                     {workouts.length === 0 ? (
                       <View style={styles.empty}>
                         <GlassCard style={styles.emptyCard} padded={false}>
@@ -485,7 +511,7 @@ export default function FitnessScreen({ navigation, route }) {
           )}
 
           {/* Global AI Sheet Trigger */}
-          <FloatingAIButton onPress={() => aiSheetRef.current?.expand()} />
+          <FloatingAIButton onPress={() => aiSheetRef.current?.present()} />
           <GlobalAISheet
             sheetRef={aiSheetRef}
             context="fitness"
@@ -551,6 +577,19 @@ const styles = StyleSheet.create({
     shadowColor: colors.volt500, marginTop: spacing.xl,
   },
   empty: { marginTop: spacing.md },
+  gymActions: {
+    flexDirection: 'row', gap: 10, marginBottom: spacing.md,
+  },
+  gymActionCard: {
+    flex: 1, backgroundColor: colors.card, borderRadius: radii.xl,
+    borderWidth: 1, padding: 14, alignItems: 'center', gap: 8,
+  },
+  gymActionIcon: {
+    width: 44, height: 44, borderRadius: radii.lg,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  gymActionTitle: { fontSize: 13, fontWeight: '700', color: colors.white, textAlign: 'center' },
+  gymActionSub: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
   emptyCard: { alignItems: 'center', justifyContent: 'center', paddingVertical: 32 },
   emptyInner: { alignItems: 'center', paddingHorizontal: 16 },
   emptyTitle: { fontSize: 16, fontWeight: '800', color: colors.white, marginTop: spacing.md },
